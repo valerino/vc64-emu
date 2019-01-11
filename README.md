@@ -1,4 +1,4 @@
-#vc64-emu
+# vc64-emu
 my attempt at a portable Commodore64 emulator
 
 * just started!

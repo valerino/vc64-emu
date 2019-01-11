@@ -7,6 +7,9 @@
 
 #include <SDL.h>
 
+// PAL c64 video output is set at 50hz
+#define DISPLAY_PAL_HZ 50
+
 /**
  * implements emulator display (VIC)
  */

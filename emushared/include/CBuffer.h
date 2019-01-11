@@ -16,9 +16,10 @@ public:
      * load buffer from file
      * @param path path to the buffer to be loaded
      * @param buffer on successful return, the buffer to be freed with free() once used
+     * @param buffer on successful return, size of the allocated buffer
      * @return 0 on success, or errno
      */
-    static int fromFile(const char* path, uint8_t** buffer);
+    static int fromFile(const char* path, uint8_t** buffer, uint32_t* size);
 };
 
 

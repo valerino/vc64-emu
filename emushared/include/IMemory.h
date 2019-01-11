@@ -12,6 +12,7 @@
  * defines the interface to access emulated memory
  */
 class IMemory {
+public:
     /**
      * read byte at address
      * @param address the address in the emulated memory
@@ -61,6 +62,13 @@ class IMemory {
      * @return 0 on success, or errno
      */
     virtual int readBytes(uint16_t address, uint8_t* b, uint16_t bufferSize, uint16_t readSize) = 0;
+
+    /**
+     * initializes emulated memory
+     * @return 0 on success, or errno
+     */
+    virtual int init() = 0;
+
 };
 
 #endif //VC64_EMU_IMEMORY_H

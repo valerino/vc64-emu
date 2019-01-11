@@ -8,3 +8,6 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 add_subdirectory(emushared)
 add_subdirectory(v65xx)
 add_subdirectory(vc64)
+
+# copy the bios folder to build directory
+file(COPY bios DESTINATION ${CMAKE_BINARY_DIR})

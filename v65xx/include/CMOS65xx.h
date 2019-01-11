@@ -11,8 +11,17 @@
 #include <IMemory.h>
 
 class CMOS65xx {
-public:
+private:
+    uint8_t _regA;
+    uint8_t _regX;
+    uint8_t _regY;
+    uint16_t _regPC;
+    uint8_t _regS;
+    uint8_t _regP;
+    int _currentCycles;
+    IMemory* _memory;
 
+public:
     /**
      * services an irq stored in the IRQ vector
      */
@@ -30,10 +39,10 @@ public:
     void run(int cycles);
 
     /**
-     * resets the cpu to the initial state
-     * @return
+     * resets the cpu and initializes for a new run
+     * @return 0 on success, or errno
      */
-    void reset();
+    int reset();
 
     /**
      * constructor
