@@ -6,6 +6,7 @@ add_library (${PROJECT_NAME} STATIC
         src/CSDLUtils.cpp
         include/IMemory.h
         )
+set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # needs sdsl2
 find_package(SDL2 REQUIRED)

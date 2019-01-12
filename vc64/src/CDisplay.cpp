@@ -7,28 +7,26 @@
 CDisplay* CDisplay::_instance = nullptr;
 
 CDisplay::CDisplay() {
-    _renderer = nullptr;
-    _window = nullptr;
+    memset(_ctx,0,sizeof(SDLDisplayCtx));
 }
 
-bool CDisplay::init() {
-    SDL_Renderer* r;
-    SDL_Window* w;
-    w = SDL_CreateWindow("vc64", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, 0);
-    if (!w) {
-        return false;
+int CDisplay::init(SDLDisplayCreateOptions* options, char** errorString) {
+    // init display
+    int res = CSDLUtils::initializeDisplayContext(_ctx, options, errorString);
+    if (res != 0) {
+        return res;
     }
-    r = SDL_CreateRenderer(w, -1, SDL_RENDERER_ACCELERATED);
-    if (!r) {
-        SDL_DestroyWindow(w);
-        return false;
+
+    // clear
+    res = CSDLUtils::clearDisplay(_ctx, errorString);
+    if (res != 0) {
+        CSDLUtils::finalizeDisplayContext(_ctx);
+        return res;
     }
-    SDL_SetRenderDrawColor(r, 0, 0, 0, SDL_ALPHA_OPAQUE);
-    SDL_RenderClear(_renderer);
-    SDL_RenderPresent(_renderer);
-    _renderer = r;
-    _window = w;
-    return true;
+
+    // show!
+    CSDLUtils::show(_ctx);
+    return 0;
 }
 
 CDisplay *CDisplay::instance() {
@@ -39,11 +37,10 @@ CDisplay *CDisplay::instance() {
 }
 
 CDisplay::~CDisplay() {
-    if (_renderer) {
-        SDL_DestroyRenderer(_renderer);
-    }
-    if (_window) {
-        SDL_DestroyWindow(_window);
-    }
+    CSDLUtils::finalizeDisplayContext(_ctx);
     delete this;
+}
+
+int CDisplay::update(uint8_t*frameBuffer, uint32_t size) {
+    return 0;
 }

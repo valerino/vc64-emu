@@ -4,6 +4,7 @@
 
 #include <CLog.h>
 #include <errno.h>
+#include <cstdlib>
 
 FILE* CLog::_out = stdout;
 FILE* CLog::_err = stderr;
@@ -20,6 +21,14 @@ void CLog::error(const char *format, ...) {
     va_start(ap, format);
     printInternal(true, format, ap);
     va_end(ap);
+}
+
+void CLog::fatal(const char *format, ...) {
+    va_list ap;
+    va_start(ap, format);
+    printInternal(true, format, ap);
+    va_end(ap);
+    exit(1);
 }
 
 void CLog::printInternal(bool error, const char*format,  va_list ap) {

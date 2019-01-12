@@ -55,13 +55,20 @@ int main (int argc, char** argv) {
     }
     CLog::print("SDL initialized OK!");
 
-    // TODO: check bios
-
     // create display
     CDisplay* display = CDisplay::instance();
-    bool initialized = display->init();
-    if (!initialized) {
-        CLog::error("%s", SDL_GetError());
+    SDLDisplayCreateOptions displayOpts = {};
+    displayOpts.posX = SDL_WINDOWPOS_CENTERED;
+    displayOpts.posY = SDL_WINDOWPOS_CENTERED;
+    displayOpts.w = 640;
+    displayOpts.h = 480;
+
+    displayOpts.windowName = "vc64-emu";
+    displayOpts.rendererFlags = SDL_RENDERER_ACCELERATED;
+    char* sdlError;
+    res = display->init(&displayOpts,&sdlError);
+    if (res != 0) {
+        CLog::error("%s", sdlError);
         SDL_Quit();
         return 1;
     }
@@ -78,6 +85,7 @@ int main (int argc, char** argv) {
 
     // create cpu
     CMOS65xx* cpu = new CMOS65xx(mem);
+
     if (cpu->reset() != 0) {
         // failed to load bios
         CLog::error("Failed to load bios files!");
@@ -87,18 +95,23 @@ int main (int argc, char** argv) {
     }
     CLog::print("CPU initialized OK!");
 
-    // emulate
-    // TODO: values for a PAL c64, taken from https://www.ktverkko.fi/~msmakela/8bit/cbm.html
+    // pal c64 runs at 0,985mhz
     int cpu_hz = 985248;
 
-    // these many cycles before a screen refresh
-    int cycles_to_run = cpu_hz / DISPLAY_PAL_HZ;
-
-    while (1) {
+    // these many cycles before vsync
+    int cyclesToRun = cpu_hz / DISPLAY_PAL_HZ;
+    int remainingCycles = 0;
+    while (true) {
         uint32_t start_ms = SDL_GetTicks();
-        // TODO: run cpu cycles
 
-        // TODO: screen update
+        // run the cpu until vsync
+        remainingCycles = cpu->run(cyclesToRun - remainingCycles);
+
+        // screen update
+        uint8_t* frameBuffer;
+        uint32_t fbSize;
+        mem->videoMemory(&frameBuffer, &fbSize);
+        display->update(frameBuffer, fbSize);
 
         // TODO: play audio
 
@@ -111,7 +124,7 @@ int main (int argc, char** argv) {
         }
         // TODO: process input
 
-        // sleep
+        // sleep until 1 second reached
         uint32_t end_ms = SDL_GetTicks();
         uint32_t elapsed = end_ms - start_ms;
         if (elapsed < 1000) {

@@ -46,6 +46,13 @@ public:
      * @param ...
      */
     static void error(const char* format, ...);
+
+    /**
+     * print error message, defaults to stderr, and abort
+     * @param format
+     * @param ...
+     */
+    static void fatal(const char* format, ...);
 };
 
 

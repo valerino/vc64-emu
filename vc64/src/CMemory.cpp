@@ -127,3 +127,13 @@ int CMemory::init() {
     // load bios
     return loadBios();
 }
+
+int CMemory::videoMemory(uint8_t **frameBuffer, uint32_t *size) {
+    if (!frameBuffer || !size) {
+        return EINVAL;
+    }
+    *frameBuffer = _mem + MEMORY_FRAMEBUFFER_ADDRESS;
+    *size = MEMORY_FRAMEBUFFER_SIZE;
+    return 0;
+}
+

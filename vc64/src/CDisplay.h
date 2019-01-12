@@ -5,7 +5,7 @@
 #ifndef VC64_EMU_CDISPLAY_H
 #define VC64_EMU_CDISPLAY_H
 
-#include <SDL.h>
+#include <CSDLUtils.h>
 
 // PAL c64 video output is set at 50hz
 #define DISPLAY_PAL_HZ 50
@@ -16,8 +16,7 @@
 class CDisplay {
 
 private:
-    SDL_Window * _window;
-    SDL_Renderer * _renderer;
+    SDLDisplayCtx * _ctx;
     CDisplay();
     static CDisplay* _instance;
 
@@ -30,9 +29,19 @@ public:
 
     /**
      * to be called first to initialize display
-     * @return true on success
+     * @param options window creation options
+     * @param errorString on error, this is filled with a pointer to the SDL error string
+     * @return 0 on success, or errno
      */
-    bool init();
+    int init(SDLDisplayCreateOptions* options, char** errorString);
+
+    /**
+     * update the display
+     * @param frameBuffer pointer to the video memory
+     * @param size size of the framebuffer
+     * @return 0 on success
+     */
+    int update(uint8_t* frameBuffer, uint32_t size);
 
     ~CDisplay();
 };
