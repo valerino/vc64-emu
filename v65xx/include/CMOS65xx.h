@@ -468,13 +468,36 @@ private:
     void logExecution(const char *opcodeName,  uint8_t opcodeByte, uint16_t operand, int addressingMode);
 
     /**
-     * returns instruction info depending on the addressing mode
+     * parse instruction depending on the addressing mode
      * @param addressingMode one of the addressing modes
+     * @param operandAddress on return, address from where the operand is fetched (always = PC + 1)
      * @param operand on return, the operand if any
      * @param on return, the instruction size
      * @return false if there's no operand (implied/accumulator)
      */
-    void parseInstruction(int addressingMode, uint16_t* operand, int* size);
+    void parseInstruction(uint8_t opcodeByte, const char* functionName, int addressingMode, uint16_t* operandAddress, uint16_t* operand, int* size);
+
+    /**
+     * to be called post executing certain instructions, handle page crossing with carry flag
+     * @param addressingMode one of the addressing modes
+     * @param cycles on input, instruction cycles. on output, eventually cycles + 1
+     */
+    void postExecHandlePageCrossing(int addressingMode, int* cycles);
+
+    /**
+     * to be called post executing certain instructions, handle rewriting memory with operand
+     * @param addressingMode one of the addressing modes
+     * @param operandAddress the operand address
+     * @param operand the operand
+     */
+    void postExecHandleMemoryOperand(int addressingMode, uint16_t operandAddress, uint16_t operand);
+
+    /**
+     * to be called post executing certain instructions, handles accumulator addressing (write operand back into accumulator)
+     * @param addressingMode one of the addressing modes
+     * @param operand the operand
+     */
+    void postExecHandleAccumulatorAddressing(int addressingMode, uint16_t operand);
 
 public:
     /**

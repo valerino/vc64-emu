@@ -6,3 +6,6 @@ portable MOS 6502/6510 emulator.
 * http://www.atarihq.com/danb/files/64doc.txt
 * http://www.oxyron.de/html/opcodes02.html
 * https://www.masswerk.at/6502/6502_instruction_set.html
+* https://wiki.nesdev.com/w/index.php/Status_flags
+* http://obelisk.me.uk/6502/reference.html
+* http://www.thealmightyguru.com/Games/Hacking/Wiki/index.php/6502_Opcodes
