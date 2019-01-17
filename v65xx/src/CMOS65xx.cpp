@@ -86,6 +86,7 @@ void CMOS65xx::logExecution(const char *name, uint8_t opcodeByte, uint16_t opera
             strncpy(mode,"ZPY",sizeof(mode));
             break;
         default:
+            strncpy(mode,"UNK",sizeof(mode));
             break;
     }
 
@@ -112,9 +113,12 @@ void CMOS65xx::logExecution(const char *name, uint8_t opcodeByte, uint16_t opera
     if (_regP & P_FLAG_NEGATIVE) {
         strcat(s,"N");
     }
-
+    if (s[0] == '\0') {
+        // empty
+        s[0]='-';
+    }
     char registers[128] = {};
-    snprintf(registers, sizeof(registers), "PC=$%04x, A=$%02x, X=$%02x, Y=$%02x, P=$%02x(%s), S=$%02x, AddrMode=%s", _regPC, _regA, _regX, _regY, _regP, s, _regS, mode);
+    snprintf(registers, sizeof(registers), "AddrMode=%s,\tPC=$%04x, A=$%02x, X=$%02x, Y=$%02x, S=$%02x, P=$%02x(%s)", mode, _regPC, _regA, _regX, _regY, _regS, _regP, s);
 
     if (addressingMode == ADDRESSING_MODE_IMPLIED) {
         // no operand
@@ -302,7 +306,7 @@ void CMOS65xx::parseInstruction(uint8_t opcodeByte, const char* functionName, in
     }
 }
 
-void CMOS65xx::postExecHandlePageCrossing(int addressingMode, int* cycles) {
+void CMOS65xx::postExecHandlePageCrossingWithCarry(int addressingMode, int *cycles) {
     if (IS_FLAG_CARRY &&
         (addressingMode == ADDRESSING_MODE_ABSOLUTE_INDEXED_X || addressingMode == ADDRESSING_MODE_ABSOLUTE_INDEXED_Y ||
          addressingMode == ADDRESSING_MODE_INDIRECT_INDEXED_Y)) {
@@ -313,7 +317,7 @@ void CMOS65xx::postExecHandlePageCrossing(int addressingMode, int* cycles) {
 
 void CMOS65xx::postExecHandleAccumulatorAddressing(int addressingMode, uint16_t operand) {
     if (addressingMode == ADDRESSING_MODE_ACCUMULATOR) {
-        _regA = operand;
+        _regA = operand & 0xff;
     }
 }
 
@@ -326,18 +330,13 @@ void CMOS65xx::postExecHandleMemoryOperand(int addressingMode, uint16_t operandA
     }
 }
 
-void CMOS65xx::irq() {
-    // if disable irq flag is NOT set
-    if (! (IS_FLAG_IRQ_DISABLE)) {
-        // push PC and P on the stack
-        pushWord(_regPC);
-        pushByte(_regP);
+void CMOS65xx::handlePageCrossingOnBranch(uint16_t operand, int *cycles) {
+    // branch is taken
+    *cycles++;
 
-        // set disable irq flag
-        SET_FLAG_IRQ_DISABLE(true);
-
-        // and set PC to run the IRQ service routine located at the IRQ vector
-        _memory->readWord(VECTOR_IRQ, &_regPC);
+    if (operand > (_regPC % 0xff)) {
+        // page transition, add another cycle
+        *cycles++;
     }
 }
 
@@ -443,7 +442,7 @@ void CMOS65xx::ADC(int opcodeByte, int addressingMode, int* cycles, int* size) {
 
     // done
     _regA = sum & 0xff;
-    postExecHandlePageCrossing(addressingMode, cycles);
+    postExecHandlePageCrossingWithCarry(addressingMode, cycles);
 }
 
 void CMOS65xx::AND(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -453,7 +452,7 @@ void CMOS65xx::AND(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size);
 
     // exec
-    _regA = _regA & operand;
+    _regA &= (operand & 0xff);
     SET_FLAG_ZERO(_regA == 0)
     SET_FLAG_NEGATIVE(operand & 0x80)
 }
@@ -469,6 +468,8 @@ void CMOS65xx::ASL(int opcodeByte, int addressingMode, int* cycles, int* size) {
     operand <<= 1;
     postExecHandleAccumulatorAddressing(addressingMode, operand);
     postExecHandleMemoryOperand(addressingMode, operandAddr, operand);
+    SET_FLAG_ZERO(operand == 0)
+    SET_FLAG_NEGATIVE(operand & 0x80)
 }
 
 void CMOS65xx::BCC(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -478,6 +479,11 @@ void CMOS65xx::BCC(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size);
 
     // exec
+    if (! (IS_FLAG_CARRY)) {
+        handlePageCrossingOnBranch(operand, cycles);
+        _regPC = operand;
+        *size = 0;
+    }
 }
 
 void CMOS65xx::BCS(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -487,6 +493,11 @@ void CMOS65xx::BCS(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size);
 
     // exec
+    if (IS_FLAG_CARRY) {
+        handlePageCrossingOnBranch(operand, cycles);
+        _regPC = operand;
+        *size = 0;
+    }
 }
 
 void CMOS65xx::BEQ(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -496,6 +507,11 @@ void CMOS65xx::BEQ(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size);
 
     // exec
+    if (IS_FLAG_ZERO) {
+        handlePageCrossingOnBranch(operand, cycles);
+        _regPC = operand;
+        *size = 0;
+    }
 }
 
 void CMOS65xx::BIT(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -505,6 +521,9 @@ void CMOS65xx::BIT(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size);
 
     // exec
+    SET_FLAG_ZERO ((_regA & operand) == 0);
+    SET_FLAG_NEGATIVE(operand & 0x80)
+    SET_FLAG_OVERFLOW(operand & 0x40)
 }
 
 void CMOS65xx::BMI(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -514,6 +533,11 @@ void CMOS65xx::BMI(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size);
 
     // exec
+    if (IS_FLAG_NEGATIVE) {
+        handlePageCrossingOnBranch(operand, cycles);
+        _regPC = operand;
+        *size = 0;
+    }
 }
 
 void CMOS65xx::BNE(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -523,6 +547,11 @@ void CMOS65xx::BNE(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size);
 
     // exec
+    if (! (IS_FLAG_ZERO)) {
+        handlePageCrossingOnBranch(operand, cycles);
+        _regPC = operand;
+        *size = 0;
+    }
 }
 
 void CMOS65xx::BPL(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -532,6 +561,11 @@ void CMOS65xx::BPL(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size);
 
     // exec
+    if (! (IS_FLAG_NEGATIVE)) {
+        handlePageCrossingOnBranch(operand, cycles);
+        _regPC = operand;
+        *size = 0;
+    }
 }
 
 void CMOS65xx::BRK(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -541,6 +575,15 @@ void CMOS65xx::BRK(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size);
 
     // exec
+    // push PC and P on stack
+    pushWord(_regPC);
+    pushByte(_regP);
+
+    // set break flag
+    SET_FLAG_BRK_COMMAND(true);
+
+    // and set PC to run the IRQ service routine located at the IRQ vector
+    _memory->readWord(VECTOR_IRQ, &_regPC);
 }
 
 void CMOS65xx::BVC(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -550,6 +593,11 @@ void CMOS65xx::BVC(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size);
 
     // exec
+    if (! (IS_FLAG_OVERFLOW)) {
+        handlePageCrossingOnBranch(operand, cycles);
+        _regPC = operand;
+        *size = 0;
+    }
 }
 
 void CMOS65xx::BVS(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -559,6 +607,11 @@ void CMOS65xx::BVS(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size);
 
     // exec
+    if (IS_FLAG_OVERFLOW) {
+        handlePageCrossingOnBranch(operand, cycles);
+        _regPC = operand;
+        *size = 0;
+    }
 }
 
 void CMOS65xx::CLC(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -568,6 +621,7 @@ void CMOS65xx::CLC(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size);
 
     // exec
+    SET_FLAG_CARRY(false)
 }
 
 void CMOS65xx::CLD(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -577,6 +631,7 @@ void CMOS65xx::CLD(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size);
 
     // exec
+    SET_FLAG_DECIMAL_MODE(false)
 }
 
 void CMOS65xx::CLI(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -586,6 +641,7 @@ void CMOS65xx::CLI(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size);
 
     // exec
+    SET_FLAG_IRQ_DISABLE(false)
 }
 
 void CMOS65xx::CLV(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -595,6 +651,7 @@ void CMOS65xx::CLV(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size);
 
     // exec
+    SET_FLAG_OVERFLOW(false)
 }
 
 void CMOS65xx::CMP(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -604,6 +661,11 @@ void CMOS65xx::CMP(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size);
 
     // exec
+    operand &= 0xff;
+    SET_FLAG_CARRY(_regA >= operand)
+    SET_FLAG_ZERO(_regA == operand)
+    SET_FLAG_NEGATIVE((_regA - operand) & 0x80)
+    postExecHandlePageCrossingWithCarry(addressingMode, cycles);
 }
 
 void CMOS65xx::CPX(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -613,6 +675,10 @@ void CMOS65xx::CPX(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size);
 
     // exec
+    operand &= 0xff;
+    SET_FLAG_CARRY(_regX >= operand)
+    SET_FLAG_ZERO(_regX == operand)
+    SET_FLAG_NEGATIVE((_regX - operand) & 0x80)
 }
 
 void CMOS65xx::CPY(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -622,6 +688,10 @@ void CMOS65xx::CPY(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size);
 
     // exec
+    operand &= 0xff;
+    SET_FLAG_CARRY(_regY >= operand)
+    SET_FLAG_ZERO(_regY == operand)
+    SET_FLAG_NEGATIVE((_regY - operand) & 0x80)
 }
 
 void CMOS65xx::DEC(int opcodeByte, int addressingMode, int* cycles, int* size) {

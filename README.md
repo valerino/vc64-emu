@@ -10,3 +10,4 @@ my attempt at a portable Commodore64 emulator.
 ## references
 * https://www.c64-wiki.com
 * https://www.ktverkko.fi/~msmakela/8bit/cbm.html (display)
+* https://www.c64-wiki.com/wiki/Memory_Map

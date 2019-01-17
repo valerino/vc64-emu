@@ -482,7 +482,14 @@ private:
      * @param addressingMode one of the addressing modes
      * @param cycles on input, instruction cycles. on output, eventually cycles + 1
      */
-    void postExecHandlePageCrossing(int addressingMode, int* cycles);
+    void postExecHandlePageCrossingWithCarry(int addressingMode, int *cycles);
+
+    /**
+     * to be called in branch instructions to increment cycle count on page crossing
+     * @param operand the operand (the branch target)
+     * @param cycles on input, instruction cycles. on output, cycles + 1 (branch taken) or eventually cycles + 2 (page crossing)
+     */
+    void handlePageCrossingOnBranch(uint16_t operand, int *cycles);
 
     /**
      * to be called post executing certain instructions, handle rewriting memory with operand
@@ -500,11 +507,6 @@ private:
     void postExecHandleAccumulatorAddressing(int addressingMode, uint16_t operand);
 
 public:
-    /**
-     * services an irq, transferring control to the IRQ vector
-     */
-    void irq();
-
     /**
      * run the cpu for the specified number of cycles
      * @param cyclesToRun number of cycles to be run
