@@ -15,7 +15,7 @@ class CLog {
 private:
     static FILE* _out;
     static FILE* _err;
-    static void printInternal(bool error, const char* format, va_list ap);
+    static void printInternal(int error, FILE* stream, const char* format, va_list ap);
     static int redirectInternal(bool error, const char *path);
 
 public:
@@ -34,25 +34,64 @@ public:
     static int redirectStderr(const char* path);
 
     /**
-     * print log message, defaults to stdout
+     * print log message followed by newline, defaults to stdout
      * @param format
      * @param ...
      */
     static void print(const char* format, ...);
 
     /**
-     * print error message, defaults to stderr
+     * print log message followed by newline, to the given stream
+     * @param stream
+     * @param format
+     * @param ...
+     */
+    static void fprint(FILE* stream, const char* format, ...);
+
+    /**
+     * print log message to the given stream, with no [] prefix
+     * @param stream
+     * @param format
+     * @param ...
+     */
+    static void fprintRaw(FILE *stream, const char *format, ...);
+
+    /**
+     * print log message, with no [] prefix, defaults to stdout
+     * @param format
+     * @param ...
+     */
+    static void printRaw(const char *format, ...);
+
+    /**
+     * print error message followed by newline, defaults to stderr
      * @param format
      * @param ...
      */
     static void error(const char* format, ...);
 
     /**
-     * print error message, defaults to stderr, and abort
+     * print error message followed by newline, to the given stream
+     * @param stream
+     * @param format
+     * @param ...
+     */
+    static void ferror(FILE* stream, const char* format, ...);
+
+    /**
+     * print error message followed by newline, defaults to stderr, and abort
      * @param format
      * @param ...
      */
     static void fatal(const char* format, ...);
+
+    /**
+     * print error message followed by newline to the given stream, and abort
+     * @param stream the stream
+     * @param format
+     * @param ...
+     */
+    static void ffatal(FILE* stream, const char* format, ...);
 };
 
 

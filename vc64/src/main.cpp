@@ -16,8 +16,8 @@
  * shows banner
  */
 void banner() {
-    printf("vc64 - a c64 emulator\n");
-    printf("(c)opyleft, valerino, y2k19\n\n");
+    CLog::printRaw("vc64 - a c64 emulator\n");
+    CLog::printRaw("(c)opyleft, valerino, y2k19\n\n");
 }
 
 /**
@@ -25,7 +25,7 @@ void banner() {
  * @param argv
  */
 void usage(char** argv) {
-    printf("usage: %s -f [file to play]\n", argv[0]);
+    CLog::error("usage: %s -f [file to play]\n", argv[0]);
 }
 
 int main (int argc, char** argv) {
@@ -80,12 +80,11 @@ int main (int argc, char** argv) {
 
     if (path != nullptr) {
         // TODO: load PRG/CRT into memory
-        CLog::print("loading file: %s", path);
+        CLog::print("Loading file: %s", path);
     }
 
     // create cpu
     CMOS65xx* cpu = new CMOS65xx(mem);
-
     if (cpu->reset() != 0) {
         // failed to load bios
         CLog::error("Failed to load bios files!");

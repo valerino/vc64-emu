@@ -52,11 +52,11 @@ private:
             { 7, &CMOS65xx::BRK, ADDRESSING_MODE_IMPLIED},
             { 6, &CMOS65xx::ORA, ADDRESSING_MODE_INDIRECT_INDEXED_X},
             { 1, &CMOS65xx::KIL, ADDRESSING_MODE_INVALID},
-            { 8, &CMOS65xx::SLO, ADDRESSING_MODE_INDIRECT_INDEXED_X},
+            { 8, &CMOS65xx::SLO_ASO, ADDRESSING_MODE_INDIRECT_INDEXED_X},
             { 3, &CMOS65xx::NOP, ADDRESSING_MODE_ZEROPAGE},
             { 3, &CMOS65xx::ORA, ADDRESSING_MODE_ZEROPAGE},
             { 5, &CMOS65xx::ASL, ADDRESSING_MODE_ZEROPAGE},
-            { 5, &CMOS65xx::SLO, ADDRESSING_MODE_ZEROPAGE},
+            { 5, &CMOS65xx::SLO_ASO, ADDRESSING_MODE_ZEROPAGE},
             { 3, &CMOS65xx::PHP, ADDRESSING_MODE_IMPLIED},
             { 2, &CMOS65xx::ORA, ADDRESSING_MODE_IMMEDIATE},
             { 2, &CMOS65xx::ASL, ADDRESSING_MODE_ACCUMULATOR},
@@ -64,25 +64,25 @@ private:
             { 4, &CMOS65xx::NOP, ADDRESSING_MODE_ABSOLUTE},
             { 4, &CMOS65xx::ORA, ADDRESSING_MODE_ABSOLUTE},
             { 6, &CMOS65xx::ASL, ADDRESSING_MODE_ABSOLUTE},
-            { 6, &CMOS65xx::SLO, ADDRESSING_MODE_ABSOLUTE},
+            { 6, &CMOS65xx::SLO_ASO, ADDRESSING_MODE_ABSOLUTE},
 
             // 0x10-0x1f
             { 2, &CMOS65xx::BPL, ADDRESSING_MODE_RELATIVE},
             { 5, &CMOS65xx::ORA, ADDRESSING_MODE_INDIRECT_INDEXED_Y},
             { 1, &CMOS65xx::KIL, ADDRESSING_MODE_INVALID},
-            { 8, &CMOS65xx::SLO, ADDRESSING_MODE_INDIRECT_INDEXED_Y},
+            { 8, &CMOS65xx::SLO_ASO, ADDRESSING_MODE_INDIRECT_INDEXED_Y},
             { 4, &CMOS65xx::NOP, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 4, &CMOS65xx::ORA, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 6, &CMOS65xx::ASL, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
-            { 6, &CMOS65xx::SLO, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
+            { 6, &CMOS65xx::SLO_ASO, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 2, &CMOS65xx::CLC, ADDRESSING_MODE_IMPLIED},
             { 4, &CMOS65xx::ORA, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
             { 2, &CMOS65xx::NOP, ADDRESSING_MODE_IMPLIED},
-            { 7, &CMOS65xx::SLO, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
+            { 7, &CMOS65xx::SLO_ASO, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
             { 4, &CMOS65xx::NOP, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
             { 4, &CMOS65xx::ORA, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
             { 7, &CMOS65xx::ASL, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
-            { 7, &CMOS65xx::SLO, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
+            { 7, &CMOS65xx::SLO_ASO, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
 
             // 0x20-0x2f
             { 6, &CMOS65xx::JSR, ADDRESSING_MODE_ABSOLUTE},
@@ -337,46 +337,22 @@ private:
             { 7, &CMOS65xx::ISC, ADDRESSING_MODE_ABSOLUTE_INDEXED_X}
     };
 
-    // accumulator
+    /**
+     * registers
+     */
     uint8_t _regA;
-
-    // addressing registers
     uint8_t _regX;
     uint8_t _regY;
-
-    // program counter
     uint16_t _regPC;
-
-    // stack pointer
     uint8_t _regS;
-
-    // status register
     uint8_t _regP;
 
+    // the emulated memory
     IMemory* _memory;
 
-    /**
-     * push a word (16 bit) on the stack
-     * @param w the word to be pushed
-     */
     void pushWord(uint16_t w);
-
-    /**
-     * push a byte on the stack
-     * @param b the byte to be pushed
-     */
     void pushByte(uint8_t b);
-
-    /**
-     * pop a word (16 bit) from the stack
-     * @return the word
-     */
     uint16_t popWord();
-
-    /**
-     * pop a byte from the stack
-     * @return the word
-     */
     uint8_t popByte();
 
     // standard instructions
@@ -452,59 +428,17 @@ private:
     void  SAX(int opcodeByte, int addressingMode, int* cycles, int* size);
     void  SHX(int opcodeByte, int addressingMode, int* cycles, int* size);
     void  SHY(int opcodeByte, int addressingMode, int* cycles, int* size);
-    void  SLO(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void  SLO_ASO(int opcodeByte, int addressingMode, int *cycles, int *size);
     void  SRE(int opcodeByte, int addressingMode, int* cycles, int* size);
     void  TAS(int opcodeByte, int addressingMode, int* cycles, int* size);
     void  XAA(int opcodeByte, int addressingMode, int* cycles, int* size);
     void  KIL(int opcodeByte, int addressingMode, int* cycles, int* size);
 
-    /**
-     * only for debugging, print execution
-     * @param opcodeName name of the opcode
-     * @param opcodeByte the opcode
-     * @param operand the operand if any
-     * @param addressingMode one of the addressing modes
-     */
     void logExecution(const char *opcodeName,  uint8_t opcodeByte, uint16_t operand, int addressingMode);
-
-    /**
-     * parse instruction depending on the addressing mode
-     * @param addressingMode one of the addressing modes
-     * @param operandAddress on return, address from where the operand is fetched (always = PC + 1)
-     * @param operand on return, the operand if any
-     * @param on return, the instruction size
-     * @return false if there's no operand (implied/accumulator)
-     */
-    void parseInstruction(uint8_t opcodeByte, const char* functionName, int addressingMode, uint16_t* operandAddress, uint16_t* operand, int* size);
-
-    /**
-     * to be called post executing certain instructions, handle page crossing with carry flag
-     * @param addressingMode one of the addressing modes
-     * @param cycles on input, instruction cycles. on output, eventually cycles + 1
-     */
-    void postExecHandlePageCrossingWithCarry(int addressingMode, int *cycles);
-
-    /**
-     * to be called in branch instructions to increment cycle count on page crossing
-     * @param operand the operand (the branch target)
-     * @param cycles on input, instruction cycles. on output, cycles + 1 (branch taken) or eventually cycles + 2 (page crossing)
-     */
+    void parseInstruction(uint8_t opcodeByte, const char* functionName, int addressingMode, uint16_t* operandAddress, uint16_t* operand, int* size, int* cycles);
+    void postExecHandleResultOperand(int addressingMode, uint16_t operandAddress, uint16_t operand);
     void handlePageCrossingOnBranch(uint16_t operand, int *cycles);
-
-    /**
-     * to be called post executing certain instructions, handle rewriting memory with operand
-     * @param addressingMode one of the addressing modes
-     * @param operandAddress the operand address
-     * @param operand the operand
-     */
-    void postExecHandleMemoryOperand(int addressingMode, uint16_t operandAddress, uint16_t operand);
-
-    /**
-     * to be called post executing certain instructions, handles accumulator addressing (write operand back into accumulator)
-     * @param addressingMode one of the addressing modes
-     * @param operand the operand
-     */
-    void postExecHandleAccumulatorAddressing(int addressingMode, uint16_t operand);
+    void handlePageCrossing(int addressingMode, uint16_t operand, int* cycles);
 
 public:
     /**
