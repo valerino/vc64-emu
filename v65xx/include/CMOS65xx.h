@@ -33,8 +33,8 @@
 
 class CMOS65xx {
 private:
-    // the opcode matrix (taken from http://www.oxyron.de/html/opcodes02.html)
-    // each opcode handler takds the addressing mode and number of cycles for that addressing mode in input,
+    // the opcode matrix
+    // each opcode handler takes the addressing mode and number of cycles for that addressing mode in input,
     // and returns the number of cycles effectively occupied by the instruction (which may be different than the input
     // cycles) and the instruction size
     typedef void (CMOS65xx::*OpcodePtr)(int opcodeByte, int addressingMode, int* cycles, int* size);
@@ -52,37 +52,37 @@ private:
             { 7, &CMOS65xx::BRK, ADDRESSING_MODE_IMPLIED},
             { 6, &CMOS65xx::ORA, ADDRESSING_MODE_INDIRECT_INDEXED_X},
             { 1, &CMOS65xx::KIL, ADDRESSING_MODE_INVALID},
-            { 8, &CMOS65xx::SLO_ASO, ADDRESSING_MODE_INDIRECT_INDEXED_X},
-            { 3, &CMOS65xx::NOP, ADDRESSING_MODE_ZEROPAGE},
+            { 8, &CMOS65xx::ASO, ADDRESSING_MODE_INDIRECT_INDEXED_X},
+            { 3, &CMOS65xx::SKB, ADDRESSING_MODE_ZEROPAGE},
             { 3, &CMOS65xx::ORA, ADDRESSING_MODE_ZEROPAGE},
             { 5, &CMOS65xx::ASL, ADDRESSING_MODE_ZEROPAGE},
-            { 5, &CMOS65xx::SLO_ASO, ADDRESSING_MODE_ZEROPAGE},
+            { 5, &CMOS65xx::ASO, ADDRESSING_MODE_ZEROPAGE},
             { 3, &CMOS65xx::PHP, ADDRESSING_MODE_IMPLIED},
             { 2, &CMOS65xx::ORA, ADDRESSING_MODE_IMMEDIATE},
             { 2, &CMOS65xx::ASL, ADDRESSING_MODE_ACCUMULATOR},
             { 2, &CMOS65xx::ANC, ADDRESSING_MODE_IMMEDIATE},
-            { 4, &CMOS65xx::NOP, ADDRESSING_MODE_ABSOLUTE},
+            { 4, &CMOS65xx::SKW, ADDRESSING_MODE_ABSOLUTE},
             { 4, &CMOS65xx::ORA, ADDRESSING_MODE_ABSOLUTE},
             { 6, &CMOS65xx::ASL, ADDRESSING_MODE_ABSOLUTE},
-            { 6, &CMOS65xx::SLO_ASO, ADDRESSING_MODE_ABSOLUTE},
+            { 6, &CMOS65xx::ASO, ADDRESSING_MODE_ABSOLUTE},
 
             // 0x10-0x1f
             { 2, &CMOS65xx::BPL, ADDRESSING_MODE_RELATIVE},
             { 5, &CMOS65xx::ORA, ADDRESSING_MODE_INDIRECT_INDEXED_Y},
             { 1, &CMOS65xx::KIL, ADDRESSING_MODE_INVALID},
-            { 8, &CMOS65xx::SLO_ASO, ADDRESSING_MODE_INDIRECT_INDEXED_Y},
-            { 4, &CMOS65xx::NOP, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
+            { 8, &CMOS65xx::ASO, ADDRESSING_MODE_INDIRECT_INDEXED_Y},
+            { 4, &CMOS65xx::SKB, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 4, &CMOS65xx::ORA, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 6, &CMOS65xx::ASL, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
-            { 6, &CMOS65xx::SLO_ASO, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
+            { 6, &CMOS65xx::ASO, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 2, &CMOS65xx::CLC, ADDRESSING_MODE_IMPLIED},
             { 4, &CMOS65xx::ORA, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
             { 2, &CMOS65xx::NOP, ADDRESSING_MODE_IMPLIED},
-            { 7, &CMOS65xx::SLO_ASO, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
-            { 4, &CMOS65xx::NOP, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
+            { 7, &CMOS65xx::ASO, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
+            { 4, &CMOS65xx::SKW, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
             { 4, &CMOS65xx::ORA, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
             { 7, &CMOS65xx::ASL, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
-            { 7, &CMOS65xx::SLO_ASO, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
+            { 7, &CMOS65xx::ASO, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
 
             // 0x20-0x2f
             { 6, &CMOS65xx::JSR, ADDRESSING_MODE_ABSOLUTE},
@@ -107,7 +107,7 @@ private:
             { 5, &CMOS65xx::AND, ADDRESSING_MODE_INDIRECT_INDEXED_Y},
             { 1, &CMOS65xx::KIL, ADDRESSING_MODE_INVALID},
             { 8, &CMOS65xx::RLA, ADDRESSING_MODE_INDIRECT_INDEXED_Y},
-            { 4, &CMOS65xx::NOP, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
+            { 4, &CMOS65xx::SKB, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 4, &CMOS65xx::AND, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 6, &CMOS65xx::ROL, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 6, &CMOS65xx::RLA, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
@@ -115,7 +115,7 @@ private:
             { 4, &CMOS65xx::AND, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
             { 2, &CMOS65xx::NOP, ADDRESSING_MODE_IMPLIED},
             { 7, &CMOS65xx::RLA, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
-            { 4, &CMOS65xx::NOP, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
+            { 4, &CMOS65xx::SKW, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
             { 4, &CMOS65xx::AND, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
             { 7, &CMOS65xx::ROL, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
             { 7, &CMOS65xx::RLA, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
@@ -124,11 +124,11 @@ private:
             { 6, &CMOS65xx::RTI, ADDRESSING_MODE_IMPLIED},
             { 6, &CMOS65xx::EOR, ADDRESSING_MODE_INDIRECT_INDEXED_X},
             { 1, &CMOS65xx::KIL, ADDRESSING_MODE_INVALID},
-            { 8, &CMOS65xx::SRE, ADDRESSING_MODE_INDIRECT_INDEXED_X},
-            { 3, &CMOS65xx::NOP, ADDRESSING_MODE_ZEROPAGE},
+            { 8, &CMOS65xx::LSE, ADDRESSING_MODE_INDIRECT_INDEXED_X},
+            { 3, &CMOS65xx::SKB, ADDRESSING_MODE_ZEROPAGE},
             { 3, &CMOS65xx::EOR, ADDRESSING_MODE_ZEROPAGE},
             { 5, &CMOS65xx::LSR, ADDRESSING_MODE_ZEROPAGE},
-            { 5, &CMOS65xx::SRE, ADDRESSING_MODE_ZEROPAGE},
+            { 5, &CMOS65xx::LSE, ADDRESSING_MODE_ZEROPAGE},
             { 3, &CMOS65xx::PHA, ADDRESSING_MODE_IMPLIED},
             { 2, &CMOS65xx::EOR, ADDRESSING_MODE_IMMEDIATE},
             { 2, &CMOS65xx::LSR, ADDRESSING_MODE_ACCUMULATOR},
@@ -136,32 +136,32 @@ private:
             { 3, &CMOS65xx::JMP, ADDRESSING_MODE_ABSOLUTE},
             { 4, &CMOS65xx::EOR, ADDRESSING_MODE_ABSOLUTE},
             { 6, &CMOS65xx::LSR, ADDRESSING_MODE_ABSOLUTE},
-            { 6, &CMOS65xx::SRE, ADDRESSING_MODE_ABSOLUTE},
+            { 6, &CMOS65xx::LSE, ADDRESSING_MODE_ABSOLUTE},
 
             // 0x50-0x5f
             { 2, &CMOS65xx::BVC, ADDRESSING_MODE_RELATIVE},
             { 5, &CMOS65xx::EOR, ADDRESSING_MODE_INDIRECT_INDEXED_Y},
             { 1, &CMOS65xx::KIL, ADDRESSING_MODE_INVALID},
-            { 8, &CMOS65xx::SRE, ADDRESSING_MODE_INDIRECT_INDEXED_Y},
-            { 4, &CMOS65xx::NOP, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
+            { 8, &CMOS65xx::LSE, ADDRESSING_MODE_INDIRECT_INDEXED_Y},
+            { 4, &CMOS65xx::SKB, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 4, &CMOS65xx::EOR, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 6, &CMOS65xx::LSR, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
-            { 6, &CMOS65xx::SRE, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
+            { 6, &CMOS65xx::LSE, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 2, &CMOS65xx::CLI, ADDRESSING_MODE_IMPLIED},
             { 4, &CMOS65xx::EOR, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
             { 2, &CMOS65xx::NOP, ADDRESSING_MODE_IMPLIED},
-            { 7, &CMOS65xx::SRE, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
-            { 4, &CMOS65xx::NOP, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
+            { 7, &CMOS65xx::LSE, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
+            { 4, &CMOS65xx::SKW, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
             { 4, &CMOS65xx::EOR, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
             { 7, &CMOS65xx::LSR, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
-            { 7, &CMOS65xx::SRE, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
+            { 7, &CMOS65xx::LSE, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
 
             // 0x60-0x6f
             { 6, &CMOS65xx::RTS, ADDRESSING_MODE_ABSOLUTE},
             { 6, &CMOS65xx::ADC, ADDRESSING_MODE_INDIRECT_INDEXED_X},
             { 1, &CMOS65xx::KIL, ADDRESSING_MODE_INVALID},
             { 8, &CMOS65xx::RRA, ADDRESSING_MODE_INDIRECT_INDEXED_X},
-            { 3, &CMOS65xx::NOP, ADDRESSING_MODE_ZEROPAGE},
+            { 3, &CMOS65xx::SKB, ADDRESSING_MODE_ZEROPAGE},
             { 3, &CMOS65xx::ADC, ADDRESSING_MODE_ZEROPAGE},
             { 5, &CMOS65xx::ROR, ADDRESSING_MODE_ZEROPAGE},
             { 5, &CMOS65xx::RRA, ADDRESSING_MODE_ZEROPAGE},
@@ -179,7 +179,7 @@ private:
             { 5, &CMOS65xx::ADC, ADDRESSING_MODE_INDIRECT_INDEXED_Y},
             { 1, &CMOS65xx::KIL, ADDRESSING_MODE_INVALID},
             { 8, &CMOS65xx::RRA, ADDRESSING_MODE_INDIRECT_INDEXED_Y},
-            { 4, &CMOS65xx::NOP, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
+            { 4, &CMOS65xx::SKB, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 4, &CMOS65xx::ADC, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 6, &CMOS65xx::ROR, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 6, &CMOS65xx::RRA, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
@@ -187,20 +187,20 @@ private:
             { 4, &CMOS65xx::ADC, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
             { 2, &CMOS65xx::NOP, ADDRESSING_MODE_IMPLIED},
             { 7, &CMOS65xx::RRA, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
-            { 4, &CMOS65xx::NOP, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
+            { 4, &CMOS65xx::SKW, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
             { 4, &CMOS65xx::ADC, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
             { 7, &CMOS65xx::ROR, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
             { 7, &CMOS65xx::RRA, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
 
             // 0x80-0x8f
-            { 2, &CMOS65xx::NOP, ADDRESSING_MODE_IMMEDIATE},
+            { 2, &CMOS65xx::SKB, ADDRESSING_MODE_IMMEDIATE},
             { 6, &CMOS65xx::STA, ADDRESSING_MODE_INDIRECT_INDEXED_X},
-            { 2, &CMOS65xx::NOP, ADDRESSING_MODE_IMMEDIATE},
-            { 6, &CMOS65xx::SAX, ADDRESSING_MODE_INDIRECT_INDEXED_X},
+            { 2, &CMOS65xx::SKB, ADDRESSING_MODE_IMMEDIATE},
+            { 6, &CMOS65xx::AXS, ADDRESSING_MODE_INDIRECT_INDEXED_X},
             { 3, &CMOS65xx::STY, ADDRESSING_MODE_ZEROPAGE},
             { 3, &CMOS65xx::STA, ADDRESSING_MODE_ZEROPAGE},
             { 3, &CMOS65xx::STX, ADDRESSING_MODE_ZEROPAGE},
-            { 3, &CMOS65xx::SAX, ADDRESSING_MODE_ZEROPAGE},
+            { 3, &CMOS65xx::AXS, ADDRESSING_MODE_ZEROPAGE},
             { 2, &CMOS65xx::DEY, ADDRESSING_MODE_IMPLIED},
             { 2, &CMOS65xx::NOP, ADDRESSING_MODE_IMMEDIATE},
             { 2, &CMOS65xx::TXA, ADDRESSING_MODE_ACCUMULATOR},
@@ -208,7 +208,7 @@ private:
             { 4, &CMOS65xx::STY, ADDRESSING_MODE_ABSOLUTE},
             { 4, &CMOS65xx::STA, ADDRESSING_MODE_ABSOLUTE},
             { 4, &CMOS65xx::STX, ADDRESSING_MODE_ABSOLUTE},
-            { 4, &CMOS65xx::SAX, ADDRESSING_MODE_ABSOLUTE},
+            { 4, &CMOS65xx::AXS, ADDRESSING_MODE_ABSOLUTE},
 
             // 0x90-0x9f
             { 2, &CMOS65xx::BCC, ADDRESSING_MODE_RELATIVE},
@@ -218,14 +218,14 @@ private:
             { 4, &CMOS65xx::STY, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 4, &CMOS65xx::STA, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 4, &CMOS65xx::STX, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
-            { 4, &CMOS65xx::SAX, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
+            { 4, &CMOS65xx::AXS, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 2, &CMOS65xx::TYA, ADDRESSING_MODE_IMPLIED},
             { 5, &CMOS65xx::STA, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
             { 2, &CMOS65xx::TXS, ADDRESSING_MODE_IMPLIED},
             { 5, &CMOS65xx::TAS, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
-            { 5, &CMOS65xx::SHY, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
+            { 5, &CMOS65xx::SAY, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
             { 5, &CMOS65xx::STA, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
-            { 5, &CMOS65xx::SHX, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
+            { 5, &CMOS65xx::XAS, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
             { 5, &CMOS65xx::AHX, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
 
             // 0Xa0-0xaf
@@ -240,7 +240,7 @@ private:
             { 2, &CMOS65xx::TAY, ADDRESSING_MODE_IMPLIED},
             { 2, &CMOS65xx::LDA, ADDRESSING_MODE_IMMEDIATE},
             { 2, &CMOS65xx::TAX, ADDRESSING_MODE_ACCUMULATOR},
-            { 2, &CMOS65xx::LAX, ADDRESSING_MODE_IMMEDIATE},
+            { 2, &CMOS65xx::OAL, ADDRESSING_MODE_IMMEDIATE},
             { 4, &CMOS65xx::LDY, ADDRESSING_MODE_ABSOLUTE},
             { 4, &CMOS65xx::LDA, ADDRESSING_MODE_ABSOLUTE},
             { 4, &CMOS65xx::LDX, ADDRESSING_MODE_ABSOLUTE},
@@ -267,7 +267,7 @@ private:
             // 0xc0-0xcf
             { 2, &CMOS65xx::CPY, ADDRESSING_MODE_IMMEDIATE},
             { 6, &CMOS65xx::CMP, ADDRESSING_MODE_INDIRECT_INDEXED_X},
-            { 2, &CMOS65xx::NOP, ADDRESSING_MODE_IMMEDIATE},
+            { 2, &CMOS65xx::SKB, ADDRESSING_MODE_IMMEDIATE},
             { 8, &CMOS65xx::DCP, ADDRESSING_MODE_INDIRECT_INDEXED_X},
             { 3, &CMOS65xx::CPY, ADDRESSING_MODE_ZEROPAGE},
             { 3, &CMOS65xx::CMP, ADDRESSING_MODE_ZEROPAGE},
@@ -276,7 +276,7 @@ private:
             { 2, &CMOS65xx::INY, ADDRESSING_MODE_IMPLIED},
             { 2, &CMOS65xx::CMP, ADDRESSING_MODE_IMMEDIATE},
             { 2, &CMOS65xx::DEX, ADDRESSING_MODE_ACCUMULATOR},
-            { 2, &CMOS65xx::AXS, ADDRESSING_MODE_IMMEDIATE},
+            { 2, &CMOS65xx::SAX, ADDRESSING_MODE_IMMEDIATE},
             { 4, &CMOS65xx::CPY, ADDRESSING_MODE_ABSOLUTE},
             { 4, &CMOS65xx::CMP, ADDRESSING_MODE_ABSOLUTE},
             { 6, &CMOS65xx::DEC, ADDRESSING_MODE_ABSOLUTE},
@@ -287,7 +287,7 @@ private:
             { 5, &CMOS65xx::CMP, ADDRESSING_MODE_INDIRECT_INDEXED_Y},
             { 1, &CMOS65xx::KIL, ADDRESSING_MODE_INVALID},
             { 8, &CMOS65xx::DCP, ADDRESSING_MODE_INDIRECT_INDEXED_Y},
-            { 4, &CMOS65xx::NOP, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
+            { 4, &CMOS65xx::SKB, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 4, &CMOS65xx::CMP, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 6, &CMOS65xx::DEC, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 6, &CMOS65xx::DCP, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
@@ -295,7 +295,7 @@ private:
             { 4, &CMOS65xx::CMP, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
             { 2, &CMOS65xx::NOP, ADDRESSING_MODE_IMPLIED},
             { 7, &CMOS65xx::DCP, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
-            { 4, &CMOS65xx::NOP, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
+            { 4, &CMOS65xx::SKW, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
             { 4, &CMOS65xx::CMP, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
             { 7, &CMOS65xx::DEC, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
             { 7, &CMOS65xx::DCP, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
@@ -303,7 +303,7 @@ private:
             // 0xe0-0xef
             { 2, &CMOS65xx::CPX, ADDRESSING_MODE_IMMEDIATE},
             { 6, &CMOS65xx::SBC, ADDRESSING_MODE_INDIRECT_INDEXED_X},
-            { 2, &CMOS65xx::NOP, ADDRESSING_MODE_IMMEDIATE},
+            { 2, &CMOS65xx::SKB, ADDRESSING_MODE_IMMEDIATE},
             { 8, &CMOS65xx::ISC, ADDRESSING_MODE_INDIRECT_INDEXED_X},
             { 3, &CMOS65xx::CPX, ADDRESSING_MODE_ZEROPAGE},
             { 3, &CMOS65xx::SBC, ADDRESSING_MODE_ZEROPAGE},
@@ -323,7 +323,7 @@ private:
             { 5, &CMOS65xx::SBC, ADDRESSING_MODE_INDIRECT_INDEXED_Y},
             { 1, &CMOS65xx::KIL, ADDRESSING_MODE_INVALID},
             { 8, &CMOS65xx::ISC, ADDRESSING_MODE_INDIRECT_INDEXED_Y},
-            { 4, &CMOS65xx::NOP, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
+            { 4, &CMOS65xx::SKB, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 4, &CMOS65xx::SBC, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 6, &CMOS65xx::INC, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
             { 6, &CMOS65xx::ISC, ADDRESSING_MODE_ZEROPAGE_INDEXED_X},
@@ -331,7 +331,7 @@ private:
             { 4, &CMOS65xx::SBC, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
             { 2, &CMOS65xx::NOP, ADDRESSING_MODE_IMPLIED},
             { 7, &CMOS65xx::ISC, ADDRESSING_MODE_ABSOLUTE_INDEXED_Y},
-            { 4, &CMOS65xx::NOP, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
+            { 4, &CMOS65xx::SKW, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
             { 4, &CMOS65xx::SBC, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
             { 7, &CMOS65xx::INC, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
             { 7, &CMOS65xx::ISC, ADDRESSING_MODE_ABSOLUTE_INDEXED_X}
@@ -357,8 +357,11 @@ private:
 
     // standard instructions
     void ADC(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void ADC_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void AND(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void AND_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void ASL(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void ASL_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void BCC(int opcodeByte, int addressingMode, int* cycles, int* size);
     void BCS(int opcodeByte, int addressingMode, int* cycles, int* size);
     void BEQ(int opcodeByte, int addressingMode, int* cycles, int* size);
@@ -374,64 +377,87 @@ private:
     void CLI(int opcodeByte, int addressingMode, int* cycles, int* size);
     void CLV(int opcodeByte, int addressingMode, int* cycles, int* size);
     void CMP(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void CMP_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void CPX(int opcodeByte, int addressingMode, int* cycles, int* size);
     void CPY(int opcodeByte, int addressingMode, int* cycles, int* size);
     void DEC(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void DEC_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void DEX(int opcodeByte, int addressingMode, int* cycles, int* size);
     void DEY(int opcodeByte, int addressingMode, int* cycles, int* size);
     void EOR(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void EOR_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void INC(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void INC_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void INX(int opcodeByte, int addressingMode, int* cycles, int* size);
     void INY(int opcodeByte, int addressingMode, int* cycles, int* size);
     void JMP(int opcodeByte, int addressingMode, int* cycles, int* size);
     void JSR(int opcodeByte, int addressingMode, int* cycles, int* size);
     void LDA(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void LDA_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void LDX(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void LDX_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void LDY(int opcodeByte, int addressingMode, int* cycles, int* size);
     void LSR(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void LSR_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void NOP(int opcodeByte, int addressingMode, int* cycles, int* size);
     void ORA(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void ORA_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void PHA(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void PHA_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void PHP(int opcodeByte, int addressingMode, int* cycles, int* size);
     void PLA(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void PLA_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void PLP(int opcodeByte, int addressingMode, int* cycles, int* size);
     void ROL(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void ROL_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void ROR(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void ROR_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void RTI(int opcodeByte, int addressingMode, int* cycles, int* size);
     void RTS(int opcodeByte, int addressingMode, int* cycles, int* size);
     void SBC(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void SBC_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void SEC(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void SEC_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void SED(int opcodeByte, int addressingMode, int* cycles, int* size);
     void SEI(int opcodeByte, int addressingMode, int* cycles, int* size);
     void STA(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void STA_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void STX(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void STX_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void STY(int opcodeByte, int addressingMode, int* cycles, int* size);
     void TAX(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void TAX_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void TAY(int opcodeByte, int addressingMode, int* cycles, int* size);
     void TSX(int opcodeByte, int addressingMode, int* cycles, int* size);
     void TXA(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void TXA_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void TXS(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void TXS_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
     void TYA(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void TYA_internal(int addressingMode, uint16_t operandAddr, uint16_t operand);
 
     // undocumented instructions
     void  AHX(int opcodeByte, int addressingMode, int* cycles, int* size);
-    void  ANC(int opcodeByte, int addressingMode, int* cycles, int* size);
     void  ALR(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void  ANC(int opcodeByte, int addressingMode, int* cycles, int* size);
     void  ARR(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void  ASO(int opcodeByte, int addressingMode, int *cycles, int *size);
     void  AXS(int opcodeByte, int addressingMode, int* cycles, int* size);
     void  DCP(int opcodeByte, int addressingMode, int* cycles, int* size);
     void  ISC(int opcodeByte, int addressingMode, int* cycles, int* size);
-    void  LAX(int opcodeByte, int addressingMode, int* cycles, int* size);
     void  LAS(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void  LAX(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void  LSE(int opcodeByte, int addressingMode, int *cycles, int *size);
+    void  OAL(int opcodeByte, int addressingMode, int *cycles, int *size);
     void  RLA(int opcodeByte, int addressingMode, int* cycles, int* size);
     void  RRA(int opcodeByte, int addressingMode, int* cycles, int* size);
     void  SAX(int opcodeByte, int addressingMode, int* cycles, int* size);
-    void  SHX(int opcodeByte, int addressingMode, int* cycles, int* size);
-    void  SHY(int opcodeByte, int addressingMode, int* cycles, int* size);
-    void  SLO_ASO(int opcodeByte, int addressingMode, int *cycles, int *size);
-    void  SRE(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void  SAY(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void  SKB(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void  SKW(int opcodeByte, int addressingMode, int* cycles, int* size);
     void  TAS(int opcodeByte, int addressingMode, int* cycles, int* size);
     void  XAA(int opcodeByte, int addressingMode, int* cycles, int* size);
+    void  XAS(int opcodeByte, int addressingMode, int* cycles, int* size);
     void  KIL(int opcodeByte, int addressingMode, int* cycles, int* size);
 
     void logExecution(const char *opcodeName,  uint8_t opcodeByte, uint16_t operand, int addressingMode);
