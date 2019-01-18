@@ -69,3 +69,5 @@ fabric.properties
 # vim
 tags
 
+#repo specific
+bios/*.bin
