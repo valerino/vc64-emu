@@ -11,3 +11,6 @@ add_subdirectory(vc64)
 
 # copy the bios folder to build directory
 file(COPY bios DESTINATION ${CMAKE_BINARY_DIR})
+
+# also the cpu test binaries
+file(COPY v65xx/tests DESTINATION ${CMAKE_BINARY_DIR})

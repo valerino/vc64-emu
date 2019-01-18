@@ -9,7 +9,7 @@
 #include <IMemory.h>
 
 // the emulated memory size
-#define MEMORY_SIZE 0xffff
+#define MEMORY_SIZE 0x10000
 
 // memory map
 #define MEMORY_CART_LO_ADDRESS  0x8000
@@ -41,17 +41,17 @@ private:
     int loadBios();
 
 public:
-    uint8_t readByte(uint16_t address, uint8_t *b) override;
+    uint8_t readByte(uint32_t address, uint8_t *b) override;
 
-    uint16_t readWord(uint16_t address, uint16_t *w) override;
+    uint16_t readWord(uint32_t address, uint16_t *w) override;
 
-    int writeByte(uint16_t address, uint8_t b) override;
+    int writeByte(uint32_t address, uint8_t b) override;
 
-    int writeWord(uint16_t address, uint16_t w) override;
+    int writeWord(uint32_t address, uint16_t w) override;
 
-    int writeBytes(uint16_t address, uint8_t *b, uint16_t size) override;
+    int writeBytes(uint32_t address, uint8_t *b, uint32_t size) override;
 
-    int readBytes(uint16_t address, uint8_t *b, uint16_t bufferSize, uint16_t readSize) override;
+    int readBytes(uint32_t address, uint8_t *b, uint32_t bufferSize, uint32_t readSize) override;
 
     int init() override;
 

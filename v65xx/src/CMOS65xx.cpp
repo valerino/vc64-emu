@@ -4,7 +4,10 @@
 
 #include <CMOS65xx.h>
 #include <CLog.h>
+#include <CBuffer.h>
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 // flags for the P register
 #define P_FLAG_CARRY        0x01
@@ -39,6 +42,7 @@
 #define ZEROPAGE_OUTPUT_REGISTER 1
 
 // vectors
+#define VECTOR_NMI      0xfffa
 #define VECTOR_RESET    0xfffc
 #define VECTOR_IRQ      0xfffe
 
@@ -129,12 +133,12 @@ void CMOS65xx::logExecution(const char *name, uint8_t opcodeByte, uint16_t opera
 
     if (addressingMode == ADDRESSING_MODE_IMPLIED) {
         // no operand
-        CLog::printRaw("\t$%x: %02X\t\t\t%s\t\t\t\t%s\n",
+        CLog::printRaw("\t$%04x: %02X\t\t\t%s\t\t\t\t%s\n",
                     _regPC, opcodeByte, name, registers);
     }
     else if (addressingMode == ADDRESSING_MODE_ACCUMULATOR) {
         // operand is A
-        CLog::printRaw("\t$%x: %02X\t\t\t%s A\t\t\t%s\n",
+        CLog::printRaw("\t$%04x: %02X\t\t\t%s A\t\t\t%s\n",
                     _regPC, opcodeByte, name, registers);
     }
     else if (addressingMode == ADDRESSING_MODE_ABSOLUTE) {
@@ -177,9 +181,8 @@ void CMOS65xx::logExecution(const char *name, uint8_t opcodeByte, uint16_t opera
     }
     else if (addressingMode == ADDRESSING_MODE_RELATIVE) {
         // 1 byte operand, relative to PC
-        uint16_t op = _regPC + 2 + operand;
-        CLog::printRaw("\t$%04x: %02X %02X\t\t%s $%04x\t\t%s\n",
-                    _regPC, opcodeByte, operand, name, op, registers);
+        CLog::printRaw("\t$%04x: %02X %04X\t\t%s $%04x\t\t%s\n",
+                    _regPC, opcodeByte, operand, name, operand, registers);
     }
     else {
         // immediate / zeropage (1 byte operand)
@@ -301,10 +304,13 @@ void CMOS65xx::parseInstruction(uint8_t opcodeByte, const char* functionName, in
             break;
         }
         case ADDRESSING_MODE_RELATIVE:
-            _memory->readByte(operandAddr, (uint8_t*)operand);
+            _memory->readByte(operandAddr, (uint8_t *) operand);
+            if (*operand & 0x80) {
+                // sign extend
+                *operand |= 0xff00;
+            }
+            *operand += _regPC + 2;
             logExecution(functionName, opcodeByte, *operand, addressingMode);
-
-            *operand = _regPC + 2 + *operand;
             *size =2;
             break;
 
@@ -433,6 +439,14 @@ int CMOS65xx::run(int cyclesToRun) {
 
         // next opcode
         _regPC += instructionSize;
+        /*if (_regPC == 0x4e4) {
+            int bb = 0;
+            bb++;
+        }
+        if (_regPC == 0x586) {
+            int bb = 0;
+            bb++;
+        }*/
     }
     return remaining;
 }
@@ -451,6 +465,10 @@ int CMOS65xx::reset() {
     _regS = 0xfd;
     _regP |= P_FLAG_IRQ_DISABLE;
     _memory->readWord(VECTOR_RESET,&_regPC);
+#ifdef DEBUG_RUN_FUNCTIONAL_TESTS
+    // overwrite memory with functional test suite
+    dbgLoadFunctionalTest();
+#endif
     return 0;
 }
 
@@ -1580,5 +1598,54 @@ void CMOS65xx::KIL(int opcodeByte, int addressingMode, int* cycles, int* size) {
 
     // exec
     CLog::fatal("invalid opcode!");
+}
+
+/**
+ * called by both nmi() and irq(), prepare to run an interrupt request
+ */
+void CMOS65xx::irqInternal() {
+    // push pc and status on the stack
+    pushWord(_regPC);
+    pushByte(_regP);
+
+    // initiate irq request
+    SET_FLAG_IRQ_DISABLE(true);
+}
+
+void CMOS65xx::irq() {
+    if (!(IS_FLAG_IRQ_DISABLE)) {
+        irqInternal();
+
+        // set pc to the irq vector address
+        _regPC = VECTOR_IRQ;
+    }
+}
+
+void CMOS65xx::nmi() {
+    // same as irq, but forced
+    irqInternal();
+
+    // set pc to the irq vector address
+    _regPC = VECTOR_NMI;
+}
+
+/**
+ * load the Klaus 6502 functional test
+ */
+void CMOS65xx::dbgLoadFunctionalTest() {
+   char path[]="./tests/6502_functional_test.bin";
+    // load test
+    uint8_t* buf;
+    uint32_t size;
+    int res = CBuffer::fromFile(path,&buf,&size);
+    if (res == 0) {
+        CLog::print("Loaded Klaus 6502 functional test!");
+        // copy to emulated memory at address 0
+        _memory->writeBytes(0, buf, size);
+
+        // set PC to 0x400
+        _regPC = 0x400;
+        free(buf);
+    }
 }
 

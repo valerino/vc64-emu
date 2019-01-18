@@ -9,9 +9,9 @@
 #include <CLog.h>
 #include <string.h>
 
-int CMemory::readBytes(uint16_t address, uint8_t *b, uint16_t bufferSize, uint16_t readSize) {
+int CMemory::readBytes(uint32_t address, uint8_t *b, uint32_t bufferSize, uint32_t readSize) {
     int res = 0;
-    uint16_t s = readSize;
+    uint32_t s = readSize;
     if (readSize > bufferSize) {
         s = bufferSize;
         res = EOVERFLOW;
@@ -34,7 +34,7 @@ CMemory::~CMemory() {
     }
 }
 
-uint8_t CMemory::readByte(uint16_t address, uint8_t *b) {
+uint8_t CMemory::readByte(uint32_t address, uint8_t *b) {
     if (b) {
         *b = _mem[address];
         return 0;
@@ -42,7 +42,7 @@ uint8_t CMemory::readByte(uint16_t address, uint8_t *b) {
     return EINVAL;
 }
 
-uint16_t CMemory::readWord(uint16_t address, uint16_t *w) {
+uint16_t CMemory::readWord(uint32_t address, uint16_t *w) {
     if (w) {
         uint16_t ww = (_mem[address + 1] << 8) | _mem[address];
         *w = ww;
@@ -51,19 +51,19 @@ uint16_t CMemory::readWord(uint16_t address, uint16_t *w) {
     return EINVAL;
 }
 
-int CMemory::writeByte(uint16_t address, uint8_t b) {
+int CMemory::writeByte(uint32_t address, uint8_t b) {
     _mem[address] = b;
     return 0;
 }
 
-int CMemory::writeWord(uint16_t address, uint16_t w) {
+int CMemory::writeWord(uint32_t address, uint16_t w) {
     _mem[address + 1] = (uint8_t)(w >> 8);
     _mem[address] = (uint8_t)(w & 0xff);
     return 0;
 }
 
-int CMemory::writeBytes(uint16_t address, uint8_t *b, uint16_t size) {
-    for (uint16_t i = 0; i < size; i++) {
+int CMemory::writeBytes(uint32_t address, uint8_t *b, uint32_t size) {
+    for (uint32_t i = 0; i < size; i++) {
         writeByte(address + i, b[i]);
     }
     return 0;

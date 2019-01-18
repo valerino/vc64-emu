@@ -8,6 +8,7 @@ my MOS 6502/6510/65xxx emulator!
 
 ## references
 * http://archive.6502.org/datasheets/mos_6510_mpu.pdf
+* http://archive.6502.org/datasheets/rockwell_r650x_r651x.pdf (rockwell 65xx, clearer version of the original above)
 * http://www.atarihq.com/danb/files/64doc.txt
 * http://www.oxyron.de/html/opcodes02.html
 * https://www.masswerk.at/6502/6502_instruction_set.html

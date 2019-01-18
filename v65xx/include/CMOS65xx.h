@@ -26,9 +26,11 @@
 #define ADDRESSING_MODE_ZEROPAGE_INDEXED_X      12
 #define ADDRESSING_MODE_ZEROPAGE_INDEXED_Y      13
 
-// only for debugging
 #ifndef NDEBUG
+// debug-only flag, disable to toggle debug log
 #define DEBUG_LOG_EXECUTION
+// debug-only flag, run tests
+#define DEBUG_RUN_FUNCTIONAL_TESTS
 #endif
 
 class CMOS65xx {
@@ -203,7 +205,7 @@ private:
             { 3, &CMOS65xx::AXS, ADDRESSING_MODE_ZEROPAGE},
             { 2, &CMOS65xx::DEY, ADDRESSING_MODE_IMPLIED},
             { 2, &CMOS65xx::NOP, ADDRESSING_MODE_IMMEDIATE},
-            { 2, &CMOS65xx::TXA, ADDRESSING_MODE_ACCUMULATOR},
+            { 2, &CMOS65xx::TXA, ADDRESSING_MODE_IMPLIED},
             { 2, &CMOS65xx::XAA, ADDRESSING_MODE_IMMEDIATE},
             { 4, &CMOS65xx::STY, ADDRESSING_MODE_ABSOLUTE},
             { 4, &CMOS65xx::STA, ADDRESSING_MODE_ABSOLUTE},
@@ -239,7 +241,7 @@ private:
             { 3, &CMOS65xx::LAX, ADDRESSING_MODE_ZEROPAGE},
             { 2, &CMOS65xx::TAY, ADDRESSING_MODE_IMPLIED},
             { 2, &CMOS65xx::LDA, ADDRESSING_MODE_IMMEDIATE},
-            { 2, &CMOS65xx::TAX, ADDRESSING_MODE_ACCUMULATOR},
+            { 2, &CMOS65xx::TAX, ADDRESSING_MODE_IMPLIED},
             { 2, &CMOS65xx::OAL, ADDRESSING_MODE_IMMEDIATE},
             { 4, &CMOS65xx::LDY, ADDRESSING_MODE_ABSOLUTE},
             { 4, &CMOS65xx::LDA, ADDRESSING_MODE_ABSOLUTE},
@@ -275,7 +277,7 @@ private:
             { 5, &CMOS65xx::DCP, ADDRESSING_MODE_ZEROPAGE},
             { 2, &CMOS65xx::INY, ADDRESSING_MODE_IMPLIED},
             { 2, &CMOS65xx::CMP, ADDRESSING_MODE_IMMEDIATE},
-            { 2, &CMOS65xx::DEX, ADDRESSING_MODE_ACCUMULATOR},
+            { 2, &CMOS65xx::DEX, ADDRESSING_MODE_IMPLIED},
             { 2, &CMOS65xx::SAX, ADDRESSING_MODE_IMMEDIATE},
             { 4, &CMOS65xx::CPY, ADDRESSING_MODE_ABSOLUTE},
             { 4, &CMOS65xx::CMP, ADDRESSING_MODE_ABSOLUTE},
@@ -465,6 +467,8 @@ private:
     void postExecHandleResultOperand(int addressingMode, uint16_t operandAddress, uint16_t operand);
     void handlePageCrossingOnBranch(uint16_t operand, int *cycles);
     void handlePageCrossing(int addressingMode, uint16_t operand, int* cycles);
+    void irqInternal();
+    void dbgLoadFunctionalTest();
 
 public:
     /**
@@ -485,6 +489,16 @@ public:
      * @param mem IMemory implementation (emulated memory)
      */
     CMOS65xx(IMemory* mem);
+
+    /**
+     * process an interrupt request
+     */
+    void irq();
+
+    /**
+     * process a nonmaskable interrupt request
+     */
+    void nmi();
 };
 
 #endif //CMOS65XX_H
