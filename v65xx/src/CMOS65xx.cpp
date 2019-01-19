@@ -212,133 +212,163 @@ void CMOS65xx::parseInstruction(uint8_t opcodeByte, const char* functionName, in
     *operandAddress = operandAddr;
 
     switch (addressingMode) {
-        case ADDRESSING_MODE_ACCUMULATOR:
-            *operand = _regA;
-            logExecution(functionName, opcodeByte, *operand, addressingMode);
-
+        case ADDRESSING_MODE_ACCUMULATOR: {
+            uint16_t dw = _regA;
+            logExecution(functionName, opcodeByte, dw, addressingMode);
+            *operand = dw;
             *size = 1;
             break;
+        }
 
-        case ADDRESSING_MODE_ABSOLUTE:
-            _memory->readWord(operandAddr, operand);
-            logExecution(functionName, opcodeByte, *operand, addressingMode);
-
+        case ADDRESSING_MODE_ABSOLUTE: {
+            uint16_t dw;
+            _memory->readWord(operandAddr, &dw);
+            logExecution(functionName, opcodeByte, dw, addressingMode);
+            *operand = dw;
             *size = 3;
             break;
+        }
 
-        case ADDRESSING_MODE_ABSOLUTE_INDEXED_X:
-            _memory->readWord(operandAddr, operand);
-            logExecution(functionName, opcodeByte, *operand, addressingMode);
+        case ADDRESSING_MODE_ABSOLUTE_INDEXED_X: {
+            uint16_t dw;
+            _memory->readWord(operandAddr, &dw);
+            logExecution(functionName, opcodeByte, dw, addressingMode);
+            dw += _regX;
 
             // cycles may need adjustment
-            handlePageCrossing(addressingMode, *operand, cycles);
-
-            *operand += _regX;
+            handlePageCrossing(addressingMode, dw, cycles);
+            *operand = dw;
             *size = 3;
             break;
+        }
 
-        case ADDRESSING_MODE_ABSOLUTE_INDEXED_Y:
-            _memory->readWord(operandAddr, operand);
-            logExecution(functionName, opcodeByte, *operand, addressingMode);
+        case ADDRESSING_MODE_ABSOLUTE_INDEXED_Y: {
+            uint16_t dw;
+            _memory->readWord(operandAddr, &dw);
+            logExecution(functionName, opcodeByte, dw, addressingMode);
+            dw += _regY;
 
             // cycles may need adjustment
-            handlePageCrossing(addressingMode, *operand, cycles);
-
-            *operand += _regY;
+            handlePageCrossing(addressingMode, dw, cycles);
+            *operand = dw;
             *size = 3;
             break;
+        }
 
-        case ADDRESSING_MODE_IMMEDIATE:
-            _memory->readByte(operandAddr, (uint8_t *) operand);
-            logExecution(functionName, opcodeByte, *operand, addressingMode);
-
+        case ADDRESSING_MODE_IMMEDIATE: {
+            uint8_t tmp;
+            _memory->readByte(operandAddr, &tmp);
+            logExecution(functionName, opcodeByte, tmp, addressingMode);
+            *operand = tmp;
             *size = 2;
             break;
+        }
 
-        case ADDRESSING_MODE_IMPLIED:
+        case ADDRESSING_MODE_IMPLIED: {
+            // no operand ...
             logExecution(functionName, opcodeByte, *operand, addressingMode);
-
             *size = 1;
             break;
+        }
 
         case ADDRESSING_MODE_INDIRECT: {
             // read the target address (it's indirect)
             uint16_t tmp;
             _memory->readWord(operandAddr, &tmp);
-            logExecution(functionName, opcodeByte, *operand, addressingMode);
+            logExecution(functionName, opcodeByte, tmp, addressingMode);
 
             // emulate 6502 access bug on page boundary: if operand falls on page boundary, msb is not fetched correctly
-            uint16_t tmp2 = (tmp & 0xff00) | ((tmp + 1) & 0x00ff);
-            uint8_t lsb;
-            uint8_t msb;
-            _memory->readByte(tmp, &lsb);
-            _memory->readByte(tmp2, &msb);
-            *operand = (msb << 8) | lsb;
-
+            uint16_t addr = (tmp & 0xff00) | ((tmp + 1) & 0x00ff);
+            uint16_t dw;
+            _memory->readWord(addr, &dw);
+            *operand = dw;
             *size = 3;
             break;
         }
 
         case ADDRESSING_MODE_INDIRECT_INDEXED_X: {
-            _memory->readByte(operandAddr, (uint8_t *) operand);
-            logExecution(functionName, opcodeByte, *operand, addressingMode);
+            // read the target address byte per byte, in zeropage
+            uint8_t lsbAddr;
+            _memory->readByte(operandAddr, &lsbAddr);
+            lsbAddr += _regX;
+            uint8_t msbAddr = (lsbAddr + 1);
 
-            uint16_t w;
-            _memory->readWord(*operand + _regX, &w);
-            *operand = w;
+            // read from the address in zeropage
+            uint16_t addr = (msbAddr << 8) | lsbAddr;
+            logExecution(functionName, opcodeByte, lsbAddr, addressingMode);
+            uint16_t dw;
+            _memory->readWord(addr, &dw);
+            *operand = dw;
             *size = 2;
             break;
         }
 
         case ADDRESSING_MODE_INDIRECT_INDEXED_Y: {
-            _memory->readByte(operandAddr, (uint8_t *) operand);
-            logExecution(functionName, opcodeByte, *operand, addressingMode);
+            // read the target address byte per byte, in zeropage
+            uint8_t lsbAddr;
+            _memory->readByte(operandAddr, &lsbAddr);
+            uint8_t msbAddr = (lsbAddr + 1);
 
-            // cycles may need adjustment
-            handlePageCrossing(addressingMode, *operand, cycles);
-
-            uint16_t w;
-            _memory->readWord(*operand, &w);
-            *operand = w + _regY;
+            // read from the address in zeropage
+            uint16_t addr = _regY + ((msbAddr << 8) | lsbAddr);
+            logExecution(functionName, opcodeByte, lsbAddr, addressingMode);
+            uint16_t dw;
+            _memory->readWord(addr, &dw);
+            *operand = dw;
             *size = 2;
             break;
         }
-        case ADDRESSING_MODE_RELATIVE:
-            _memory->readByte(operandAddr, (uint8_t *) operand);
-            if (*operand & 0x80) {
+
+        case ADDRESSING_MODE_RELATIVE:  {
+            uint8_t tmp;
+            _memory->readByte(operandAddr, &tmp);
+            uint16_t dw = tmp;
+            if (tmp & 0x80) {
                 // sign extend
-                *operand |= 0xff00;
+                dw |= 0xff00;
             }
-            *operand += _regPC + 2;
-            logExecution(functionName, opcodeByte, *operand, addressingMode);
-            *size =2;
+            dw = dw + _regPC + 2;
+            logExecution(functionName, opcodeByte, dw, addressingMode);
+
+            *operand = dw;
+            *size = 2;
             break;
+        }
 
-        case ADDRESSING_MODE_ZEROPAGE:
-            _memory->readByte(operandAddr, (uint8_t*)operand);
-            logExecution(functionName, opcodeByte, *operand, addressingMode);
+        case ADDRESSING_MODE_ZEROPAGE: {
+            uint8_t tmp;
+            _memory->readByte(operandAddr, &tmp);
+            logExecution(functionName, opcodeByte, tmp, addressingMode);
 
-            *size =2;
+            *operand = tmp;
+            *size = 2;
             break;
+        }
 
-        case ADDRESSING_MODE_ZEROPAGE_INDEXED_X:
-            _memory->readByte(operandAddr, (uint8_t*)operand);
-            logExecution(functionName, opcodeByte, *operand, addressingMode);
+        case ADDRESSING_MODE_ZEROPAGE_INDEXED_X: {
+            uint8_t tmp;
+            _memory->readByte(operandAddr, &tmp);
+            logExecution(functionName, opcodeByte, tmp, addressingMode);
 
             // result address is also in zeropage
-            *operand = (*operand + _regX) & 0xff;
+            tmp += _regX;
+            *operand = tmp;
 
-            *size =2;
+            *size = 2;
             break;
+        }
 
-        case ADDRESSING_MODE_ZEROPAGE_INDEXED_Y:
-            _memory->readByte(operandAddr, (uint8_t*)operand);
-            logExecution(functionName, opcodeByte, *operand, addressingMode);
+        case ADDRESSING_MODE_ZEROPAGE_INDEXED_Y: {
+            uint8_t tmp;
+            _memory->readByte(operandAddr, &tmp);
+            logExecution(functionName, opcodeByte, tmp, addressingMode);
 
             // result address is also in zeropage
-            *operand = (*operand + _regY) & 0xff;
-            *size =2;
+            tmp += _regY;
+            *operand = tmp;
+            *size = 2;
             break;
+        }
 
         default:
             // bug!
@@ -439,14 +469,14 @@ int CMOS65xx::run(int cyclesToRun) {
 
         // next opcode
         _regPC += instructionSize;
-        /*if (_regPC == 0x4e4) {
+        if (_regPC == 0x4e4) {
             int bb = 0;
             bb++;
         }
-        if (_regPC == 0x586) {
+        if (_regPC == 0x581) {
             int bb = 0;
             bb++;
-        }*/
+        }
     }
     return remaining;
 }
@@ -463,7 +493,8 @@ int CMOS65xx::reset() {
     _regX = 0;
     _regY = 0;
     _regS = 0xfd;
-    _regP |= P_FLAG_IRQ_DISABLE;
+    _regP = 0x16;
+    _regP |= P_FLAG_BRK_COMMAND;
     _memory->readWord(VECTOR_RESET,&_regPC);
 #ifdef DEBUG_RUN_FUNCTIONAL_TESTS
     // overwrite memory with functional test suite
@@ -494,7 +525,7 @@ void CMOS65xx::pushWord(uint16_t w) {
  * @param b the byte to be pushed
  */
 void CMOS65xx::pushByte(uint8_t b) {
-    _memory->writeByte(_regS, b);
+    _memory->writeByte(STACK_BASE + _regS, b);
 
     // decrement stack
     _regS -= 1;
@@ -517,11 +548,10 @@ uint16_t CMOS65xx::popWord() {
  * @return the word
  */
 uint8_t CMOS65xx::popByte() {
-    uint8_t b;
-    _memory->readByte(_regS, &b);
-
     // increment stack
     _regS += 1;
+    uint8_t b;
+    _memory->readByte(STACK_BASE + _regS, &b);
     return b;
 }
 
@@ -696,7 +726,7 @@ void CMOS65xx::BRK(int opcodeByte, int addressingMode, int* cycles, int* size) {
 
     // exec
     // push PC and P on stack
-    pushWord(_regPC);
+    pushWord(_regPC + *size);
     pushByte(_regP);
 
     // set break flag
@@ -776,9 +806,10 @@ void CMOS65xx::CLV(int opcodeByte, int addressingMode, int* cycles, int* size) {
 
 void CMOS65xx::CMP_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
     operand &= 0xff;
-    SET_FLAG_CARRY(_regA >= operand)
-    SET_FLAG_ZERO(_regA == operand)
-    SET_FLAG_NEGATIVE((_regA - operand) & 0x80)
+    uint16_t tmp = _regA - operand;
+    SET_FLAG_CARRY(tmp <= 0xff)
+    SET_FLAG_ZERO((tmp & 0xff) == 0)
+    SET_FLAG_NEGATIVE(tmp & 0x80)
 }
 
 void CMOS65xx::CMP(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -818,7 +849,8 @@ void CMOS65xx::CPY(int opcodeByte, int addressingMode, int* cycles, int* size) {
 }
 
 void CMOS65xx::DEC_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
-    operand -= 1;
+    uint8_t v = ((operand & 0xff) - 1) % 256;
+    operand = v;
     SET_FLAG_ZERO(operand == 0);
     SET_FLAG_NEGATIVE(operand & 0x80);
     postExecHandleResultOperand(addressingMode, operandAddr, operand);
@@ -841,7 +873,8 @@ void CMOS65xx::DEX(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
 
     // exec
-    _regX -= 1;
+    uint8_t v = (_regX - 1) % 256;
+    _regX = v;
     SET_FLAG_ZERO(_regX == 0);
     SET_FLAG_NEGATIVE(_regX & 0x80);
 }
@@ -853,7 +886,8 @@ void CMOS65xx::DEY(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
 
     // exec
-    _regY -= 1;
+    uint8_t v = (_regY - 1) % 256;
+    _regY = v;
     SET_FLAG_ZERO(_regY == 0);
     SET_FLAG_NEGATIVE(_regY & 0x80);
 }
@@ -875,7 +909,8 @@ void CMOS65xx::EOR(int opcodeByte, int addressingMode, int* cycles, int* size) {
 }
 
 void CMOS65xx::INC_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
-    operand += 1;
+    uint8_t v = ((operand & 0xff) + 1) % 256;
+    operand = v;
     SET_FLAG_ZERO(operand == 0);
     SET_FLAG_NEGATIVE(operand & 0x80);
     postExecHandleResultOperand(addressingMode, operandAddr, operand);
@@ -898,7 +933,9 @@ void CMOS65xx::INX(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
 
     // exec
-    _regX += 1;
+    uint8_t v = (_regX + 1) % 256;
+    _regX = v;
+
     SET_FLAG_ZERO(_regX == 0);
     SET_FLAG_NEGATIVE(_regX & 0x80);
 }
@@ -910,7 +947,9 @@ void CMOS65xx::INY(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
 
     // exec
-    _regY += 1;
+    uint8_t v = (_regY + 1) % 256;
+    _regY = v;
+
     SET_FLAG_ZERO(_regY == 0);
     SET_FLAG_NEGATIVE(_regY & 0x80);
 }
@@ -934,7 +973,7 @@ void CMOS65xx::JSR(int opcodeByte, int addressingMode, int* cycles, int* size) {
 
     // exec
     // push return address on the stack
-    pushWord(_regPC - 1);
+    pushWord(_regPC + *size - 1);
     _regPC = operand;
     *size = 0;
 }
@@ -1121,6 +1160,7 @@ void CMOS65xx::RTI(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // exec
     _regP = popByte();
     _regPC = popWord();
+    *size = 0;
 }
 
 void CMOS65xx::RTS(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -1132,6 +1172,7 @@ void CMOS65xx::RTS(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // exec
     _regPC = popWord();
     _regPC += 1;
+    *size = 0;
 }
 
 void CMOS65xx::SBC_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
@@ -1647,5 +1688,9 @@ void CMOS65xx::dbgLoadFunctionalTest() {
         _regPC = 0x400;
         free(buf);
     }
+}
+
+IMemory *CMOS65xx::memory() {
+    return _memory;
 }
 

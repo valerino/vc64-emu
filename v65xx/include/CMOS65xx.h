@@ -159,7 +159,7 @@ private:
             { 7, &CMOS65xx::LSE, ADDRESSING_MODE_ABSOLUTE_INDEXED_X},
 
             // 0x60-0x6f
-            { 6, &CMOS65xx::RTS, ADDRESSING_MODE_ABSOLUTE},
+            { 6, &CMOS65xx::RTS, ADDRESSING_MODE_IMPLIED},
             { 6, &CMOS65xx::ADC, ADDRESSING_MODE_INDIRECT_INDEXED_X},
             { 1, &CMOS65xx::KIL, ADDRESSING_MODE_INVALID},
             { 8, &CMOS65xx::RRA, ADDRESSING_MODE_INDIRECT_INDEXED_X},
@@ -499,6 +499,13 @@ public:
      * process a nonmaskable interrupt request
      */
     void nmi();
+
+    /**
+     * return the memory interface
+     * @return IMemory ptr
+     */
+    IMemory *memory();
+
 };
 
 #endif //CMOS65XX_H
