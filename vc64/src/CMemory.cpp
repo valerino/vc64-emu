@@ -52,6 +52,10 @@ uint16_t CMemory::readWord(uint32_t address, uint16_t *w) {
 }
 
 int CMemory::writeByte(uint32_t address, uint8_t b) {
+    if (address == 0x200) {
+        int aa = 0;
+        aa++;
+    }
     _mem[address] = b;
     return 0;
 }
