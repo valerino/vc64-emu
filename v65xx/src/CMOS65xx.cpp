@@ -201,19 +201,17 @@ void CMOS65xx::logExecution(const char *name, uint8_t opcodeByte, uint16_t opera
  * @param opcodeByte the first byte (opcode)
  * @param functionName __FUNCTION__
  * @param addressingMode one of the addressing modes
- * @param operandAddress on return, address from where the operand is fetched (always = PC + 1)
  * @param operand on return, the operand if any
  * @param cycles on input, instruction cycles. on output, instruction cycles fixed depending on page crossing and instruction
  * @param on return, the instruction size
  * @return
  */
-void CMOS65xx::parseInstruction(uint8_t opcodeByte, const char* functionName, int addressingMode, uint16_t* operandAddress, uint16_t* operand, int* size, int* cycles) {
+void CMOS65xx::parseInstruction(uint8_t opcodeByte, const char* functionName, int addressingMode, uint16_t* operand, int* size, int* cycles) {
     *operand = 0;
     *size = 0;
 
     // operand starts at the next byte
     uint16_t operandAddr = _regPC + 1;
-    *operandAddress = operandAddr;
 
     switch (addressingMode) {
         case ADDRESSING_MODE_ACCUMULATOR: {
@@ -584,7 +582,7 @@ uint8_t CMOS65xx::popByte() {
     return b;
 }
 
-void CMOS65xx::ADC_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::ADC_internal(int addressingMode, uint16_t operand) {
     uint8_t b;
     readOperand(addressingMode, operand, &b);
 
@@ -614,16 +612,16 @@ void CMOS65xx::ADC_internal(int addressingMode, uint16_t operandAddr, uint16_t o
 void CMOS65xx::ADC(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    ADC_internal(addressingMode, operandAddr, operand);
+    ADC_internal(addressingMode, operand);
 }
 
-void CMOS65xx::AND_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::AND_internal(int addressingMode, uint16_t operand) {
     uint8_t b;
     readOperand(addressingMode, operand, &b);
+
     _regA &= b;
     SET_FLAG_ZERO(_regA == 0)
     SET_FLAG_NEGATIVE(_regA & 0x80)
@@ -633,13 +631,13 @@ void CMOS65xx::AND(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
     uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    AND_internal(addressingMode, operandAddr, operand);
+    AND_internal(addressingMode, operand);
 }
 
-void CMOS65xx::ASL_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::ASL_internal(int addressingMode, uint16_t operand) {
     uint8_t b;
     readOperand(addressingMode, operand, &b);
 
@@ -653,18 +651,16 @@ void CMOS65xx::ASL_internal(int addressingMode, uint16_t operandAddr, uint16_t o
 void CMOS65xx::ASL(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    ASL_internal(addressingMode, operandAddr, operand);
+    ASL_internal(addressingMode, operand);
 }
 
 void CMOS65xx::BCC(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     if (! (IS_FLAG_CARRY)) {
@@ -677,8 +673,7 @@ void CMOS65xx::BCC(int opcodeByte, int addressingMode, int* cycles, int* size) {
 void CMOS65xx::BCS(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     if (IS_FLAG_CARRY) {
@@ -692,7 +687,7 @@ void CMOS65xx::BEQ(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
     uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     if (IS_FLAG_ZERO) {
@@ -705,8 +700,7 @@ void CMOS65xx::BEQ(int opcodeByte, int addressingMode, int* cycles, int* size) {
 void CMOS65xx::BIT(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     uint8_t b;
@@ -720,7 +714,7 @@ void CMOS65xx::BMI(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
     uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     if (IS_FLAG_NEGATIVE) {
@@ -733,8 +727,7 @@ void CMOS65xx::BMI(int opcodeByte, int addressingMode, int* cycles, int* size) {
 void CMOS65xx::BNE(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     if (! (IS_FLAG_ZERO)) {
@@ -747,8 +740,7 @@ void CMOS65xx::BNE(int opcodeByte, int addressingMode, int* cycles, int* size) {
 void CMOS65xx::BPL(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     if (! (IS_FLAG_NEGATIVE)) {
@@ -761,8 +753,7 @@ void CMOS65xx::BPL(int opcodeByte, int addressingMode, int* cycles, int* size) {
 void CMOS65xx::BRK(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     // push PC and P on stack
@@ -782,7 +773,7 @@ void CMOS65xx::BVC(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
     uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     if (! (IS_FLAG_OVERFLOW)) {
@@ -795,8 +786,7 @@ void CMOS65xx::BVC(int opcodeByte, int addressingMode, int* cycles, int* size) {
 void CMOS65xx::BVS(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     if (IS_FLAG_OVERFLOW) {
@@ -810,7 +800,7 @@ void CMOS65xx::CLC(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
     uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     SET_FLAG_CARRY(false)
@@ -820,7 +810,7 @@ void CMOS65xx::CLD(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
     uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     SET_FLAG_DECIMAL_MODE(false)
@@ -829,8 +819,7 @@ void CMOS65xx::CLD(int opcodeByte, int addressingMode, int* cycles, int* size) {
 void CMOS65xx::CLI(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     SET_FLAG_IRQ_DISABLE(false)
@@ -840,13 +829,13 @@ void CMOS65xx::CLV(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
     uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     SET_FLAG_OVERFLOW(false)
 }
 
-void CMOS65xx::CMP_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::CMP_internal(int addressingMode, uint16_t operand) {
     uint8_t b;
     readOperand(addressingMode, operand, &b);
 
@@ -859,18 +848,17 @@ void CMOS65xx::CMP_internal(int addressingMode, uint16_t operandAddr, uint16_t o
 void CMOS65xx::CMP(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    CMP_internal(addressingMode, operandAddr, operand);
+    CMP_internal(addressingMode, operand);
 }
 
 void CMOS65xx::CPX(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
     uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     uint8_t b;
@@ -885,8 +873,7 @@ void CMOS65xx::CPX(int opcodeByte, int addressingMode, int* cycles, int* size) {
 void CMOS65xx::CPY(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     uint8_t b;
@@ -898,7 +885,7 @@ void CMOS65xx::CPY(int opcodeByte, int addressingMode, int* cycles, int* size) {
     SET_FLAG_NEGATIVE(dw & 0x80);
 }
 
-void CMOS65xx::DEC_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::DEC_internal(int addressingMode, uint16_t operand) {
     uint8_t b;
     _memory->readByte(operand, &b);
 
@@ -912,17 +899,16 @@ void CMOS65xx::DEC(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
     uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    DEC_internal(addressingMode, operandAddr, operand);
+    DEC_internal(addressingMode, operand);
 }
 
 void CMOS65xx::DEX(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     _regX -= 1;
@@ -933,8 +919,7 @@ void CMOS65xx::DEX(int opcodeByte, int addressingMode, int* cycles, int* size) {
 void CMOS65xx::DEY(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     _regY -= 1;
@@ -942,7 +927,7 @@ void CMOS65xx::DEY(int opcodeByte, int addressingMode, int* cycles, int* size) {
     SET_FLAG_NEGATIVE(_regY & 0x80);
 }
 
-void CMOS65xx::EOR_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::EOR_internal(int addressingMode, uint16_t operand) {
     uint8_t b;
     readOperand(addressingMode, operand, &b);
 
@@ -955,13 +940,13 @@ void CMOS65xx::EOR(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
     uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    EOR_internal(addressingMode, operandAddr, operand);
+    EOR_internal(addressingMode, operand);
 }
 
-void CMOS65xx::INC_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::INC_internal(int addressingMode, uint16_t operand) {
     uint8_t b;
     readOperand(addressingMode, operand, &b);
 
@@ -974,18 +959,16 @@ void CMOS65xx::INC_internal(int addressingMode, uint16_t operandAddr, uint16_t o
 void CMOS65xx::INC(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    INC_internal(addressingMode, operandAddr, operand);
+    INC_internal(addressingMode, operand);
 }
 
 void CMOS65xx::INX(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     _regX +=1;
@@ -997,8 +980,7 @@ void CMOS65xx::INX(int opcodeByte, int addressingMode, int* cycles, int* size) {
 void CMOS65xx::INY(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     _regY += 1;
@@ -1010,8 +992,7 @@ void CMOS65xx::INY(int opcodeByte, int addressingMode, int* cycles, int* size) {
 void CMOS65xx::JMP(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     _regPC = operand;
@@ -1021,8 +1002,7 @@ void CMOS65xx::JMP(int opcodeByte, int addressingMode, int* cycles, int* size) {
 void CMOS65xx::JSR(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     // push return address on the stack
@@ -1031,7 +1011,7 @@ void CMOS65xx::JSR(int opcodeByte, int addressingMode, int* cycles, int* size) {
     *size = 0;
 }
 
-void CMOS65xx::LDA_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::LDA_internal(int addressingMode, uint16_t operand) {
     uint8_t b;
     readOperand(addressingMode, operand, &b);
 
@@ -1043,14 +1023,13 @@ void CMOS65xx::LDA_internal(int addressingMode, uint16_t operandAddr, uint16_t o
 void CMOS65xx::LDA(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    LDA_internal(addressingMode, operandAddr, operand);
+    LDA_internal(addressingMode, operand);
 }
 
-void CMOS65xx::LDX_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::LDX_internal(int addressingMode, uint16_t operand) {
     uint8_t b;
     readOperand(addressingMode, operand, &b);
 
@@ -1062,18 +1041,16 @@ void CMOS65xx::LDX_internal(int addressingMode, uint16_t operandAddr, uint16_t o
 void CMOS65xx::LDX(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    LDX_internal(addressingMode, operandAddr, operand);
+    LDX_internal(addressingMode, operand);
 }
 
 void CMOS65xx::LDY(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     uint8_t b;
@@ -1084,7 +1061,7 @@ void CMOS65xx::LDY(int opcodeByte, int addressingMode, int* cycles, int* size) {
     SET_FLAG_NEGATIVE(_regY & 0x80)
 }
 
-void CMOS65xx::LSR_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::LSR_internal(int addressingMode, uint16_t operand) {
     uint8_t b;
     readOperand(addressingMode, operand, &b);
 
@@ -1098,23 +1075,21 @@ void CMOS65xx::LSR_internal(int addressingMode, uint16_t operandAddr, uint16_t o
 void CMOS65xx::LSR(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    LSR_internal(addressingMode, operandAddr, operand);
+    LSR_internal(addressingMode, operand);
 }
 
 void CMOS65xx::NOP(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // nothing, nop!
 }
 
-void CMOS65xx::ORA_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::ORA_internal(int addressingMode, uint16_t operand) {
     uint8_t b;
     readOperand(addressingMode, operand, &b);
 
@@ -1126,32 +1101,29 @@ void CMOS65xx::ORA_internal(int addressingMode, uint16_t operandAddr, uint16_t o
 void CMOS65xx::ORA(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    ORA_internal(addressingMode, operandAddr, operand);
+    ORA_internal(addressingMode, operand);
 }
 
-void CMOS65xx::PHA_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::PHA_internal(int addressingMode, uint16_t operand) {
     pushByte(_regA);
 }
 
 void CMOS65xx::PHA(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    PHA_internal(addressingMode, operandAddr, operand);
+    PHA_internal(addressingMode, operand);
 }
 
 void CMOS65xx::PHP(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // PHP saves a copy of P with BRK and UNUSED always set
     uint8_t tmp = _regP;
@@ -1159,7 +1131,7 @@ void CMOS65xx::PHP(int opcodeByte, int addressingMode, int* cycles, int* size) {
     pushByte(tmp);
 }
 
-void CMOS65xx::PLA_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::PLA_internal(int addressingMode, uint16_t operand) {
     _regA = popByte();
     SET_FLAG_ZERO(_regA == 0)
     SET_FLAG_NEGATIVE(_regA & 0x80)
@@ -1168,18 +1140,16 @@ void CMOS65xx::PLA_internal(int addressingMode, uint16_t operandAddr, uint16_t o
 void CMOS65xx::PLA(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    PLA_internal(addressingMode, operandAddr, operand);
+    PLA_internal(addressingMode, operand);
 }
 
 void CMOS65xx::PLP(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     _regP = popByte();
@@ -1188,7 +1158,7 @@ void CMOS65xx::PLP(int opcodeByte, int addressingMode, int* cycles, int* size) {
     SET_FLAG_UNUSED(true)
 }
 
-void CMOS65xx::ROL_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::ROL_internal(int addressingMode, uint16_t operand) {
     uint8_t b;
     readOperand(addressingMode, operand, &b);
 
@@ -1198,28 +1168,18 @@ void CMOS65xx::ROL_internal(int addressingMode, uint16_t operandAddr, uint16_t o
     SET_FLAG_ZERO(b == 0)
     SET_FLAG_NEGATIVE(b & 0x80)
     writeOperand(addressingMode, operand, b);
-
-/*    uint16_t res = (operand << 1) | IS_FLAG_CARRY;
-    SET_FLAG_CARRY(res > 0xff)
-    res &= 0xff;
-    SET_FLAG_ZERO(res == 0)
-    SET_FLAG_NEGATIVE(res & 0x80)
-    postExecHandleResultOperand(addressingMode, operandAddr, res);
-    */
-
 }
 
 void CMOS65xx::ROL(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    ROL_internal(addressingMode, operandAddr, operand);
+    ROL_internal(addressingMode, operand);
 }
 
-void CMOS65xx::ROR_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::ROR_internal(int addressingMode, uint16_t operand) {
     uint8_t b;
     readOperand(addressingMode, operand, &b);
 
@@ -1230,33 +1190,21 @@ void CMOS65xx::ROR_internal(int addressingMode, uint16_t operandAddr, uint16_t o
     SET_FLAG_ZERO(b == 0)
     SET_FLAG_NEGATIVE(b & 0x80)
     writeOperand(addressingMode, operand, b);
-
-    /*
-    uint16_t res = operand | ((IS_FLAG_CARRY) << 8);
-    SET_FLAG_CARRY(res & 1)
-    res >>= 1;
-    res &= 0xff;
-    SET_FLAG_ZERO(res == 0)
-    SET_FLAG_NEGATIVE(res & 0x80)
-    postExecHandleResultOperand(addressingMode, operandAddr, res);
-     */
 }
 
 void CMOS65xx::ROR(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    ROR_internal(addressingMode, operandAddr, operand);
+    ROR_internal(addressingMode, operand);
 }
 
 void CMOS65xx::RTI(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     _regP = popByte();
@@ -1267,8 +1215,7 @@ void CMOS65xx::RTI(int opcodeByte, int addressingMode, int* cycles, int* size) {
 void CMOS65xx::RTS(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     _regPC = popWord();
@@ -1276,7 +1223,7 @@ void CMOS65xx::RTS(int opcodeByte, int addressingMode, int* cycles, int* size) {
     *size = 0;
 }
 
-void CMOS65xx::SBC_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::SBC_internal(int addressingMode, uint16_t operand) {
     uint8_t b;
     readOperand(addressingMode, operand, &b);
 
@@ -1307,32 +1254,29 @@ void CMOS65xx::SBC_internal(int addressingMode, uint16_t operandAddr, uint16_t o
 void CMOS65xx::SBC(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    SBC_internal(addressingMode, operandAddr, operand);
+    SBC_internal(addressingMode, operand);
 }
 
-void CMOS65xx::SEC_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::SEC_internal(int addressingMode, uint16_t operand) {
     SET_FLAG_CARRY(true)
 }
 
 void CMOS65xx::SEC(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    SEC_internal(addressingMode, operandAddr, operand);
+    SEC_internal(addressingMode, operand);
 }
 
 void CMOS65xx::SED(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     SET_FLAG_DECIMAL_MODE(true)
@@ -1341,52 +1285,48 @@ void CMOS65xx::SED(int opcodeByte, int addressingMode, int* cycles, int* size) {
 void CMOS65xx::SEI(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     SET_FLAG_IRQ_DISABLE(true)
 }
 
-void CMOS65xx::STA_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::STA_internal(int addressingMode, uint16_t operand) {
     writeOperand(addressingMode, operand, _regA);
 }
 
 void CMOS65xx::STA(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    STA_internal(addressingMode, operandAddr, operand);
+    STA_internal(addressingMode, operand);
 }
 
-void CMOS65xx::STX_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::STX_internal(int addressingMode, uint16_t operand) {
     writeOperand(addressingMode, operand, _regX);
 }
 
 void CMOS65xx::STX(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    STX_internal(addressingMode, operandAddr, operand);
+    STX_internal(addressingMode, operand);
 }
 
 void CMOS65xx::STY(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     writeOperand(addressingMode, operand, _regY);
 }
 
-void CMOS65xx::TAX_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::TAX_internal(int addressingMode, uint16_t operand) {
     _regX = _regA;
     SET_FLAG_ZERO(_regX == 0)
     SET_FLAG_NEGATIVE(_regX & 0x80)
@@ -1395,18 +1335,16 @@ void CMOS65xx::TAX_internal(int addressingMode, uint16_t operandAddr, uint16_t o
 void CMOS65xx::TAX(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    TAX_internal(addressingMode, operandAddr, operand);
+    TAX_internal(addressingMode, operand);
 }
 
 void CMOS65xx::TAY(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     _regY = _regA;
@@ -1417,8 +1355,7 @@ void CMOS65xx::TAY(int opcodeByte, int addressingMode, int* cycles, int* size) {
 void CMOS65xx::TSX(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     _regX = _regS;
@@ -1426,7 +1363,7 @@ void CMOS65xx::TSX(int opcodeByte, int addressingMode, int* cycles, int* size) {
     SET_FLAG_NEGATIVE(_regX & 0x80)
 }
 
-void CMOS65xx::TXA_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::TXA_internal(int addressingMode, uint16_t operand) {
     _regA = _regX;
     SET_FLAG_ZERO(_regA == 0)
     SET_FLAG_NEGATIVE(_regA & 0x80)
@@ -1435,28 +1372,26 @@ void CMOS65xx::TXA_internal(int addressingMode, uint16_t operandAddr, uint16_t o
 void CMOS65xx::TXA(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    TXA_internal(addressingMode, operandAddr, operand);
+    TXA_internal(addressingMode, operand);
 }
 
-void CMOS65xx::TXS_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::TXS_internal(int addressingMode, uint16_t operand) {
     _regS = _regX;
 }
 
 void CMOS65xx::TXS(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    TXS_internal(addressingMode, operandAddr, operand);
+    TXS_internal(addressingMode, operand);
 }
 
-void CMOS65xx::TYA_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
+void CMOS65xx::TYA_internal(int addressingMode, uint16_t operand) {
     _regA = _regY;
     SET_FLAG_ZERO(_regA == 0)
     SET_FLAG_NEGATIVE(_regA & 0x80)
@@ -1465,11 +1400,10 @@ void CMOS65xx::TYA_internal(int addressingMode, uint16_t operandAddr, uint16_t o
 void CMOS65xx::TYA(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    TYA_internal(addressingMode, operandAddr, operand);
+    TYA_internal(addressingMode, operand);
 }
 
 /**
@@ -1479,8 +1413,7 @@ void CMOS65xx::TYA(int opcodeByte, int addressingMode, int* cycles, int* size) {
 void CMOS65xx::AHX(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     // ?????
@@ -1489,92 +1422,83 @@ void CMOS65xx::AHX(int opcodeByte, int addressingMode, int* cycles, int* size) {
 void CMOS65xx::ALR(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    AND_internal(addressingMode, operandAddr, operand);
+    AND_internal(addressingMode, operand);
     addressingMode = ADDRESSING_MODE_ACCUMULATOR;
     operand = _regA;
-    LSR_internal(addressingMode, operandAddr, operand);
+    LSR_internal(addressingMode, operand);
 }
 
 void CMOS65xx::ANC(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    AND_internal(addressingMode, operandAddr, operand);
-    // TODO: check
+    AND_internal(addressingMode, operand);
     SET_FLAG_CARRY(_regA & 0x80);
 }
 
 void CMOS65xx::ARR(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    AND_internal(addressingMode, operandAddr, operand);
+    AND_internal(addressingMode, operand);
     addressingMode = ADDRESSING_MODE_ACCUMULATOR;
-    ROR_internal(addressingMode, operandAddr, operand);
+    ROR_internal(addressingMode, operand);
 }
 
 void CMOS65xx::ASO(int opcodeByte, int addressingMode, int *cycles, int *size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    ASL_internal(addressingMode, operandAddr, operand);
-    ORA_internal(addressingMode, operandAddr, operand);
+    ASL_internal(addressingMode, operand);
+    ORA_internal(addressingMode, operand);
 }
 
 void CMOS65xx::AXS(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    STX_internal(addressingMode, operandAddr, operand);
-    PHA_internal(addressingMode, operandAddr, operand);
-    AND_internal(addressingMode, operandAddr, operand);
-    STA_internal(addressingMode, operandAddr, operand);
-    PLA_internal(addressingMode, operandAddr, operand);
+    STX_internal(addressingMode, operand);
+    PHA_internal(addressingMode, operand);
+    AND_internal(addressingMode, operand);
+    STA_internal(addressingMode, operand);
+    PLA_internal(addressingMode, operand);
 }
 
 void CMOS65xx::DCP(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    DEC_internal(addressingMode, operandAddr, operand);
-    CMP_internal(addressingMode, operandAddr, operand);
+    DEC_internal(addressingMode, operand);
+    CMP_internal(addressingMode, operand);
 }
 
 void CMOS65xx::ISC(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    INC_internal(addressingMode, operandAddr, operand);
-    SBC_internal(addressingMode, operandAddr, operand);
+    INC_internal(addressingMode, operand);
+    SBC_internal(addressingMode, operand);
 }
 
 void CMOS65xx::LAS(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     uint8_t b;
@@ -1590,94 +1514,86 @@ void CMOS65xx::LAS(int opcodeByte, int addressingMode, int* cycles, int* size) {
 void CMOS65xx::LAX(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    LDA_internal(addressingMode, operandAddr, operand);
-    LDX_internal(addressingMode, operandAddr, operand);
+    LDA_internal(addressingMode, operand);
+    LDX_internal(addressingMode, operand);
 }
 
 void CMOS65xx::LSE(int opcodeByte, int addressingMode, int *cycles, int *size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    LSR_internal(addressingMode, operandAddr, operand);
-    EOR_internal(addressingMode, operandAddr, operand);
+    LSR_internal(addressingMode, operand);
+    EOR_internal(addressingMode, operand);
 }
 
 void CMOS65xx::OAL(int opcodeByte, int addressingMode, int *cycles, int *size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    ORA_internal(addressingMode, operandAddr, 0xee);
-    AND_internal(addressingMode, operandAddr, operand);
-    TAX_internal(addressingMode, operandAddr, operand);
+    ORA_internal(addressingMode, 0xee);
+    AND_internal(addressingMode, operand);
+    TAX_internal(addressingMode, operand);
 }
 
 void CMOS65xx::RLA(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    ROL_internal(addressingMode, operandAddr, operand);
-    AND_internal(addressingMode, operandAddr, operand);
+    ROL_internal(addressingMode, operand);
+    AND_internal(addressingMode, operand);
 }
 
 void CMOS65xx::RRA(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    ROR_internal(addressingMode, operandAddr, operand);
-    ADC_internal(addressingMode, operandAddr, operand);
+    ROR_internal(addressingMode, operand);
+    ADC_internal(addressingMode, operand);
 }
 
 void CMOS65xx::SAX(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    TXA_internal(addressingMode, operandAddr, operand);
-    AND_internal(addressingMode, operandAddr, _regA);
-    SEC_internal(addressingMode, operandAddr, operand);
-    SBC_internal(addressingMode, operandAddr, operand);
-    TAX_internal(addressingMode, operandAddr, operand);
-    LDA_internal(addressingMode, operandAddr, _regA);
+    TXA_internal(addressingMode, operand);
+    AND_internal(addressingMode, _regA);
+    SEC_internal(addressingMode, operand);
+    SBC_internal(addressingMode, operand);
+    TAX_internal(addressingMode, operand);
+    LDA_internal(addressingMode,  _regA);
 }
 
 void CMOS65xx::SAY(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     uint8_t tmp = ((operand & 0xff00) >> 8) + 1;
-    PHA_internal(addressingMode, operandAddr, operand);
-    TYA_internal(addressingMode, operandAddr, operand);
-    AND_internal(addressingMode, operandAddr, tmp);
-    STA_internal(addressingMode, operandAddr, operand);
-    PLA_internal(addressingMode, operandAddr, operand);
+    PHA_internal(addressingMode, operand);
+    TYA_internal(addressingMode, operand);
+    AND_internal(addressingMode, tmp);
+    STA_internal(addressingMode, operand);
+    PLA_internal(addressingMode, operand);
 }
 
 void CMOS65xx::SKB(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // a nop (skip byte)
 }
@@ -1685,8 +1601,7 @@ void CMOS65xx::SKB(int opcodeByte, int addressingMode, int* cycles, int* size) {
 void CMOS65xx::SKW(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // a nop which skips 2 bytes (skip word)
 }
@@ -1695,52 +1610,49 @@ void CMOS65xx::TAS(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
     uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
 
     uint8_t tmp = ((operand & 0xff00) >> 8) + 1;
-    PHA_internal(addressingMode, operandAddr, operand);
-    AND_internal(addressingMode, operandAddr, _regX);
-    TAX_internal(addressingMode, operandAddr, _regX);
-    TXS_internal(addressingMode, operandAddr, _regX);
-    AND_internal(addressingMode, operandAddr, tmp);
-    STA_internal(addressingMode, operandAddr, operand);
-    PLA_internal(addressingMode, operandAddr, operand);
-    LDX_internal(addressingMode, operandAddr, _regX);
+    PHA_internal(addressingMode, operand);
+    AND_internal(addressingMode, _regX);
+    TAX_internal(addressingMode, _regX);
+    TXS_internal(addressingMode, _regX);
+    AND_internal(addressingMode, tmp);
+    STA_internal(addressingMode, operand);
+    PLA_internal(addressingMode, operand);
+    LDX_internal(addressingMode, _regX);
 }
 
 void CMOS65xx::XAA(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
-    TXA_internal(addressingMode, operandAddr, operand);
-    AND_internal(addressingMode, operandAddr, operand);
+    TXA_internal(addressingMode, operand);
+    AND_internal(addressingMode, operand);
 }
 
 void CMOS65xx::XAS(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     uint8_t tmp = ((operand & 0xff00) >> 8) + 1;
-    PHA_internal(addressingMode, operandAddr, operand);
-    TXA_internal(addressingMode, operandAddr, operand);
-    AND_internal(addressingMode, operandAddr, tmp);
-    STA_internal(addressingMode, operandAddr, operand);
-    PLA_internal(addressingMode, operandAddr, operand);
+    PHA_internal(addressingMode, operand);
+    TXA_internal(addressingMode, operand);
+    AND_internal(addressingMode, tmp);
+    STA_internal(addressingMode, operand);
+    PLA_internal(addressingMode, operand);
 }
 
 void CMOS65xx::KIL(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // parse the instruction
     uint16_t operand;
-    uint16_t operandAddr;
-    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
+    parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand, size, cycles);
 
     // exec
     CLog::fatal("invalid opcode!");
