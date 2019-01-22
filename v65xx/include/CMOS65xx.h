@@ -464,7 +464,8 @@ private:
 
     void logExecution(const char *opcodeName,  uint8_t opcodeByte, uint16_t operand, int addressingMode);
     void parseInstruction(uint8_t opcodeByte, const char* functionName, int addressingMode, uint16_t* operandAddress, uint16_t* operand, int* size, int* cycles);
-    void postExecHandleResultOperand(int addressingMode, uint16_t operandAddress, uint16_t operand);
+    void readOperand(int addressingMode, uint16_t addr, uint8_t* b);
+    void writeOperand(int addressingMode, uint16_t addr, uint8_t b);
     void handlePageCrossingOnBranch(uint16_t operand, int *cycles);
     void handlePageCrossing(int addressingMode, uint16_t operand, int* cycles);
     void irqInternal();
