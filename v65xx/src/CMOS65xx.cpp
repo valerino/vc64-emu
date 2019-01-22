@@ -33,6 +33,7 @@
 #define SET_FLAG_BRK_COMMAND(_x_) if(_x_) { _regP |= P_FLAG_BRK_COMMAND; } else { _regP &= ~P_FLAG_BRK_COMMAND; }
 #define SET_FLAG_OVERFLOW(_x_) if(_x_) { _regP |= P_FLAG_OVERFLOW; } else { _regP &= ~P_FLAG_OVERFLOW; }
 #define SET_FLAG_NEGATIVE(_x_) if(_x_) { _regP |= P_FLAG_NEGATIVE; } else { _regP &= ~P_FLAG_NEGATIVE; }
+#define SET_FLAG_UNUSED(_x_) _regP |= P_FLAG_UNUSED;
 
 // the stack base address
 #define STACK_BASE 0x100
@@ -118,6 +119,9 @@ void CMOS65xx::logExecution(const char *name, uint8_t opcodeByte, uint16_t opera
     if (_regP & P_FLAG_BRK_COMMAND) {
         strcat(s,"B");
     }
+    if (_regP & P_FLAG_UNUSED) {
+        strcat(s,"1");
+    }
     if (_regP & P_FLAG_OVERFLOW) {
         strcat(s,"O");
     }
@@ -166,7 +170,7 @@ void CMOS65xx::logExecution(const char *name, uint8_t opcodeByte, uint16_t opera
         // (2 bytes operand)
         uint8_t opByte1 = operand >> 8;
         uint8_t opByte2 = operand & 0xff;
-        CLog::printRaw("\t$%04x: %02X %02X %02X\t\t%s ($%04x)\t%s\n",
+        CLog::printRaw("\t$%04x: %02X %02X %02X\t\t%s ($%04x)\t\t%s\n",
                     _regPC, opcodeByte, opByte2, opByte1, name, operand, registers);
     }
     else if (addressingMode == ADDRESSING_MODE_INDIRECT_INDEXED_X) {
@@ -278,7 +282,7 @@ void CMOS65xx::parseInstruction(uint8_t opcodeByte, const char* functionName, in
             logExecution(functionName, opcodeByte, tmp, addressingMode);
 
             // emulate 6502 access bug on page boundary: if operand falls on page boundary, msb is not fetched correctly
-            uint16_t addr = (tmp & 0xff00) | ((tmp + 1) & 0x00ff);
+            uint16_t addr = (tmp & 0xff00) | (tmp & 0x00ff);
             uint16_t dw;
             _memory->readWord(addr, &dw);
             *operand = dw;
@@ -470,7 +474,7 @@ int CMOS65xx::run(int cyclesToRun) {
 
         // next opcode
         _regPC += instructionSize;
-        if (_regPC == 0x634) {
+        if (_regPC == 0x16ed) {
             int bb = 0;
             bb++;
         }
@@ -728,14 +732,16 @@ void CMOS65xx::BRK(int opcodeByte, int addressingMode, int* cycles, int* size) {
 
     // exec
     // push PC and P on stack
-    pushWord(_regPC + *size);
-    pushByte(_regP);
+    pushWord(_regPC + *size + 1);
+    uint8_t tmp = _regP | P_FLAG_BRK_COMMAND;
+    pushByte(tmp);
 
-    // set break flag
-    SET_FLAG_BRK_COMMAND(true);
+    // set the irq disable flag
+    SET_FLAG_IRQ_DISABLE(true);
 
     // and set PC to run the IRQ service routine located at the IRQ vector
     _memory->readWord(VECTOR_IRQ, &_regPC);
+    *size = 0;
 }
 
 void CMOS65xx::BVC(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -834,9 +840,10 @@ void CMOS65xx::CPX(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // exec
     uint8_t b;
     _memory->readByte(operand,&b);
-    SET_FLAG_CARRY(_regX >= b)
-    SET_FLAG_ZERO(_regX == b)
-    SET_FLAG_NEGATIVE((_regX - b) & 0x80)
+    uint16_t dw = _regX - b;
+    SET_FLAG_CARRY(dw <= 0xff);
+    SET_FLAG_ZERO(dw == 0);
+    SET_FLAG_NEGATIVE(dw & 0x80);
 }
 
 void CMOS65xx::CPY(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -848,9 +855,10 @@ void CMOS65xx::CPY(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // exec
     uint8_t b;
     _memory->readByte(operand,&b);
-    SET_FLAG_CARRY(_regY >= b)
-    SET_FLAG_ZERO(_regY == b)
-    SET_FLAG_NEGATIVE((_regY - b) & 0x80)
+    uint16_t dw = _regY - b;
+    SET_FLAG_CARRY(dw <= 0xff);
+    SET_FLAG_ZERO(dw == 0);
+    SET_FLAG_NEGATIVE(dw & 0x80);
 }
 
 void CMOS65xx::DEC_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
@@ -1104,7 +1112,12 @@ void CMOS65xx::PHP(int opcodeByte, int addressingMode, int* cycles, int* size) {
     parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operandAddr, &operand, size, cycles);
 
     // exec
-    pushByte(_regP);
+    uint8_t tmp = _regP;
+
+    // PHP saves all the bits + break/unused always set
+    tmp |= (P_FLAG_UNUSED | P_FLAG_BRK_COMMAND);
+
+    pushByte(tmp);
 }
 
 void CMOS65xx::PLA_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
@@ -1131,6 +1144,9 @@ void CMOS65xx::PLP(int opcodeByte, int addressingMode, int* cycles, int* size) {
 
     // exec
     _regP = popByte();
+
+    // the unusde flag must always be set
+    SET_FLAG_UNUSED(true)
 }
 
 void CMOS65xx::ROL_internal(int addressingMode, uint16_t operandAddr, uint16_t operand) {
