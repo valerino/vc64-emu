@@ -491,9 +491,56 @@ int CMOS65xx::run(int cyclesToRun) {
 
         // next opcode
         _regPC += instructionSize;
-        if (_regPC == 0x35cd) {
+        if (_regPC == 0x35c9) {
             int bb = 0;
             bb++;
+
+            /**
+    $35b1: 10 35B7		BPL $35b7		AddrMode=REL,	PC=$35b1, A=$00, X=$0e, Y=$ff, S=$fc, P=$72(ZB1O)
+	$35b7: 68			PLA				AddrMode=IMP,	PC=$35b7, A=$00, X=$0e, Y=$ff, S=$fc, P=$72(ZB1O)
+	$35b8: 85 11		STA $11			AddrMode=ZP,	PC=$35b8, A=$00, X=$0e, Y=$ff, S=$fd, P=$72(ZB1O)
+	$35ba: 08			PHP				AddrMode=IMP,	PC=$35ba, A=$00, X=$0e, Y=$ff, S=$fd, P=$72(ZB1O)
+	$35bb: A5 0D		LDA $0d			AddrMode=ZP,	PC=$35bb, A=$00, X=$0e, Y=$ff, S=$fc, P=$72(ZB1O)
+	$35bd: 65 0E		ADC $0e			AddrMode=ZP,	PC=$35bd, A=$36, X=$0e, Y=$ff, S=$fc, P=$70(B1O)
+	$35bf: 08			PHP				AddrMode=IMP,	PC=$35bf, A=$36, X=$0e, Y=$ff, S=$fc, P=$30(B1)
+	$35c0: C5 0F		CMP $0f			AddrMode=ZP,	PC=$35c0, A=$36, X=$0e, Y=$ff, S=$fb, P=$30(B1)
+	$35c2: D0 35C2		BNE $35c2		AddrMode=REL,	PC=$35c2, A=$36, X=$0e, Y=$ff, S=$fb, P=$33(CZB1)
+	$35c4: 68			PLA				AddrMode=IMP,	PC=$35c4, A=$36, X=$0e, Y=$ff, S=$fb, P=$33(CZB1)
+	$35c5: 29 C3		AND $c3			AddrMode=IMM,	PC=$35c5, A=$30, X=$0e, Y=$ff, S=$fc, P=$31(CB1)
+	$35c7: C5 11		CMP $11			AddrMode=ZP,	PC=$35c7, A=$00, X=$0e, Y=$ff, S=$fc, P=$33(CZB1)
+	$35c9: D0 35C9		BNE $35c9		AddrMode=REL,	PC=$35c9, A=$00, X=$0e, Y=$ff, S=$fc, P=$33(CZB1             */
+
+            /*
+	$35b1: 10 35B7		BPL $35b7		AddrMode=REL,	PC=$35b1, A=$01, X=$0e, Y=$ff, S=$fc, P=$71(CB1O)
+	$35b7: 68			PLA				AddrMode=IMP,	PC=$35b7, A=$01, X=$0e, Y=$ff, S=$fc, P=$71(CB1O)
+	$35b8: 85 11		STA $11			AddrMode=ZP,	PC=$35b8, A=$00, X=$0e, Y=$ff, S=$fd, P=$73(CZB1O)
+	$35ba: 08			PHP				AddrMode=IMP,	PC=$35ba, A=$00, X=$0e, Y=$ff, S=$fd, P=$73(CZB1O)
+	$35bb: A5 0D		LDA $0d			AddrMode=ZP,	PC=$35bb, A=$00, X=$0e, Y=$ff, S=$fc, P=$73(CZB1O)
+	$35bd: 65 0E		ADC $0e			AddrMode=ZP,	PC=$35bd, A=$36, X=$0e, Y=$ff, S=$fc, P=$71(CB1O)
+	$35bf: 08			PHP				AddrMode=IMP,	PC=$35bf, A=$37, X=$0e, Y=$ff, S=$fc, P=$30(B1)
+	$35c0: C5 0F		CMP $0f			AddrMode=ZP,	PC=$35c0, A=$37, X=$0e, Y=$ff, S=$fb, P=$30(B1)
+	$35c2: D0 35C2		BNE $35c2		AddrMode=REL,	PC=$35c2, A=$37, X=$0e, Y=$ff, S=$fb, P=$33(CZB1)
+	$35c4: 68			PLA				AddrMode=IMP,	PC=$35c4, A=$37, X=$0e, Y=$ff, S=$fb, P=$33(CZB1)
+	$35c5: 29 C3		AND $c3			AddrMode=IMM,	PC=$35c5, A=$30, X=$0e, Y=$ff, S=$fc, P=$31(CB1)
+	$35c7: C5 11		CMP $11			AddrMode=ZP,	PC=$35c7, A=$00, X=$0e, Y=$ff, S=$fc, P=$33(CZB1)
+	$35c9: D0 35C9		BNE $35c9		AddrMode=REL,	PC=$35c9, A=$00, X=$0e, Y=$ff, S=$fc, P=$33(CZB1)             */
+
+            /*
+ 	$35b1: 10 35B7		BPL $35b7		AddrMode=REL,	PC=$35b1, A=$00, X=$0e, Y=$ff, S=$fc, P=$72(ZB1O)
+	$35b7: 68			PLA				AddrMode=IMP,	PC=$35b7, A=$00, X=$0e, Y=$ff, S=$fc, P=$72(ZB1O)
+	$35b7: 68			PLA				AddrMode=IMP,	PC=$35b7, A=$00, X=$0e, Y=$ff, S=$fd, P=$72(ZB1O)
+	$35b8: 85 11		STA $11			AddrMode=ZP,	PC=$35b8, A=$2a, X=$0e, Y=$ff, S=$fe, P=$70(B1O)
+	$35ba: 08			PHP				AddrMode=IMP,	PC=$35ba, A=$2a, X=$0e, Y=$ff, S=$fe, P=$70(B1O)
+	$35bb: A5 0D		LDA $0d			AddrMode=ZP,	PC=$35bb, A=$2a, X=$0e, Y=$ff, S=$fd, P=$70(B1O)
+	$35bd: 65 0E		ADC $0e			AddrMode=ZP,	PC=$35bd, A=$37, X=$0e, Y=$ff, S=$fd, P=$70(B1O)
+	$35bf: 08			PHP				AddrMode=IMP,	PC=$35bf, A=$37, X=$0e, Y=$ff, S=$fd, P=$30(B1)
+	$35c0: C5 0F		CMP $0f			AddrMode=ZP,	PC=$35c0, A=$37, X=$0e, Y=$ff, S=$fc, P=$30(B1)
+	$35c2: D0 35C2		BNE $35c2		AddrMode=REL,	PC=$35c2, A=$37, X=$0e, Y=$ff, S=$fc, P=$33(CZB1)
+	$35c4: 68			PLA				AddrMode=IMP,	PC=$35c4, A=$37, X=$0e, Y=$ff, S=$fc, P=$33(CZB1)
+	$35c5: 29 C3		AND $c3			AddrMode=IMM,	PC=$35c5, A=$30, X=$0e, Y=$ff, S=$fd, P=$31(CB1)
+	$35c7: C5 11		CMP $11			AddrMode=ZP,	PC=$35c7, A=$00, X=$0e, Y=$ff, S=$fd, P=$33(CZB1)
+	$35c9: D0 35C9		BNE $35c9		AddrMode=REL,	PC=$35c9, A=$00, X=$0e, Y=$ff, S=$fd, P=$b0(B1N)
+             */
         }
     }
     return remaining;
@@ -680,9 +727,11 @@ void CMOS65xx::BIT(int opcodeByte, int addressingMode, int* cycles, int* size) {
 
     uint8_t bt;
     readOperand(addressingMode, operand, &bt);
-    SET_FLAG_ZERO ((_regA & bt) == 0);
-    SET_FLAG_NEGATIVE(bt & 0x80)
-    SET_FLAG_OVERFLOW(bt & 0x40)
+    uint16_t wd = _regA & bt;
+    SET_FLAG_ZERO ((wd & 0xff) == 0);
+    SET_FLAG_NEGATIVE(wd & 0x80)
+    //SET_FLAG_OVERFLOW(bt & 0x40)
+    _regP = (_regP & 0x3f) | (bt & 0xc0);
 }
 
 void CMOS65xx::BMI(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -813,7 +862,7 @@ void CMOS65xx::CPX(int opcodeByte, int addressingMode, int* cycles, int* size) {
 
     uint16_t wd = _regX - bt;
     SET_FLAG_CARRY(wd <= 0xff);
-    SET_FLAG_ZERO(wd == 0);
+    SET_FLAG_ZERO((wd & 0xff) == 0);
     SET_FLAG_NEGATIVE(wd & 0x80);
 }
 
@@ -826,7 +875,7 @@ void CMOS65xx::CPY(int opcodeByte, int addressingMode, int* cycles, int* size) {
 
     uint16_t wd = _regY - bt;
     SET_FLAG_CARRY(wd <= 0xff);
-    SET_FLAG_ZERO(wd == 0);
+    SET_FLAG_ZERO((wd & 0xff) == 0);
     SET_FLAG_NEGATIVE(wd & 0x80);
 }
 
@@ -1065,7 +1114,7 @@ void CMOS65xx::ROL_internal(int addressingMode, uint16_t operand) {
     uint8_t bt;
     readOperand(addressingMode, operand, &bt);
 
-    uint16_t wd = (bt << 1) | IS_FLAG_CARRY;
+    uint16_t wd = (bt << 1) | (IS_FLAG_CARRY);
     SET_FLAG_CARRY(wd > 0xff)
     bt = wd & 0xff;
     SET_FLAG_ZERO(bt == 0)

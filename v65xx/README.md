@@ -14,6 +14,7 @@ my MOS 6502/6510/65xxx emulator!
 * https://www.masswerk.at/6502/6502_instruction_set.html
 * https://wiki.nesdev.com/w/index.php/Status_flags
 * http://www.6502.org/tutorials/decimal_mode.html
+* http://www.6502.org/tutorials/6502opcodes.html
 * http://obelisk.me.uk/6502/reference.html
 * http://www.thealmightyguru.com/Games/Hacking/Wiki/index.php/6502_Opcodes
 * http://www.ffd2.com/fridge/docs/6502-NMOS.extra.opcodes (_best source for undocumented instructions implementation!_)
