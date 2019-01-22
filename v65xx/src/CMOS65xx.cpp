@@ -291,33 +291,43 @@ void CMOS65xx::parseInstruction(uint8_t opcodeByte, const char* functionName, in
         }
 
         case ADDRESSING_MODE_INDIRECT_INDEXED_X: {
-            // read the target address byte per byte, in zeropage
             uint8_t lsbAddr;
+            uint8_t lsb;
+            uint8_t msb;
+
+            // read the 2nd byte of the instruction, an address in zeropage
             _memory->readByte(operandAddr, &lsbAddr);
             lsbAddr += _regX;
-            uint8_t msbAddr = (lsbAddr + 1);
 
-            // read from the address in zeropage
-            uint16_t addr = (msbAddr << 8) | lsbAddr;
-            logExecution(functionName, opcodeByte, lsbAddr, addressingMode);
+            // read address
             uint16_t dw;
-            _memory->readWord(addr, &dw);
+            _memory->readWord(lsbAddr, &dw);
+            logExecution(functionName, opcodeByte, lsbAddr, addressingMode);
             *operand = dw;
             *size = 2;
             break;
         }
 
         case ADDRESSING_MODE_INDIRECT_INDEXED_Y: {
-            // read the target address byte per byte, in zeropage
             uint8_t lsbAddr;
-            _memory->readByte(operandAddr, &lsbAddr);
-            uint8_t msbAddr = (lsbAddr + 1);
+            uint8_t lsb;
+            uint8_t msb;
 
-            // read from the address in zeropage
-            uint16_t addr = _regY + ((msbAddr << 8) | lsbAddr);
+            // read the 2nd byte of the instruction, an address in zeropage
+            _memory->readByte(operandAddr, &lsbAddr);
+
+            // read lsb, save the carry
+            _memory->readByte(lsbAddr, &lsb);
+            uint16_t tmp = lsb + _regY;
+            lsb = tmp & 0xff;
+
+            // read msb, add the carry
+            _memory->readByte(lsbAddr + 1, &msb);
+            msb += (tmp > 0xff);
+
+            // form the address
+            uint16_t dw = (msb << 8) | lsb;
             logExecution(functionName, opcodeByte, lsbAddr, addressingMode);
-            uint16_t dw;
-            _memory->readWord(addr, &dw);
             *operand = dw;
             *size = 2;
             break;
@@ -474,7 +484,7 @@ int CMOS65xx::run(int cyclesToRun) {
 
         // next opcode
         _regPC += instructionSize;
-        if (_regPC == 0x16ed) {
+        if (_regPC == 0x1b80) {
             int bb = 0;
             bb++;
         }
