@@ -352,8 +352,8 @@ private:
     // the emulated memory
     IMemory* _memory;
 
-    void pushWord(uint16_t w);
-    void pushByte(uint8_t b);
+    void pushWord(uint16_t wd);
+    void pushByte(uint8_t bt);
     uint16_t popWord();
     uint8_t popByte();
 
