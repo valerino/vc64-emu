@@ -29,8 +29,10 @@
 #ifndef NDEBUG
 // debug-only flag, disable to toggle debug log
 #define DEBUG_LOG_EXECUTION
-// debug-only flag, run tests
-#define DEBUG_RUN_FUNCTIONAL_TESTS
+// debug-only flag, to log registers also after the instruction
+#define DEBUG_LOG_STATUS_AFTER_INSTRUCTION
+// debug-only flag, to run functional tests
+//#define DEBUG_RUN_FUNCTIONAL_TESTS
 #endif
 
 class CMOS65xx {
@@ -313,7 +315,7 @@ private:
             { 5, &CMOS65xx::ISC, ADDRESSING_MODE_ZEROPAGE},
             { 2, &CMOS65xx::INX, ADDRESSING_MODE_IMPLIED},
             { 2, &CMOS65xx::SBC, ADDRESSING_MODE_IMMEDIATE},
-            { 2, &CMOS65xx::NOP, ADDRESSING_MODE_ACCUMULATOR},
+            { 2, &CMOS65xx::NOP, ADDRESSING_MODE_IMPLIED},
             { 2, &CMOS65xx::SBC, ADDRESSING_MODE_IMMEDIATE},
             { 4, &CMOS65xx::CPX, ADDRESSING_MODE_ABSOLUTE},
             { 4, &CMOS65xx::SBC, ADDRESSING_MODE_ABSOLUTE},
@@ -462,10 +464,12 @@ private:
     void  XAS(int opcodeByte, int addressingMode, int* cycles, int* size);
     void  KIL(int opcodeByte, int addressingMode, int* cycles, int* size);
 
+    void cpuStatusToString(int addressingMode, char *status, int size);
+    void logStateAfterInstruction(int addressingMode);
     void logExecution(const char *opcodeName,  uint8_t opcodeByte, uint16_t operand, int addressingMode);
     void parseInstruction(uint8_t opcodeByte, const char* functionName, int addressingMode, uint16_t* operand, int* size, int* cycles);
-    void readOperand(int addressingMode, uint16_t addr, uint8_t* b);
-    void writeOperand(int addressingMode, uint16_t addr, uint8_t b);
+    void readOperand(int addressingMode, uint16_t addr, uint8_t* bt);
+    void writeOperand(int addressingMode, uint16_t addr, uint8_t bt);
     void handlePageCrossingOnBranch(uint16_t operand, int *cycles);
     void handlePageCrossing(int addressingMode, uint16_t operand, int* cycles);
     void irqInternal();

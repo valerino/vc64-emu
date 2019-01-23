@@ -1,9 +1,17 @@
 # v65xx
-my MOS 6502/6510/65xxx emulator!
+my MOS 6502/6510/65xxx emulator/interpreter!
 
 # features
-* clean code: since i myself am a newbie in writing emulators, i've explicitly choosen to prefer clean to performant code!
+* clean code
+    * since i myself am a newbie in writing emulators, i've explicitly choosen to prefer clean to performant code!
+
+* passes the Klaus's functional tests from 6502.org!
+    * https://github.com/Klaus2m5/6502_65C02_functional_tests
+    * latest version as 1/2019 included in this repo
+    * to test, enable *DEBUG_RUN_FUNCTIONAL_TESTS* in *include/CMOS65xx.h*
 * emulates all undocumented instructions
+    * TODO: implemented, but still to be tested!
+    
 * cycle accurate
 
 ## references

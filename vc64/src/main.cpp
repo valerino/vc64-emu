@@ -115,7 +115,7 @@ int main (int argc, char** argv) {
         // TODO: play audio
 
         // read input
-        bool mustExit;
+        bool mustExit  = false;
         uint8_t* keys;
         CSDLUtils::pollEvents(&keys, &mustExit);
         if (mustExit) {

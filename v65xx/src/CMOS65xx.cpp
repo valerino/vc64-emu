@@ -48,14 +48,12 @@
 #define VECTOR_IRQ      0xfffe
 
 /**
- * only for debugging, print execution
- * @param opcodeName name of the opcode
- * @param opcodeByte the opcode
- * @param operand the operand if any
+ * full cpu status to string
  * @param addressingMode one of the addressing modes
+ * @param status status buffer to fill
+ * @param size status buffer size
  */
-void CMOS65xx::logExecution(const char *name, uint8_t opcodeByte, uint16_t operand, int addressingMode) {
-#ifdef DEBUG_LOG_EXECUTION
+void CMOS65xx::cpuStatusToString(int addressingMode, char *status, int size) {
     char mode[16] = {0};
     switch (addressingMode) {
         case ADDRESSING_MODE_ACCUMULATOR:
@@ -102,7 +100,6 @@ void CMOS65xx::logExecution(const char *name, uint8_t opcodeByte, uint16_t opera
             break;
     }
 
-    // P to string
     char s[16] = {0};
     if (_regP & P_FLAG_CARRY) {
         strcat(s,"C");
@@ -132,68 +129,85 @@ void CMOS65xx::logExecution(const char *name, uint8_t opcodeByte, uint16_t opera
         // empty
         s[0]='-';
     }
-    char registers[128] = {};
-    snprintf(registers, sizeof(registers), "AddrMode=%s,\tPC=$%04x, A=$%02x, X=$%02x, Y=$%02x, S=$%02x, P=$%02x(%s)", mode, _regPC, _regA, _regX, _regY, _regS, _regP, s);
+    snprintf(status, size, "AddrMode=%s,\tPC=$%04x, A=$%02x, X=$%02x, Y=$%02x, S=$%02x, P=$%02x(%s)", mode, _regPC, _regA, _regX, _regY, _regS, _regP, s);
+}
+
+void CMOS65xx::logStateAfterInstruction(int addressingMode) {
+    char status[128];
+    cpuStatusToString(addressingMode, status, sizeof(status));
+    CLog::printRaw("\t\tAfter: ------->\t%s\n", status);
+}
+
+/**
+ * only for debugging, print execution
+ * @param opcodeName name of the opcode
+ * @param opcodeByte the opcode
+ * @param operand the operand if any
+ * @param addressingMode one of the addressing modes
+ */
+void CMOS65xx::logExecution(const char *name, uint8_t opcodeByte, uint16_t operand, int addressingMode) {
+    // fill status
+    char statusString[128];
+    cpuStatusToString(addressingMode, statusString, sizeof(statusString));
 
     if (addressingMode == ADDRESSING_MODE_IMPLIED) {
         // no operand
         CLog::printRaw("\t$%04x: %02X\t\t\t%s\t\t\t\t%s\n",
-                    _regPC, opcodeByte, name, registers);
+                    _regPC, opcodeByte, name, statusString);
     }
     else if (addressingMode == ADDRESSING_MODE_ACCUMULATOR) {
         // operand is A
         CLog::printRaw("\t$%04x: %02X\t\t\t%s A\t\t\t%s\n",
-                    _regPC, opcodeByte, name, registers);
+                    _regPC, opcodeByte, name, statusString);
     }
     else if (addressingMode == ADDRESSING_MODE_ABSOLUTE) {
         // absolute, 2 bytes operand
         uint8_t opByte1 = operand >> 8;
         uint8_t opByte2 = operand & 0xff;
         CLog::printRaw("\t$%04x: %02X %02X %02X\t\t%s $%04x\t\t%s\n",
-                    _regPC, opcodeByte, opByte2, opByte1, name, operand, registers);
+                    _regPC, opcodeByte, opByte2, opByte1, name, operand, statusString);
     }
     else if (addressingMode == ADDRESSING_MODE_ABSOLUTE_INDEXED_X || addressingMode == ADDRESSING_MODE_ZEROPAGE_INDEXED_X) {
         // 2 bytes operand, X/Y
         uint8_t opByte1 = operand >> 8;
         uint8_t opByte2 = operand & 0xff;
         CLog::printRaw("\t$%04x: %02X %02X %02X\t\t%s $%04x, X\t%s\n",
-                    _regPC, opcodeByte, opByte2, opByte1, name, operand, registers);
+                    _regPC, opcodeByte, opByte2, opByte1, name, operand, statusString);
     }
     else if (addressingMode == ADDRESSING_MODE_ABSOLUTE_INDEXED_Y || addressingMode == ADDRESSING_MODE_ZEROPAGE_INDEXED_Y) {
         // 2 bytes operand, X/Y
         uint8_t opByte1 = operand >> 8;
         uint8_t opByte2 = operand & 0xff;
         CLog::printRaw("\t$%04x: %02X %02X %02X\t\t%s $%04x, Y\t%s\n",
-                    _regPC, opcodeByte, opByte2, opByte1, name, operand, registers);
+                    _regPC, opcodeByte, opByte2, opByte1, name, operand, statusString);
     }
     else if (addressingMode == ADDRESSING_MODE_INDIRECT) {
         // (2 bytes operand)
         uint8_t opByte1 = operand >> 8;
         uint8_t opByte2 = operand & 0xff;
         CLog::printRaw("\t$%04x: %02X %02X %02X\t\t%s ($%04x)\t\t%s\n",
-                    _regPC, opcodeByte, opByte2, opByte1, name, operand, registers);
+                    _regPC, opcodeByte, opByte2, opByte1, name, operand, statusString);
     }
     else if (addressingMode == ADDRESSING_MODE_INDIRECT_INDEXED_X) {
         // (operand, X)
         CLog::printRaw("\t$%04x: %02X %02X\t\t%s ($%02x, X)\t%s\n",
-                    _regPC, opcodeByte, operand, name, operand, registers);
+                    _regPC, opcodeByte, operand, name, operand, statusString);
     }
     else if (addressingMode == ADDRESSING_MODE_INDIRECT_INDEXED_Y) {
         // (operand), Y
         CLog::printRaw("\t$%04x: %02X %02X\t\t%s ($%02x), Y\t%s\n",
-                    _regPC, opcodeByte, operand, name, operand, registers);
+                    _regPC, opcodeByte, operand, name, operand, statusString);
     }
     else if (addressingMode == ADDRESSING_MODE_RELATIVE) {
         // 1 byte operand, relative to PC
         CLog::printRaw("\t$%04x: %02X %04X\t\t%s $%04x\t\t%s\n",
-                    _regPC, opcodeByte, operand, name, operand, registers);
+                    _regPC, opcodeByte, operand, name, operand, statusString);
     }
     else {
         // immediate / zeropage (1 byte operand)
         CLog::printRaw("\t$%04x: %02X %02X\t\t%s $%02x\t\t\t%s\n",
-                    _regPC, opcodeByte, operand, name, operand, registers);
+                    _regPC, opcodeByte, operand, name, operand, statusString);
     }
-#endif
 }
 
 /**
@@ -437,14 +451,25 @@ void CMOS65xx::handlePageCrossingOnBranch(uint16_t operand, int *cycles) {
  * to be called post executing certain instructions, write the result back to memory or accumulator
  * @param addressingMode one of the addressing modes
  * @param addr the address to write to
- * @param b the byte to write
+ * @param bt the byte to write
  */
-void CMOS65xx::writeOperand(int addressingMode, uint16_t addr, uint8_t b) {
+void CMOS65xx::writeOperand(int addressingMode, uint16_t addr, uint8_t bt) {
     if (addressingMode == ADDRESSING_MODE_ACCUMULATOR) {
-        _regA = b;
+        _regA = bt;
+#ifdef DEBUG_LOG_STATUS_AFTER_INSTRUCTION
+        CLog::printRaw("\t\tWrite: ------->\tA=$%02x\n", bt);
+#endif
     }
     else {
-        _memory->writeByte(addr, b);
+#ifdef DEBUG_LOG_STATUS_AFTER_INSTRUCTION
+        uint8_t m;
+        _memory->readByte(addr,&m);
+        CLog::printRaw("\t\tWrite(PRE): -->\t($%04x)=$%02x\n", addr, bt);
+#endif
+        _memory->writeByte(addr, bt);
+#ifdef DEBUG_LOG_STATUS_AFTER_INSTRUCTION
+        CLog::printRaw("\t\tWrite(POST): ->\t($%04x)=$%02x\n", addr, bt);
+#endif
     }
 }
 
@@ -452,20 +477,28 @@ void CMOS65xx::writeOperand(int addressingMode, uint16_t addr, uint8_t b) {
  * to be called in the beginning of ceratain instructions, read the operand from memory
  * @param addressingMode one of the addressing modes
  * @param addr the address to write to
- * @param b on return, the operand
+ * @param bt on return, the operand
  */
-void CMOS65xx::readOperand(int addressingMode, uint16_t addr, uint8_t* b) {
+void CMOS65xx::readOperand(int addressingMode, uint16_t addr, uint8_t* bt) {
     if (addressingMode == ADDRESSING_MODE_ACCUMULATOR) {
-        *b = _regA;
+        *bt = _regA;
+#ifdef DEBUG_LOG_STATUS_AFTER_INSTRUCTION
+        CLog::printRaw("\t\tRead:  ------->\tA=$%02x\n", _regA);
+#endif
     }
     else {
-        _memory->readByte(addr, b);
+        _memory->readByte(addr, bt);
+#ifdef DEBUG_LOG_STATUS_AFTER_INSTRUCTION
+        CLog::printRaw("\t\tRead: -------->\t($%04x)=$%02x\n", addr, *bt);
+#endif
     }
 }
 
 int CMOS65xx::run(int cyclesToRun) {
     int n = cyclesToRun;
     int remaining = 0;
+    uint16_t prevPc = 0;
+    bool last = false;
     while (n) {
         // get opcode byte
         uint8_t bt;
@@ -478,69 +511,41 @@ int CMOS65xx::run(int cyclesToRun) {
         int occupiedCycles = op.cycles;
         int instructionSize = 0;
         (this->*op.ptr)(bt, op.mode, &occupiedCycles, &instructionSize);
-
+#ifdef DEBUG_LOG_STATUS_AFTER_INSTRUCTION
+        logStateAfterInstruction(op.mode);
+#endif
         // check number of cycles
-         if (n >= occupiedCycles) {
+        if (n >= occupiedCycles) {
             n -= occupiedCycles;
         }
         else {
             // last iteration
             remaining = occupiedCycles - n;
-            break;
+            last = true;
         }
 
         // next opcode
         _regPC += instructionSize;
-        if (_regPC == 0x35c9) {
-            int bb = 0;
-            bb++;
 
-            /**
-    $35b1: 10 35B7		BPL $35b7		AddrMode=REL,	PC=$35b1, A=$00, X=$0e, Y=$ff, S=$fc, P=$72(ZB1O)
-	$35b7: 68			PLA				AddrMode=IMP,	PC=$35b7, A=$00, X=$0e, Y=$ff, S=$fc, P=$72(ZB1O)
-	$35b8: 85 11		STA $11			AddrMode=ZP,	PC=$35b8, A=$00, X=$0e, Y=$ff, S=$fd, P=$72(ZB1O)
-	$35ba: 08			PHP				AddrMode=IMP,	PC=$35ba, A=$00, X=$0e, Y=$ff, S=$fd, P=$72(ZB1O)
-	$35bb: A5 0D		LDA $0d			AddrMode=ZP,	PC=$35bb, A=$00, X=$0e, Y=$ff, S=$fc, P=$72(ZB1O)
-	$35bd: 65 0E		ADC $0e			AddrMode=ZP,	PC=$35bd, A=$36, X=$0e, Y=$ff, S=$fc, P=$70(B1O)
-	$35bf: 08			PHP				AddrMode=IMP,	PC=$35bf, A=$36, X=$0e, Y=$ff, S=$fc, P=$30(B1)
-	$35c0: C5 0F		CMP $0f			AddrMode=ZP,	PC=$35c0, A=$36, X=$0e, Y=$ff, S=$fb, P=$30(B1)
-	$35c2: D0 35C2		BNE $35c2		AddrMode=REL,	PC=$35c2, A=$36, X=$0e, Y=$ff, S=$fb, P=$33(CZB1)
-	$35c4: 68			PLA				AddrMode=IMP,	PC=$35c4, A=$36, X=$0e, Y=$ff, S=$fb, P=$33(CZB1)
-	$35c5: 29 C3		AND $c3			AddrMode=IMM,	PC=$35c5, A=$30, X=$0e, Y=$ff, S=$fc, P=$31(CB1)
-	$35c7: C5 11		CMP $11			AddrMode=ZP,	PC=$35c7, A=$00, X=$0e, Y=$ff, S=$fc, P=$33(CZB1)
-	$35c9: D0 35C9		BNE $35c9		AddrMode=REL,	PC=$35c9, A=$00, X=$0e, Y=$ff, S=$fc, P=$33(CZB1             */
+#ifdef DEBUG_RUN_FUNCTIONAL_TESTS
+        // i.e. detect deadlock in functional test
+        if (_regPC != prevPc) {
+            prevPc = _regPC;
+        }
+        else {
+            // break!
+            CLog::fatal("DEADLOCK!");
+        }
+        if (_regPC == 0x3469) {
+            // success and exit!
+            CLog::print("!! Klaus 6502 functional test SUCCESS !!");
+            exit(0);
+        }
+#endif
 
-            /*
-	$35b1: 10 35B7		BPL $35b7		AddrMode=REL,	PC=$35b1, A=$01, X=$0e, Y=$ff, S=$fc, P=$71(CB1O)
-	$35b7: 68			PLA				AddrMode=IMP,	PC=$35b7, A=$01, X=$0e, Y=$ff, S=$fc, P=$71(CB1O)
-	$35b8: 85 11		STA $11			AddrMode=ZP,	PC=$35b8, A=$00, X=$0e, Y=$ff, S=$fd, P=$73(CZB1O)
-	$35ba: 08			PHP				AddrMode=IMP,	PC=$35ba, A=$00, X=$0e, Y=$ff, S=$fd, P=$73(CZB1O)
-	$35bb: A5 0D		LDA $0d			AddrMode=ZP,	PC=$35bb, A=$00, X=$0e, Y=$ff, S=$fc, P=$73(CZB1O)
-	$35bd: 65 0E		ADC $0e			AddrMode=ZP,	PC=$35bd, A=$36, X=$0e, Y=$ff, S=$fc, P=$71(CB1O)
-	$35bf: 08			PHP				AddrMode=IMP,	PC=$35bf, A=$37, X=$0e, Y=$ff, S=$fc, P=$30(B1)
-	$35c0: C5 0F		CMP $0f			AddrMode=ZP,	PC=$35c0, A=$37, X=$0e, Y=$ff, S=$fb, P=$30(B1)
-	$35c2: D0 35C2		BNE $35c2		AddrMode=REL,	PC=$35c2, A=$37, X=$0e, Y=$ff, S=$fb, P=$33(CZB1)
-	$35c4: 68			PLA				AddrMode=IMP,	PC=$35c4, A=$37, X=$0e, Y=$ff, S=$fb, P=$33(CZB1)
-	$35c5: 29 C3		AND $c3			AddrMode=IMM,	PC=$35c5, A=$30, X=$0e, Y=$ff, S=$fc, P=$31(CB1)
-	$35c7: C5 11		CMP $11			AddrMode=ZP,	PC=$35c7, A=$00, X=$0e, Y=$ff, S=$fc, P=$33(CZB1)
-	$35c9: D0 35C9		BNE $35c9		AddrMode=REL,	PC=$35c9, A=$00, X=$0e, Y=$ff, S=$fc, P=$33(CZB1)             */
-
-            /*
- 	$35b1: 10 35B7		BPL $35b7		AddrMode=REL,	PC=$35b1, A=$00, X=$0e, Y=$ff, S=$fc, P=$72(ZB1O)
-	$35b7: 68			PLA				AddrMode=IMP,	PC=$35b7, A=$00, X=$0e, Y=$ff, S=$fc, P=$72(ZB1O)
-	$35b7: 68			PLA				AddrMode=IMP,	PC=$35b7, A=$00, X=$0e, Y=$ff, S=$fd, P=$72(ZB1O)
-	$35b8: 85 11		STA $11			AddrMode=ZP,	PC=$35b8, A=$2a, X=$0e, Y=$ff, S=$fe, P=$70(B1O)
-	$35ba: 08			PHP				AddrMode=IMP,	PC=$35ba, A=$2a, X=$0e, Y=$ff, S=$fe, P=$70(B1O)
-	$35bb: A5 0D		LDA $0d			AddrMode=ZP,	PC=$35bb, A=$2a, X=$0e, Y=$ff, S=$fd, P=$70(B1O)
-	$35bd: 65 0E		ADC $0e			AddrMode=ZP,	PC=$35bd, A=$37, X=$0e, Y=$ff, S=$fd, P=$70(B1O)
-	$35bf: 08			PHP				AddrMode=IMP,	PC=$35bf, A=$37, X=$0e, Y=$ff, S=$fd, P=$30(B1)
-	$35c0: C5 0F		CMP $0f			AddrMode=ZP,	PC=$35c0, A=$37, X=$0e, Y=$ff, S=$fc, P=$30(B1)
-	$35c2: D0 35C2		BNE $35c2		AddrMode=REL,	PC=$35c2, A=$37, X=$0e, Y=$ff, S=$fc, P=$33(CZB1)
-	$35c4: 68			PLA				AddrMode=IMP,	PC=$35c4, A=$37, X=$0e, Y=$ff, S=$fc, P=$33(CZB1)
-	$35c5: 29 C3		AND $c3			AddrMode=IMM,	PC=$35c5, A=$30, X=$0e, Y=$ff, S=$fd, P=$31(CB1)
-	$35c7: C5 11		CMP $11			AddrMode=ZP,	PC=$35c7, A=$00, X=$0e, Y=$ff, S=$fd, P=$33(CZB1)
-	$35c9: D0 35C9		BNE $35c9		AddrMode=REL,	PC=$35c9, A=$00, X=$0e, Y=$ff, S=$fd, P=$b0(B1N)
-             */
+        if (last) {
+            // last iteration for this run
+            break;
         }
     }
     return remaining;
@@ -558,9 +563,7 @@ int CMOS65xx::reset() {
     _regX = 0;
     _regY = 0;
     _regS = 0xfd;
-    _regP |= P_FLAG_BRK_COMMAND;
     _regP |= P_FLAG_UNUSED;
-    _regP |= P_FLAG_IRQ_DISABLE;
     _memory->readWord(VECTOR_RESET,&_regPC);
 #ifdef DEBUG_RUN_FUNCTIONAL_TESTS
     // overwrite memory with functional test suite
@@ -593,8 +596,13 @@ void CMOS65xx::pushWord(uint16_t wd) {
 void CMOS65xx::pushByte(uint8_t bt) {
     _memory->writeByte(STACK_BASE + _regS, bt);
 
-    // decrement stack
-    _regS -= 1;
+    // decrement stack, beware of overrun (stack memory is $100-$1ff)
+    if (_regS == 0) {
+        _regS = 0xff;
+    }
+    else {
+        _regS -= 1;
+    }
 }
 
 /**
@@ -614,8 +622,13 @@ uint16_t CMOS65xx::popWord() {
  * @return the word
  */
 uint8_t CMOS65xx::popByte() {
-    // increment stack
-    _regS += 1;
+    // increment stack, beware of overrun (stack memory is $100-$1ff)
+    if (_regS == 0xff) {
+        _regS = 0;
+    }
+    else {
+        _regS += 1;
+    }
     uint8_t bt;
     _memory->readByte(STACK_BASE + _regS, &bt);
     return bt;
@@ -625,26 +638,31 @@ void CMOS65xx::ADC_internal(int addressingMode, uint16_t operand) {
     uint8_t bt;
     readOperand(addressingMode, operand, &bt);
 
-    uint16_t wd = _regA + bt + (IS_FLAG_CARRY);
-    SET_FLAG_CARRY(wd > 0xff)
-    SET_FLAG_ZERO((wd & 0xff) == 0)
-    SET_FLAG_NEGATIVE(wd & 0x80)
-    int overflow = ( !((_regA ^ bt) & 0x80) && ((_regA ^ wd) & 0x80) );
-    SET_FLAG_OVERFLOW(overflow > 0)
-
+    uint32_t wd = _regA + bt + (IS_FLAG_CARRY);
     if (IS_FLAG_DECIMAL_MODE) {
         // handle decimal mode
-        SET_FLAG_CARRY(false);
-        if ((wd & 0x0f) > 0x09) {
-            wd += 0x06;
+        if ( ((_regA & 0xf) + (bt & 0xF) + (IS_FLAG_CARRY)) > 9 ) {
+            wd += 6;
         }
-        if ((wd & 0xf0) > 0x90) {
+        SET_FLAG_NEGATIVE(wd & 0x80);
+
+        int overflow = ( !((_regA ^ bt) & 0x80) && ((_regA ^ wd) & 0x80) );
+        SET_FLAG_OVERFLOW(overflow > 0)
+        if (wd > 0x99) {
             wd += 0x60;
-            SET_FLAG_CARRY(true);
         }
-        // NOTE: an additional cycle is added only in 65c02, not in vanilla 6502 !!!
+        SET_FLAG_CARRY(wd > 0x99);
+    }
+    else {
+        // binary
+        SET_FLAG_CARRY(wd > 0xff)
+        SET_FLAG_ZERO((wd & 0xff) == 0)
+        SET_FLAG_NEGATIVE(wd & 0x80)
+        int overflow = ( !((_regA ^ bt) & 0x80) && ((_regA ^ wd) & 0x80) );
+        SET_FLAG_OVERFLOW(overflow > 0)
     }
 
+    // NOTE: an additional cycle is added only in 65c02, not in vanilla 6502 !!!
     _regA = wd & 0xff;
 }
 
@@ -727,11 +745,11 @@ void CMOS65xx::BIT(int opcodeByte, int addressingMode, int* cycles, int* size) {
 
     uint8_t bt;
     readOperand(addressingMode, operand, &bt);
-    uint16_t wd = _regA & bt;
-    SET_FLAG_ZERO ((wd & 0xff) == 0);
-    SET_FLAG_NEGATIVE(wd & 0x80)
-    //SET_FLAG_OVERFLOW(bt & 0x40)
-    _regP = (_regP & 0x3f) | (bt & 0xc0);
+    uint8_t andRes = _regA & bt;
+
+    SET_FLAG_ZERO (andRes == 0);
+    SET_FLAG_NEGATIVE(bt & 0x80)
+    SET_FLAG_OVERFLOW(bt & 0x40)
 }
 
 void CMOS65xx::BMI(int opcodeByte, int addressingMode, int* cycles, int* size) {
@@ -839,7 +857,6 @@ void CMOS65xx::CLV(int opcodeByte, int addressingMode, int* cycles, int* size) {
 void CMOS65xx::CMP_internal(int addressingMode, uint16_t operand) {
     uint8_t bt;
     readOperand(addressingMode, operand, &bt);
-
     uint16_t wd = _regA - bt;
     SET_FLAG_CARRY(wd <= 0xff)
     SET_FLAG_ZERO((wd & 0xff) == 0)
@@ -1172,8 +1189,7 @@ void CMOS65xx::SBC_internal(int addressingMode, uint16_t operand) {
     uint8_t bt;
     readOperand(addressingMode, operand, &bt);
 
-    uint16_t wd = _regA - bt - !(IS_FLAG_CARRY);
-    SET_FLAG_CARRY(wd <= 0xff)
+    uint32_t wd = _regA - bt - !(IS_FLAG_CARRY);
     SET_FLAG_ZERO((wd & 0xff) == 0)
     SET_FLAG_NEGATIVE(wd & 0x80)
     int overflow = ( ((_regA ^ bt) & 0x80) && ((_regA ^ wd) & 0x80) );
@@ -1181,17 +1197,16 @@ void CMOS65xx::SBC_internal(int addressingMode, uint16_t operand) {
 
     if (IS_FLAG_DECIMAL_MODE) {
         // handle decimal mode
-        SET_FLAG_CARRY(false);
-        if ((wd & 0x0f) > 0x09) {
-            wd += 0x06;
+        if ( ((_regA & 0xf) - !(IS_FLAG_CARRY)) < (bt & 0xf) ) {
+            wd -= 6;
         }
-        if ((wd & 0xf0) > 0x90) {
-            wd += 0x60;
-            SET_FLAG_CARRY(true);
+        if (wd > 0x99) {
+            wd -= 0x60;
         }
-        // NOTE: an additional cycle is added only in 65c02, not in vanilla 6502 !!!
     }
+    SET_FLAG_CARRY(wd <= 0xff)
 
+    // NOTE: an additional cycle is added only in 65c02, not in vanilla 6502 !!!
     _regA = wd & 0xff;
 }
 
