@@ -17,16 +17,8 @@ class CDisplay {
 
 private:
     SDLDisplayCtx * _ctx;
-    CDisplay();
-    static CDisplay* _instance;
 
 public:
-    /**
-     * gets the singleton
-     * @return the CDisplay instance
-     */
-    static CDisplay* instance();
-
     /**
      * to be called first to initialize display
      * @param options window creation options
@@ -43,6 +35,7 @@ public:
      */
     int update(uint8_t* frameBuffer, uint32_t size);
 
+    CDisplay();
     ~CDisplay();
 };
 

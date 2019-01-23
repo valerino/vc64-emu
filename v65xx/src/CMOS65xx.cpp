@@ -470,6 +470,8 @@ void CMOS65xx::writeOperand(int addressingMode, uint16_t addr, uint8_t bt) {
 #ifdef DEBUG_LOG_STATUS_AFTER_INSTRUCTION
         CLog::printRaw("\t\tWrite(POST): ->\t($%04x)=$%02x\n", addr, bt);
 #endif
+        // call the cpu callback to notify client
+        _callback(CPU_MEM_WRITE, addr, bt);
     }
 }
 
@@ -491,14 +493,18 @@ void CMOS65xx::readOperand(int addressingMode, uint16_t addr, uint8_t* bt) {
 #ifdef DEBUG_LOG_STATUS_AFTER_INSTRUCTION
         CLog::printRaw("\t\tRead: -------->\t($%04x)=$%02x\n", addr, *bt);
 #endif
+        // call the cpu callback to notify client
+        _callback(CPU_MEM_READ, addr, *bt);
     }
 }
 
-int CMOS65xx::run(int cyclesToRun) {
+int CMOS65xx::run(int cyclesToRun, bool* mustStop) {
     int n = cyclesToRun;
     int remaining = 0;
     uint16_t prevPc = 0;
     bool last = false;
+    *mustStop = false;
+
     while (n) {
         // get opcode byte
         uint8_t bt;
@@ -539,7 +545,8 @@ int CMOS65xx::run(int cyclesToRun) {
         if (_regPC == 0x3469) {
             // success and exit!
             CLog::print("!! Klaus 6502 functional test SUCCESS !!");
-            exit(0);
+            *mustStop = true;
+            last = true;
         }
 #endif
 
@@ -572,8 +579,9 @@ int CMOS65xx::reset() {
     return 0;
 }
 
-CMOS65xx::CMOS65xx(IMemory *mem) {
+CMOS65xx::CMOS65xx(IMemory *mem, CpuCallback callback) {
     _memory = mem;
+    _callback = callback;
 }
 
 /**

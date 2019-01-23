@@ -13,8 +13,10 @@
 class CCIA {
 public:
     CCIA(CMOS65xx* cpu);
+    ~CCIA();
 
-private:
+protected:
+    CMOS65xx* _cpu;
 };
 
 

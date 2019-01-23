@@ -3,11 +3,14 @@ project(vc64)
 add_executable(${PROJECT_NAME}
         src/main.cpp
         src/CDisplay.cpp
+        src/CInput.cpp
+        src/CAudio.cpp
         src/CMemory.cpp
         src/CCIA.cpp
         src/CCIA1.cpp
         src/CCIA2.cpp
         src/CVICII.cpp
+        src/CSID.cpp
         )
 
 # needs sdsl2

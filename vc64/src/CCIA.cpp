@@ -3,3 +3,11 @@
 //
 
 #include "CCIA.h"
+
+CCIA::CCIA(CMOS65xx *cpu) {
+    _cpu = cpu;
+}
+
+CCIA::~CCIA() {
+
+}

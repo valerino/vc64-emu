@@ -3,3 +3,11 @@
 //
 
 #include "CVICII.h"
+
+CVICII::~CVICII() {
+
+}
+
+CVICII::CVICII(CMOS65xx *cpu) {
+    _cpu = cpu;
+}

@@ -8,7 +8,7 @@
 #include <stdint.h>
 
 /**
- * utilities to manipulate binary buffers
+ * utilities to manipulate buffers/memory
  */
 class CBuffer {
 public:
@@ -22,5 +22,10 @@ public:
     static int fromFile(const char* path, uint8_t** buffer, uint32_t* size);
 };
 
+/**
+ * safe delete allocated memory
+ */
+#define SAFE_DELETE(_x_) if(_x_ != nullptr) { delete _x_; }
+#define SAFE_FREE(_x_) if(_x_ != nullptr) { free(_x_); }
 
 #endif //VC64_EMU_CBUFFER_H
