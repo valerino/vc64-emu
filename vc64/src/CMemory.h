@@ -56,12 +56,11 @@ public:
     int init() override;
 
     /**
-     * returns the video memory (the framebuffer)
-     * @param frameBuffer on successful return, directly points to the underlying video memory
-     * @param size on succsesful return, framebuffer size
-     * @return 0 on success, or errno
+     * get the raw memory pointer
+     * @param size if not null, returns the memory size here
+     * @return the memory pointer
      */
-    int videoMemory(uint8_t** frameBuffer, uint32_t* size);
+    uint8_t* raw(uint32_t* size);
 
     CMemory();
     ~CMemory();

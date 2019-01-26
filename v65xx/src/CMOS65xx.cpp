@@ -133,9 +133,11 @@ void CMOS65xx::cpuStatusToString(int addressingMode, char *status, int size) {
 }
 
 void CMOS65xx::logStateAfterInstruction(int addressingMode) {
+#ifdef DEBUG_LOG_VERBOSE
     char status[128];
     cpuStatusToString(addressingMode, status, sizeof(status));
     CLog::printRaw("\t\tAfter: ------->\t%s\n", status);
+#endif
 }
 
 /**
@@ -146,6 +148,7 @@ void CMOS65xx::logStateAfterInstruction(int addressingMode) {
  * @param addressingMode one of the addressing modes
  */
 void CMOS65xx::logExecution(const char *name, uint8_t opcodeByte, uint16_t operand, int addressingMode) {
+#ifdef DEBUG_LOG_EXECUTION
     // fill status
     char statusString[128];
     cpuStatusToString(addressingMode, statusString, sizeof(statusString));
@@ -208,6 +211,7 @@ void CMOS65xx::logExecution(const char *name, uint8_t opcodeByte, uint16_t opera
         CLog::printRaw("\t$%04x: %02X %02X\t\t%s $%02x\t\t\t%s\n",
                     _regPC, opcodeByte, operand, name, operand, statusString);
     }
+#endif
 }
 
 /**
@@ -456,18 +460,18 @@ void CMOS65xx::handlePageCrossingOnBranch(uint16_t operand, int *cycles) {
 void CMOS65xx::writeOperand(int addressingMode, uint16_t addr, uint8_t bt) {
     if (addressingMode == ADDRESSING_MODE_ACCUMULATOR) {
         _regA = bt;
-#ifdef DEBUG_LOG_STATUS_AFTER_INSTRUCTION
+#ifdef DEBUG_LOG_VERBOSE
         CLog::printRaw("\t\tWrite: ------->\tA=$%02x\n", bt);
 #endif
     }
     else {
-#ifdef DEBUG_LOG_STATUS_AFTER_INSTRUCTION
+#ifdef DEBUG_LOG_VERBOSE
         uint8_t m;
         _memory->readByte(addr,&m);
         CLog::printRaw("\t\tWrite(PRE): -->\t($%04x)=$%02x\n", addr, bt);
 #endif
         _memory->writeByte(addr, bt);
-#ifdef DEBUG_LOG_STATUS_AFTER_INSTRUCTION
+#ifdef DEBUG_LOG_VERBOSE
         CLog::printRaw("\t\tWrite(POST): ->\t($%04x)=$%02x\n", addr, bt);
 #endif
         // call the cpu callback to notify client
@@ -484,13 +488,13 @@ void CMOS65xx::writeOperand(int addressingMode, uint16_t addr, uint8_t bt) {
 void CMOS65xx::readOperand(int addressingMode, uint16_t addr, uint8_t* bt) {
     if (addressingMode == ADDRESSING_MODE_ACCUMULATOR) {
         *bt = _regA;
-#ifdef DEBUG_LOG_STATUS_AFTER_INSTRUCTION
+#ifdef DEBUG_LOG_VERBOSE
         CLog::printRaw("\t\tRead:  ------->\tA=$%02x\n", _regA);
 #endif
     }
     else {
         _memory->readByte(addr, bt);
-#ifdef DEBUG_LOG_STATUS_AFTER_INSTRUCTION
+#ifdef DEBUG_LOG_VERBOSE
         CLog::printRaw("\t\tRead: -------->\t($%04x)=$%02x\n", addr, *bt);
 #endif
         // call the cpu callback to notify client
@@ -498,64 +502,41 @@ void CMOS65xx::readOperand(int addressingMode, uint16_t addr, uint8_t* bt) {
     }
 }
 
-int CMOS65xx::run(int cyclesToRun, bool* mustStop) {
-    int n = cyclesToRun;
-    int remaining = 0;
-    uint16_t prevPc = 0;
-    bool last = false;
-    *mustStop = false;
+int CMOS65xx::step() {
 
-    while (n) {
-        // get opcode byte
-        uint8_t bt;
-        _memory->readByte(_regPC,&bt);
+    // get opcode byte
+    uint8_t bt;
+    _memory->readByte(_regPC,&bt);
 
-        // get opcode from table
-        Opcode op = _opcodeMatrix[bt];
+    // get opcode from table
+    Opcode op = _opcodeMatrix[bt];
 
-        // execute instruction and return the number of occupied cycles
-        int occupiedCycles = op.cycles;
-        int instructionSize = 0;
-        (this->*op.ptr)(bt, op.mode, &occupiedCycles, &instructionSize);
-#ifdef DEBUG_LOG_STATUS_AFTER_INSTRUCTION
-        logStateAfterInstruction(op.mode);
-#endif
-        // check number of cycles
-        if (n >= occupiedCycles) {
-            n -= occupiedCycles;
-        }
-        else {
-            // last iteration
-            remaining = occupiedCycles - n;
-            last = true;
-        }
+    // execute instruction and return the number of occupied cycles
+    int occupiedCycles = op.cycles;
+    int instructionSize = 0;
+    (this->*op.ptr)(bt, op.mode, &occupiedCycles, &instructionSize);
+    logStateAfterInstruction(op.mode);
 
-        // next opcode
-        _regPC += instructionSize;
+
+    // next opcode
+    _regPC += instructionSize;
 
 #ifdef DEBUG_RUN_FUNCTIONAL_TESTS
-        // i.e. detect deadlock in functional test
-        if (_regPC != prevPc) {
-            prevPc = _regPC;
-        }
-        else {
-            // break!
-            CLog::fatal("DEADLOCK!");
-        }
-        if (_regPC == 0x3469) {
-            // success and exit!
-            CLog::print("!! Klaus 6502 functional test SUCCESS !!");
-            *mustStop = true;
-            last = true;
-        }
-#endif
-
-        if (last) {
-            // last iteration for this run
-            break;
-        }
+    // i.e. detect deadlock in functional test
+    if (_regPC != _prevPc) {
+        _prevPc = _regPC;
     }
-    return remaining;
+    else {
+        // break!
+        CLog::fatal("DEADLOCK!");
+    }
+    if (_regPC == 0x3469) {
+        // success and exit!
+        CLog::print("!! Klaus 6502 functional test SUCCESS !!");
+        return -1;
+    }
+#endif
+    return occupiedCycles;
 }
 
 int CMOS65xx::reset() {
@@ -807,7 +788,7 @@ void CMOS65xx::BRK(int opcodeByte, int addressingMode, int* cycles, int* size) {
     // set the irq disable flag
     SET_FLAG_IRQ_DISABLE(true);
 
-    // and set PC to run the IRQ service routine located at the IRQ vector
+    // and set PC to step the IRQ service routine located at the IRQ vector
     _memory->readWord(VECTOR_IRQ, &_regPC);
     *size = 0;
 }

@@ -11,3 +11,7 @@ CCIA2::CCIA2(CMOS65xx* cpu) : CCIA(cpu) {
 CCIA2::~CCIA2() {
 
 }
+
+void CCIA2::run() {
+
+}

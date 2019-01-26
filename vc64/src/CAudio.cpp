@@ -3,3 +3,14 @@
 //
 
 #include "CAudio.h"
+
+CAudio::CAudio() {
+
+}
+
+CAudio::~CAudio() {
+
+}
+
+void CAudio::update() {
+}

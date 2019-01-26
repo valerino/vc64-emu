@@ -7,7 +7,12 @@
 
 
 class CInput {
+public:
+    CInput();
+    ~CInput();
 
+    void update();
+private:
 };
 
 

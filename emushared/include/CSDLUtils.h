@@ -17,7 +17,8 @@
  typedef struct _SDLDisplayCtx {
     SDL_Window* window;
     SDL_Renderer* renderer;
-    bool initialized;
+    SDL_Texture* texture;
+    SDL_PixelFormat* pxFormat;
  } SDLDisplayCtx;
 
  /**
@@ -30,6 +31,8 @@
      int h;
      // width
      int w;
+     // scaling factor
+     int scaleFactor;
      // X position, or SDL_WINDOWPOS_UNDEFINED
      int posX;
      // Y position, or SDL_WINDOWPOS_UNDEFINED
@@ -51,7 +54,7 @@ public:
     static int pollEvents(uint8_t **keys, bool* mustExit);
 
     /**
-     * initializes an SDL display context
+     * initializes an SDL display context with a texture in ARGB8888 format
      * @param ctx an SDLDisplayCtx to be filled
      * @param options window creation options
      * @param errorString on error, this is filled with a pointer to the SDL error string
@@ -60,19 +63,13 @@ public:
     static int initializeDisplayContext(SDLDisplayCtx *ctx, SDLDisplayCreateOptions *options, char **errorString);
 
     /**
-     * show a display context
+     * update the underlying texture with the given
      * @param ctx pointer to an initialized SDLDisplayCtx
+     * @param texture the new texture buffer, in ARGB8888 format
+     * @param w width of the texture
      * @return 0 on success, or errno
      */
-    static int show(SDLDisplayCtx* ctx);
-
-    /**
-     * clear a display context
-     * @param ctx pointer to an initialized SDLDisplayCtx
-     * @param errorString on error, this is filled with a pointer to the SDL error string
-     * @return 0 on success, or errno
-     */
-    static int clearDisplay(SDLDisplayCtx* ctx, char** errorString);
+    static int update(SDLDisplayCtx* ctx, void* texture, int w);
 
     /**
      * counterpart of initializeDisplayContext()

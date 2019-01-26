@@ -11,3 +11,7 @@ CSID::CSID(CMOS65xx *cpu) {
 CSID::~CSID() {
 
 }
+
+void CSID::run() {
+
+}

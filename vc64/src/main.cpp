@@ -54,7 +54,11 @@ void usage(char** argv) {
  * @param val the byte read/written
  */
 void cpuCallback (int type, uint16_t address, uint8_t val) {
+    vic->doIo(type, address, val);
     //CLog::print("callback!");
+    //if (VIC_ADDRESS(address)) {
+        //vic->doIo(type, address, val);
+    //}
 }
 
 int main (int argc, char** argv) {
@@ -82,7 +86,7 @@ int main (int argc, char** argv) {
         // initialize sdl
         int res = SDL_Init(SDL_INIT_EVERYTHING);
         if (res != 0) {
-            CLog::error("%s", SDL_GetError());
+            CLog::error("SDL_Init(): %s", SDL_GetError());
             break;
         }
         sdlInitialized = true;
@@ -113,70 +117,75 @@ int main (int argc, char** argv) {
         vic = new CVICII(cpu);
 
         // create the subsystems (display, input, audio)
-        display = new CDisplay();
+        display = new CDisplay(vic);
         input = new CInput();
         audio = new CAudio();
         SDLDisplayCreateOptions displayOpts = {};
         displayOpts.posX = SDL_WINDOWPOS_CENTERED;
         displayOpts.posY = SDL_WINDOWPOS_CENTERED;
-        displayOpts.w = 640;
-        displayOpts.h = 480;
+        displayOpts.scaleFactor = 2;
+        displayOpts.w = 320;//;VIC_PAL_SCREEN_W;
+        displayOpts.h = 200;//VIC_PAL_SCREEN_H;
         displayOpts.windowName = "vc64-emu";
         displayOpts.rendererFlags = SDL_RENDERER_ACCELERATED;
         char* sdlError;
         res = display->init(&displayOpts, &sdlError);
         if (res != 0) {
-            CLog::error("%s", sdlError);
+            CLog::error("display->init(): %s", sdlError);
             break;
         }
         CLog::print("Display initialized OK!");
 
-        // pal c64 runs at 0,985mhz
+        // pal c64 runs at 0,985mhz, 50hz, 19656 cycles per second
         int cpu_hz = 985248;
-
-        // these many cycles before vsync
-        int cyclesToRun = cpu_hz / DISPLAY_PAL_HZ;
-        int remainingCycles = 0;
+        int cyclesPerSecond = abs (cpu_hz / DISPLAY_PAL_HZ);
+        int cycleCount = cyclesPerSecond;
         bool running = true;
         while (running) {
             bool mustExit = false;
-            uint32_t start_ms = SDL_GetTicks();
-
-            // run the cpu until vsync
-            int cyclesNow = cyclesToRun - remainingCycles;
-            remainingCycles = cpu->run(cyclesNow, &mustExit);
-            totalCycles += cyclesNow - remainingCycles;
-
-            // TODO: update cia1, cia2, vic
-
-            // screen update
-            uint8_t* frameBuffer;
-            uint32_t fbSize;
-            mem->videoMemory(&frameBuffer, &fbSize);
-            display->update(frameBuffer, fbSize);
-
-            // TODO: play audio
-            uint8_t* keys;
-            CSDLUtils::pollEvents(&keys, &mustExit);
-            if (mustExit) {
+            // step the cpu
+            int cycles = cpu->step();
+            if (cycles == -1) {
                 // exit loop
                 running = false;
                 continue;
             }
+            cycleCount -= cycles;
 
-            // TODO: process input
+            // (just to peek at the raw memory with the debugger)
+            uint8_t* rawMem = mem->raw(nullptr);
 
-            // sleep until 1 second reached
-            uint32_t end_ms = SDL_GetTicks();
-            uint32_t elapsed = end_ms - start_ms;
-            if (elapsed < 1000) {
-                SDL_Delay(1000 - elapsed);
+            // check for chips irqs
+            vic->run(cycleCount);
+            //cia1->run();
+            //cia2->run();
+            //sid->run();
+
+            if (cycleCount <= 0) {
+                // screen update
+                display->update();
+
+                // process input;
+                uint8_t* keys;
+                CSDLUtils::pollEvents(&keys, &mustExit);
+                if (mustExit) {
+                    // exit loop
+                    running = false;
+                    continue;
+                }
+                input->update();
+
+                // play audio
+                audio->update();
+
+                // next iteration
+                cycleCount += cyclesPerSecond;
+                totalCycles += cycleCount;
             }
         }
-
     } while(0);
     uint32_t endTime = SDL_GetTicks() - startTime;
-    CLog::print("done, run for %02d:%02d:%02d, total CPU cycles=%lld", endTime / 1000 / 60 / 60, endTime / 1000 / 60, (endTime / 1000) % 60, totalCycles);
+    CLog::print("done, step for %02d:%02d:%02d, total CPU cycles=%lld", endTime / 1000 / 60 / 60, endTime / 1000 / 60, (endTime / 1000) % 60, totalCycles);
 
     // done
     SAFE_DELETE(cia1)

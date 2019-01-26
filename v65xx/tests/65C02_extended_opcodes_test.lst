@@ -10733,7 +10733,7 @@ ffff =                  ram_top = -1
                         
                         ; -------------       
                         ; S U C C E S S ************************************************       
-24f4 : 4c0004                   jmp start       ;run again      
+24f4 : 4c0004                   jmp start       ;step again
                         
                         ; core subroutine of the decimal add/subtract test
                         ; *** WARNING - tests documented behavior only! ***

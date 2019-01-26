@@ -11,3 +11,4 @@ my attempt at a portable Commodore64 emulator.
 * https://www.c64-wiki.com
 * https://www.ktverkko.fi/~msmakela/8bit/cbm.html (display)
 * https://www.c64-wiki.com/wiki/Memory_Map
+* http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt (vic)

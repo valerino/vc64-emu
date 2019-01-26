@@ -14,6 +14,7 @@ class CSID {
 public:
     CSID(CMOS65xx* cpu);
     ~CSID();
+    void run();
 
 private:
     CMOS65xx* _cpu;

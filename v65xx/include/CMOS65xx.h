@@ -34,10 +34,10 @@ typedef void (*CpuCallback)(int type, uint16_t address, uint8_t val);
 #ifndef NDEBUG
 // debug-only flag, disable to toggle debug log
 #define DEBUG_LOG_EXECUTION
-// debug-only flag, to log registers also after the instruction
-// #define DEBUG_LOG_STATUS_AFTER_INSTRUCTION
-// debug-only flag, to run functional tests
-#define DEBUG_RUN_FUNCTIONAL_TESTS
+// debug-only flag, log also read/writes and status after each instruction
+//#define DEBUG_LOG_VERBOSE
+// debug-only flag, to step functional tests
+//#define DEBUG_RUN_FUNCTIONAL_TESTS
 #endif
 
 class CMOS65xx {
@@ -359,6 +359,7 @@ private:
     // the emulated memory
     IMemory* _memory;
 
+    uint16_t prevPc;
     void pushWord(uint16_t wd);
     void pushByte(uint8_t bt);
     uint16_t popWord();
@@ -483,12 +484,10 @@ private:
 
 public:
     /**
-     * run the cpu for the specified number of cycles
-     * @param cyclesToRun number of cycles to be run
-     * @param mustStop on return, if true the emulation must stop
-     * @return number of remaining cycles in the last iteration (to be subtracted to the next iteration cycles)
+     * run the cpu for an instruction
+     * @return instruction cycles, or -1 to stop
      */
-    int run(int cyclesToRun, bool* mustStop);
+    int step();
 
     /**
      * resets the cpu and initializes for a new run

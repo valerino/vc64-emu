@@ -15,7 +15,7 @@ int CSDLUtils::pollEvents(uint8_t **keys, bool* mustExit) {
     *keys = nullptr;
     *mustExit = false;
 
-    // run an SDL poll cycle
+    // step an SDL poll cycle
     SDL_Event ev;
     while (SDL_PollEvent(&ev)) {
         if (ev.type == SDL_QUIT) {
@@ -34,60 +34,68 @@ int CSDLUtils::initializeDisplayContext(SDLDisplayCtx *ctx, SDLDisplayCreateOpti
     if (!options || !ctx || !errorString) {
         return EINVAL;
     }
+    memset(ctx,0,sizeof(SDLDisplayCtx));
     *errorString = nullptr;
-    SDL_Renderer* r;
-    SDL_Window* w;
-    w = SDL_CreateWindow(options->windowName, options->posX, options->posY, options->w, options->h, options->windowFlags);
-    if (!w) {
-        *errorString = (char*)SDL_GetError();
+    bool ok = false;
+    do {
+        if (options->scaleFactor == 0) {
+            options->scaleFactor = 1;
+        }
+        ctx->window = SDL_CreateWindow(options->windowName, options->posX, options->posY, options->w*options->scaleFactor, options->h*options->scaleFactor,
+                             options->windowFlags);
+        if (!ctx->window) {
+            break;
+        }
+        ctx->renderer = SDL_CreateRenderer(ctx->window, -1, options->rendererFlags);
+        if (!ctx->renderer) {
+            break;
+        }
+        ctx->texture = SDL_CreateTexture(ctx->renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, options->w, options->h);
+        if (!ctx->texture) {
+            break;
+        }
+        ctx->pxFormat = SDL_AllocFormat(SDL_PIXELFORMAT_ARGB8888);
+        if (!ctx->pxFormat) {
+            break;
+        }
+        ok = true;
+    } while (0);
+
+    if (!ok) {
+        // some error happened
+        *errorString = (char *) SDL_GetError();
+        CSDLUtils::finalizeDisplayContext(ctx);
         return ECANCELED;
     }
-    r = SDL_CreateRenderer(w, -1, SDL_RENDERER_ACCELERATED);
-    if (!r) {
-        *errorString = (char*)SDL_GetError();
-        SDL_DestroyWindow(w);
-        return ECANCELED;
-    }
-    ctx->renderer = r;
-    ctx->window = w;
-    ctx->initialized = true;
     return 0;
 }
 
 void CSDLUtils::finalizeDisplayContext(SDLDisplayCtx *ctx) {
-    if (ctx->initialized) {
-        if (ctx->renderer) {
-            SDL_DestroyRenderer(ctx->renderer);
-        }
-        if (ctx->window) {
-            SDL_DestroyWindow(ctx->window);
-        }
-        ctx->initialized = false;
+    if (ctx->pxFormat) {
+        SDL_FreeFormat(ctx->pxFormat);
+        ctx->pxFormat = nullptr;
+    }
+    if (ctx->texture) {
+        SDL_DestroyTexture(ctx->texture);
+        ctx->texture = nullptr;
+    }
+    if (ctx->renderer) {
+        SDL_DestroyRenderer(ctx->renderer);
+        ctx->renderer = nullptr;
+    }
+    if (ctx->window) {
+        SDL_DestroyWindow(ctx->window);
+        ctx->window = nullptr;
     }
 }
 
-int CSDLUtils::show(SDLDisplayCtx *ctx) {
-    if (!ctx) {
+int CSDLUtils::update(SDLDisplayCtx* ctx, void* texture, int w) {
+    if (!ctx || !texture || !w) {
         return EINVAL;
     }
+    SDL_UpdateTexture(ctx->texture, NULL, texture, w * sizeof(uint32_t));
+    SDL_RenderClear(ctx->renderer);
+    SDL_RenderCopy(ctx->renderer, ctx->texture, NULL, NULL);
     SDL_RenderPresent(ctx->renderer);
-    return 0;
-}
-
-int CSDLUtils::clearDisplay(SDLDisplayCtx *ctx, char **errorString) {
-    if (!ctx || !errorString) {
-        return EINVAL;
-    }
-    *errorString = nullptr;
-    int res = SDL_SetRenderDrawColor(ctx->renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
-    if (res == -1) {
-        *errorString = (char*)SDL_GetError();
-        return ECANCELED;
-    }
-    res = SDL_RenderClear(ctx->renderer);
-    if (res == -1) {
-        *errorString = (char*)SDL_GetError();
-        return ECANCELED;
-    }
     return 0;
 }

@@ -64,6 +64,13 @@ public:
     virtual int readBytes(uint32_t address, uint8_t* b, uint32_t bufferSize, uint32_t readSize) = 0;
 
     /**
+     * return pointer to the raw memory
+     * @param size on return, size of the raw memory
+     * @return pointer to the raw memory
+     */
+    virtual uint8_t* raw(uint32_t* size) = 0;
+
+    /**
      * initializes emulated memory
      * @return 0 on success, or errno
      */

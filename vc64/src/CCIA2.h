@@ -13,6 +13,8 @@ class CCIA2: public CCIA {
 public:
     CCIA2(CMOS65xx* cpu);
     virtual ~CCIA2();
+    void run();
+
 private:
 
 };

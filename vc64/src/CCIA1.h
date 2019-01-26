@@ -14,6 +14,7 @@ class CCIA1: public CCIA {
 public:
     CCIA1(CMOS65xx* cpu);
     virtual ~CCIA1();
+    void run();
 private:
 
 };

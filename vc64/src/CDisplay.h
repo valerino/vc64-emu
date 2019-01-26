@@ -6,9 +6,10 @@
 #define VC64_EMU_CDISPLAY_H
 
 #include <CSDLUtils.h>
+#include "CVICII.h"
 
 // PAL c64 video output is set at 50hz
-#define DISPLAY_PAL_HZ 50
+#define DISPLAY_PAL_HZ 50.124
 
 /**
  * implements emulator display (VIC)
@@ -16,7 +17,9 @@
 class CDisplay {
 
 private:
-    SDLDisplayCtx * _ctx;
+    SDLDisplayCtx _ctx;
+    uint32_t* _fb;
+    CVICII* _vic;
 
 public:
     /**
@@ -29,13 +32,14 @@ public:
 
     /**
      * update the display
-     * @param frameBuffer pointer to the video memory
-     * @param size size of the framebuffer
-     * @return 0 on success
      */
-    int update(uint8_t* frameBuffer, uint32_t size);
+    void update();
 
-    CDisplay();
+    /**
+     * constructor
+     * @param vic the vic-ii chip
+     */
+    CDisplay(CVICII* vic);
     ~CDisplay();
 };
 

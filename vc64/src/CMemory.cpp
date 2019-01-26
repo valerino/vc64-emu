@@ -29,9 +29,7 @@ CMemory::CMemory() {
 }
 
 CMemory::~CMemory() {
-    if (_mem) {
-        free (_mem);
-    }
+    SAFE_FREE (_mem);
 }
 
 uint8_t CMemory::readByte(uint32_t address, uint8_t *b) {
@@ -86,7 +84,7 @@ int CMemory::loadBios() {
         CLog::error("%s: %s", strerror(res), path);
         return res;
     }
-    CLog::print("Loaded kernal ROM: %s", path);
+    CLog::print("Loaded kernal ROM: %s, size=0x%0x", path, kernalSize);
 
     // load charset
     uint8_t* charset;
@@ -98,7 +96,7 @@ int CMemory::loadBios() {
         free(kernal);
         return res;
     }
-    CLog::print("Loaded charset ROM: %s", path);
+    CLog::print("Loaded charset ROM: %s, size=0x%0x", path, charsetSize);
 
     // load basic
     uint8_t* basic;
@@ -111,7 +109,7 @@ int CMemory::loadBios() {
         free(charset);
         return res;
     }
-    CLog::print("Loaded basic ROM: %s", path);
+    CLog::print("Loaded basic ROM: %s, size=0x%0x", path, basicSize);
 
     // copy to emulator memory
     writeBytes(MEMORY_BASIC_ADDRESS, basic, MEMORY_BASIC_SIZE);
@@ -132,12 +130,9 @@ int CMemory::init() {
     return loadBios();
 }
 
-int CMemory::videoMemory(uint8_t **frameBuffer, uint32_t *size) {
-    if (!frameBuffer || !size) {
-        return EINVAL;
+uint8_t* CMemory::raw(uint32_t* size) {
+    if (size) {
+        *size = MEMORY_SIZE;
     }
-    *frameBuffer = _mem + MEMORY_FRAMEBUFFER_ADDRESS;
-    *size = MEMORY_FRAMEBUFFER_SIZE;
-    return 0;
+    return _mem;
 }
-
