@@ -468,14 +468,24 @@ void CMOS65xx::writeOperand(int addressingMode, uint16_t addr, uint8_t bt) {
 #ifdef DEBUG_LOG_VERBOSE
         uint8_t m;
         _memory->readByte(addr,&m);
-        CLog::printRaw("\t\tWrite(PRE): -->\t($%04x)=$%02x\n", addr, bt);
+        CLog::printRaw("\t\tWrite(PRE): -->\t($%04x)=$%02x\n", addr, m);
 #endif
-        _memory->writeByte(addr, bt);
+        if (_callbackW != nullptr) {
+            if (!_callbackW(addr, bt)) {
+                // write not handled by callback
+                _memory->writeByte(addr, bt);
+            }
+            else {
+                // write handled by callback
+            }
+        }
+        else {
+            // no callback, write
+            _memory->writeByte(addr, bt);
+        }
 #ifdef DEBUG_LOG_VERBOSE
         CLog::printRaw("\t\tWrite(POST): ->\t($%04x)=$%02x\n", addr, bt);
 #endif
-        // call the cpu callback to notify client
-        _callback(CPU_MEM_WRITE, addr, bt);
     }
 }
 
@@ -497,8 +507,10 @@ void CMOS65xx::readOperand(int addressingMode, uint16_t addr, uint8_t* bt) {
 #ifdef DEBUG_LOG_VERBOSE
         CLog::printRaw("\t\tRead: -------->\t($%04x)=$%02x\n", addr, *bt);
 #endif
-        // call the cpu callback to notify client
-        _callback(CPU_MEM_READ, addr, *bt);
+        if (_callbackR != nullptr) {
+            // client may change the address and value being read
+            _callbackR(addr, bt);
+        }
     }
 }
 
@@ -560,9 +572,10 @@ int CMOS65xx::reset() {
     return 0;
 }
 
-CMOS65xx::CMOS65xx(IMemory *mem, CpuCallback callback) {
+CMOS65xx::CMOS65xx(IMemory *mem, CpuCallbackRead callbackRead, CpuCallbackWrite callbackWrite) {
     _memory = mem;
-    _callback = callback;
+    _callbackR = callbackRead;
+    _callbackW = callbackWrite;
 }
 
 /**
@@ -1539,12 +1552,19 @@ void CMOS65xx::KIL(int opcodeByte, int addressingMode, int* cycles, int* size) {
  * called by both nmi() and irq(), prepare to run an interrupt request
  */
 void CMOS65xx::irqInternal() {
-    // push pc and status on the stack
+    // push PC and P on stack
     pushWord(_regPC);
+
+    // irq do not have the brk flag set!
+    SET_FLAG_BRK_COMMAND(false)
     pushByte(_regP);
 
-    // initiate irq request
-    SET_FLAG_IRQ_DISABLE(true);
+    // set the irq disable and break flag
+    SET_FLAG_BRK_COMMAND(true)
+    SET_FLAG_IRQ_DISABLE(true)
+
+    // and set PC to step the IRQ service routine located at the IRQ vector
+    _memory->readWord(VECTOR_IRQ, &_regPC);
 }
 
 void CMOS65xx::irq() {
@@ -1552,7 +1572,7 @@ void CMOS65xx::irq() {
         irqInternal();
 
         // set pc to the irq vector address
-        _regPC = VECTOR_IRQ;
+        _memory->readWord(VECTOR_IRQ, &_regPC);
     }
 }
 
@@ -1560,8 +1580,8 @@ void CMOS65xx::nmi() {
     // same as irq, but forced
     irqInternal();
 
-    // set pc to the irq vector address
-    _regPC = VECTOR_NMI;
+    // set pc to the nmi vector address
+    _memory->readWord(VECTOR_NMI, &_regPC);
 }
 
 /**

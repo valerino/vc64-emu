@@ -13,7 +13,13 @@ class CCIA2: public CCIA {
 public:
     CCIA2(CMOS65xx* cpu);
     virtual ~CCIA2();
-    void run();
+
+    /**
+     * run the cia2
+     * @param current cycle count
+     * @return number of cycles occupied
+     */
+    int run(int cycleCount);
 
 private:
 

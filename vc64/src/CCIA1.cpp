@@ -12,6 +12,11 @@ CCIA1::~CCIA1() {
 
 }
 
-void CCIA1::run() {
-
+int CCIA1::run(int cycleCount) {
+    // TODO: properly implement timer, for now we trigger an irq at every screen refresh
+    if (cycleCount <= 0) {
+        // trigger an interrupt
+        _cpu->irq();
+    }
+    return 0;
 }

@@ -7,24 +7,28 @@
 
 #include <CMOS65xx.h>
 
-/**
- * vic address range
- */
-#define VIC_ADDRESS_LO 0xd000
-#define VIC_ADDRESS_HI 0xd3ff
-#define VIC_ADDRESS(_x_) (_x_ >= VIC_ADDRESS_LO && _x_ <= VIC_ADDRESS_HI)
+#define VIC_PAL_HZ  50.124
 
 #define VIC_PAL_SCREEN_W 403
 #define VIC_PAL_SCREEN_H 284
-
-/**
- * registers addresses
- */
-#define VIC_REG_CONTROL1 0xd011
-#define VIC_REG_RASTER_COUNT 0xd012
-#define VIC_REG_INT_MASK 0xd01a
-
+#define VIC_PAL_COLUMNS 504
 #define VIC_PAL_LINES 312
+
+#define LINE_LAST_VISIBLE 298
+#define LINE_FIRST_VISIBLE 14
+
+#define CYCLES_PER_LINE 19656 / 312
+#define CYCLES_BADLINE 23
+
+#define VIC_REG_CONTROL1 0x11
+#define VIC_REG_RASTER_COUNT 0x12
+#define VIC_REG_INT_MASK 0x1a
+
+// registers: https://www.c64-wiki.com/wiki/Page_208-211
+#define VIC_REGISTERS_START 0xd000
+#define VIC_REGISTERS_END   0xd3ff
+
+#define RASTER_COUNT ((rawVideoMem[VIC_REG_CONTROL1] & 0x80) << 1) | rawVideoMem[VIC_REG_RASTER_COUNT]
 
 /**
  * emulates the vic-ii 6569 chip
@@ -52,10 +56,33 @@ public:
      */
     CMOS65xx* cpu();
 
-    void doIo(int type, uint16_t address, uint8_t bt);
+    /**
+     * read from vic memory
+     * @param address
+     * @param bt
+     */
+    void read(uint16_t address, uint8_t* bt);
+
+    /**
+     * write to vic memory
+     * @param address
+     * @param bt
+     */
+     void write(uint16_t address, uint8_t bt);
+
+    /**
+     * update the screen
+     * @param frameBuffer
+     */
+    void updateScreen(uint32_t* frameBuffer);
+
 private:
     CMOS65xx* _cpu;
-    int _rasterIrqLine;
+    uint16_t _rasterCounter;
+    uint8_t _cr1;
+    void setRasterCounter(uint16_t cnt);
+    uint16_t check_shadow_address(uint16_t address, bool* hit);
+    bool check_unused_address(int type, uint16_t address, uint8_t *bt);
 };
 
 

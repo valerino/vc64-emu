@@ -29,7 +29,16 @@
 // callback for clients
 #define CPU_MEM_READ 0
 #define CPU_MEM_WRITE 1
-typedef void (*CpuCallback)(int type, uint16_t address, uint8_t val);
+/**
+ * a callback for memory writes, allows client to replace the value being written and possibly write at another address.
+ * the callback happens before the actual write, if it returns true the write has been consumed by the callback and must
+ * be discarded.
+ */
+typedef bool (*CpuCallbackWrite)(uint16_t address, uint8_t val);
+/**
+ * a callback for memory reads, allows client to replace the value being read
+ */
+typedef void (*CpuCallbackRead)(uint16_t address, uint8_t* val);
 
 #ifndef NDEBUG
 // debug-only flag, disable to toggle debug log
@@ -364,7 +373,8 @@ private:
     void pushByte(uint8_t bt);
     uint16_t popWord();
     uint8_t popByte();
-    CpuCallback _callback;
+    CpuCallbackRead _callbackR;
+    CpuCallbackWrite _callbackW;
 
     // standard instructions
     void ADC(int opcodeByte, int addressingMode, int* cycles, int* size);
@@ -498,9 +508,10 @@ public:
     /**
      * constructor
      * @param mem IMemory implementation (emulated memory)
-     * @param callback callback for clients
+     * @param callbackRead optional callback
+     * @param callbackWrite optional callback
      */
-    CMOS65xx(IMemory* mem, CpuCallback callback);
+    CMOS65xx(IMemory* mem, CpuCallbackRead callbackRead, CpuCallbackWrite callbackWrite);
 
     /**
      * process an interrupt request

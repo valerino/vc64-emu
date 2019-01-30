@@ -8,9 +8,6 @@
 #include <CSDLUtils.h>
 #include "CVICII.h"
 
-// PAL c64 video output is set at 50hz
-#define DISPLAY_PAL_HZ 50.124
-
 /**
  * implements emulator display (VIC)
  */
@@ -20,7 +17,6 @@ private:
     SDLDisplayCtx _ctx;
     uint32_t* _fb;
     CVICII* _vic;
-
 public:
     /**
      * to be called first to initialize display

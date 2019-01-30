@@ -9,9 +9,97 @@
 #include <CLog.h>
 #include <string.h>
 
+CMemory::CMemory() {
+    // allocate main memory and the shadows
+    _mem = (uint8_t *) calloc(1, MEMORY_SIZE);
+    _kernalRom = (uint8_t *) calloc(1, MEMORY_KERNAL_SIZE);
+    _basicRom = (uint8_t *) calloc(1, MEMORY_BASIC_SIZE);
+    _charRom = (uint8_t *) calloc(1, MEMORY_CHARSET_SIZE);
+}
+
+CMemory::~CMemory() {
+    SAFE_FREE (_mem)
+    SAFE_FREE(_charRom)
+    SAFE_FREE(_basicRom)
+    SAFE_FREE(_kernalRom)
+}
+
+uint8_t CMemory::readByte(uint32_t address, uint8_t *b) {
+    if (b) {
+        // check addresses
+        if (address >= MEMORY_CHARSET_ADDRESS && address < MEMORY_CHARSET_ADDRESS + MEMORY_CHARSET_SIZE) {
+            // accessing char rom
+            if (_mem[1] & 4) {
+                *b = _mem[address];
+            }
+            else {
+                *b = _charRom[address - MEMORY_CHARSET_ADDRESS];
+            }
+        }
+        else if (address >= MEMORY_BASIC_ADDRESS && address < MEMORY_BASIC_ADDRESS + MEMORY_BASIC_SIZE) {
+            // accessing basic rom
+            if (_mem[1] & 1) {
+                *b = _basicRom[address - MEMORY_BASIC_ADDRESS];
+            }
+            else {
+                // basic rom is masked, returning ram
+                *b = _mem[address];
+            }
+        }
+        else if (address >= MEMORY_KERNAL_ADDRESS && address < MEMORY_KERNAL_ADDRESS + MEMORY_KERNAL_SIZE) {
+            // accessing kernal rom
+            if (_mem[1] & 2) {
+                *b = _kernalRom[address - MEMORY_KERNAL_ADDRESS];
+            }
+            else {
+                // kernal rom is masked, returning ram
+                *b = _mem[address];
+            }
+        }
+        else {
+            // ram
+            *b = _mem[address];
+        }
+
+        // TODO: handle other bankswitching types (see https://www.c64-wiki.com/wiki/Bank_Switching)
+        return 0;
+    }
+    return EINVAL;
+}
+
+int CMemory::writeByte(uint32_t address, uint8_t b) {
+    // TODO: all writes to ram, is this right ?
+    _mem[address] = b;
+    return 0;
+}
+
+
+uint16_t CMemory::readWord(uint32_t address, uint16_t *w) {
+    if (w) {
+        uint8_t lo;
+        readByte(address, &lo);
+        uint8_t hi;
+        readByte(address + 1, &hi);
+
+        uint16_t ww = (hi << 8) | lo;
+        *w = ww;
+        return 0;
+    }
+    return EINVAL;
+}
+
+int CMemory::writeWord(uint32_t address, uint16_t w) {
+    uint8_t hi = (uint8_t)(w >> 8);
+    uint8_t lo = (w & 0xff);
+    writeByte(address + 1, hi);
+    writeByte(address, lo);
+    return 0;
+}
+
 int CMemory::readBytes(uint32_t address, uint8_t *b, uint32_t bufferSize, uint32_t readSize) {
     int res = 0;
     uint32_t s = readSize;
+
     if (readSize > bufferSize) {
         s = bufferSize;
         res = EOVERFLOW;
@@ -24,46 +112,6 @@ int CMemory::readBytes(uint32_t address, uint8_t *b, uint32_t bufferSize, uint32
     return res;
 }
 
-CMemory::CMemory() {
-    _mem = (uint8_t *) calloc(1, MEMORY_SIZE);
-}
-
-CMemory::~CMemory() {
-    SAFE_FREE (_mem);
-}
-
-uint8_t CMemory::readByte(uint32_t address, uint8_t *b) {
-    if (b) {
-        *b = _mem[address];
-        return 0;
-    }
-    return EINVAL;
-}
-
-uint16_t CMemory::readWord(uint32_t address, uint16_t *w) {
-    if (w) {
-        uint16_t ww = (_mem[address + 1] << 8) | _mem[address];
-        *w = ww;
-        return 0;
-    }
-    return EINVAL;
-}
-
-int CMemory::writeByte(uint32_t address, uint8_t b) {
-    if (address == 0x200) {
-        int aa = 0;
-        aa++;
-    }
-    _mem[address] = b;
-    return 0;
-}
-
-int CMemory::writeWord(uint32_t address, uint16_t w) {
-    _mem[address + 1] = (uint8_t)(w >> 8);
-    _mem[address] = (uint8_t)(w & 0xff);
-    return 0;
-}
-
 int CMemory::writeBytes(uint32_t address, uint8_t *b, uint32_t size) {
     for (uint32_t i = 0; i < size; i++) {
         writeByte(address + i, b[i]);
@@ -74,63 +122,65 @@ int CMemory::writeBytes(uint32_t address, uint8_t *b, uint32_t size) {
 int CMemory::loadBios() {
     char path[260];
     char bios[] = "./bios";
+    bool ok = false;
+    int res = 0;
+    do {
+        // load kernal
+        snprintf(path,sizeof(path),"%s/kernal.bin", bios);
+        uint32_t kernalSize;
+        res = CBuffer::fromFile(path, &_kernalRom, &kernalSize);
+        if (res != 0) {
+            CLog::error("%s: %s", strerror(res), path);
+            break;
+        }
+        CLog::print("Loaded kernal ROM: %s, size=0x%0x", path, kernalSize);
 
-    // load kernal
-    snprintf(path,sizeof(path),"%s/kernal.bin", bios);
-    uint8_t* kernal;
-    uint32_t kernalSize;
-    int res = CBuffer::fromFile(path, &kernal, &kernalSize);
-    if (res != 0) {
-        CLog::error("%s: %s", strerror(res), path);
+        // load charset
+        uint32_t charsetSize;
+        snprintf(path,sizeof(path),"%s/charset.bin", bios);
+        res = CBuffer::fromFile(path, &_charRom, &charsetSize);
+        if (res != 0) {
+            CLog::error("%s: %s", strerror(res), path);
+            break;
+        }
+
+        // TODO: this write is to let it work, there's something wrong in the memory mapping ... shouldn't be
+        // necessary !
+        writeBytes(0xd000,_charRom, charsetSize);
+        CLog::print("Loaded charset ROM: %s, size=0x%0x", path, charsetSize);
+
+        // load basic
+        uint32_t basicSize;
+        snprintf(path,sizeof(path),"%s/basic.bin", bios);
+        res = CBuffer::fromFile(path, &_basicRom, &basicSize);
+        if (res != 0) {
+            CLog::error("%s: %s", strerror(res), path);
+            break;
+        }
+        CLog::print("Loaded basic ROM: %s, size=0x%0x", path, basicSize);
+        ok = true;
+    } while(0);
+    if (!ok) {
+        SAFE_FREE(_charRom)
+        SAFE_FREE(_kernalRom)
+        SAFE_FREE(_basicRom)
         return res;
     }
-    CLog::print("Loaded kernal ROM: %s, size=0x%0x", path, kernalSize);
-
-    // load charset
-    uint8_t* charset;
-    uint32_t charsetSize;
-    snprintf(path,sizeof(path),"%s/charset.bin", bios);
-    res = CBuffer::fromFile(path, &charset, &charsetSize);
-    if (res != 0) {
-        CLog::error("%s: %s", strerror(res), path);
-        free(kernal);
-        return res;
-    }
-    CLog::print("Loaded charset ROM: %s, size=0x%0x", path, charsetSize);
-
-    // load basic
-    uint8_t* basic;
-    uint32_t basicSize;
-    snprintf(path,sizeof(path),"%s/basic.bin", bios);
-    res = CBuffer::fromFile(path, &basic, &basicSize);
-    if (res != 0) {
-        CLog::error("%s: %s", strerror(res), path);
-        free(kernal);
-        free(charset);
-        return res;
-    }
-    CLog::print("Loaded basic ROM: %s, size=0x%0x", path, basicSize);
-
-    // copy to emulator memory
-    writeBytes(MEMORY_BASIC_ADDRESS, basic, MEMORY_BASIC_SIZE);
-    writeBytes(MEMORY_CHARSET_ADDRESS, charset, MEMORY_CHARSET_SIZE);
-    writeBytes(MEMORY_KERNAL_ADDRESS, kernal, MEMORY_KERNAL_SIZE);
-
-    // done
-    free(kernal);
-    free(charset);
-    free(basic);
     return 0;
 }
 
 int CMemory::init() {
     memset(_mem,0,MEMORY_SIZE);
 
+    // initialize zeropage data direction/i/o port registers
+    _mem[0] = 0x7;
+    _mem[1] = 0x7;
+
     // load bios
     return loadBios();
 }
 
-uint8_t* CMemory::raw(uint32_t* size) {
+uint8_t* CMemory::ram(uint32_t *size) {
     if (size) {
         *size = MEMORY_SIZE;
     }

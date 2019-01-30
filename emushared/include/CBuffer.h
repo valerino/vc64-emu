@@ -25,7 +25,7 @@ public:
 /**
  * safe delete allocated memory
  */
-#define SAFE_DELETE(_x_) if(_x_ != nullptr) { delete _x_; }
-#define SAFE_FREE(_x_) if(_x_ != nullptr) { free(_x_); }
+#define SAFE_DELETE(_x_) if(_x_ != nullptr) { delete _x_; _x_=nullptr; }
+#define SAFE_FREE(_x_) if(_x_ != nullptr) { free(_x_); _x_=nullptr; }
 
 #endif //VC64_EMU_CBUFFER_H

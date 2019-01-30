@@ -12,6 +12,6 @@ CCIA2::~CCIA2() {
 
 }
 
-void CCIA2::run() {
-
+int CCIA2::run(int cycleCount) {
+    return 0;
 }

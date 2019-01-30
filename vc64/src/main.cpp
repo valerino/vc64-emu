@@ -17,6 +17,7 @@
 #include "CCIA2.h"
 #include "CVICII.h"
 #include "CSID.h"
+#include "globals.h"
 
 /**
  * globals
@@ -40,25 +41,33 @@ void banner() {
 }
 
 /**
+ * a callback for memory writes, allows client to replace the value being written
+ */
+bool cpuCallbackWrite(uint16_t address, uint8_t val) {
+    if (address >= VIC_REGISTERS_START && address <= VIC_REGISTERS_END) {
+        // accessing vic registers
+        vic->write(address, val);
+        return true;
+    }
+    return false;
+}
+
+/**
+ * a callback for memory reads, allows client to replace the value being read
+ */
+void cpuCallbackRead(uint16_t address, uint8_t* val) {
+    if (address >= VIC_REGISTERS_START && address <= VIC_REGISTERS_END) {
+        // accessing vic registers
+        vic->read(address, val);
+    }
+}
+
+/**
  * prints usage
  * @param argv
  */
 void usage(char** argv) {
     CLog::error("usage: %s -f [file to play]\n", argv[0]);
-}
-
-/**
- * called by the cpu after certain instructions, to transfer control to other chips
- * @param type CPU_MEM_READ, CPU_MEM_WRITE
- * @param address the read/write address
- * @param val the byte read/written
- */
-void cpuCallback (int type, uint16_t address, uint8_t val) {
-    vic->doIo(type, address, val);
-    //CLog::print("callback!");
-    //if (VIC_ADDRESS(address)) {
-        //vic->doIo(type, address, val);
-    //}
 }
 
 int main (int argc, char** argv) {
@@ -102,7 +111,7 @@ int main (int argc, char** argv) {
         }
 
         // create cpu
-        cpu = new CMOS65xx(mem, cpuCallback);
+        cpu = new CMOS65xx(mem, cpuCallbackRead, cpuCallbackWrite);
         if (cpu->reset() != 0) {
             // failed to load bios
             CLog::error("Failed to load bios files!");
@@ -124,8 +133,8 @@ int main (int argc, char** argv) {
         displayOpts.posX = SDL_WINDOWPOS_CENTERED;
         displayOpts.posY = SDL_WINDOWPOS_CENTERED;
         displayOpts.scaleFactor = 2;
-        displayOpts.w = 320;//;VIC_PAL_SCREEN_W;
-        displayOpts.h = 200;//VIC_PAL_SCREEN_H;
+        displayOpts.w = VIC_PAL_SCREEN_W;
+        displayOpts.h = VIC_PAL_SCREEN_H;
         displayOpts.windowName = "vc64-emu";
         displayOpts.rendererFlags = SDL_RENDERER_ACCELERATED;
         char* sdlError;
@@ -137,8 +146,8 @@ int main (int argc, char** argv) {
         CLog::print("Display initialized OK!");
 
         // pal c64 runs at 0,985mhz, 50hz, 19656 cycles per second
-        int cpu_hz = 985248;
-        int cyclesPerSecond = abs (cpu_hz / DISPLAY_PAL_HZ);
+        int cpu_hz = CPU_HZ;
+        int cyclesPerSecond = abs (cpu_hz / VIC_PAL_HZ);
         int cycleCount = cyclesPerSecond;
         bool running = true;
         while (running) {
@@ -150,15 +159,13 @@ int main (int argc, char** argv) {
                 running = false;
                 continue;
             }
+
             cycleCount -= cycles;
 
-            // (just to peek at the raw memory with the debugger)
-            uint8_t* rawMem = mem->raw(nullptr);
-
-            // check for chips irqs
+            // update chips
             vic->run(cycleCount);
-            //cia1->run();
-            //cia2->run();
+            cia1->run(cycleCount);
+            cia2->run(cycleCount);
             //sid->run();
 
             if (cycleCount <= 0) {

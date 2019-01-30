@@ -38,7 +38,7 @@ void CLog::printInternal(int error, FILE* stream, const char*format,  va_list ap
     }
     vfprintf(s, format, ap);
     if (error != 3) {
-        // on raw, do not append \n
+        // on ram, do not append \n
         fprintf(s, "\n");
     }
     fflush(s);
