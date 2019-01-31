@@ -30,52 +30,7 @@
 
 /**
  * implements the emulated memory
- * reference: https://www.c64-wiki.com/wiki/Memory_Map
- */
-
-/*
-        RAM Table
-
-        Hex Address	Dec Address	Page	        Contents
-        ------------------------------------------------
-        $0000-$00FF	0-255	    Page 0	        Zeropage addressing
-        $0100-$01FF	256-511	    Page 1	        Enhanced Zeropage contains the stack
-        $0200-$02FF	512-767	    Page 2	        Operating System and BASIC pointers
-        $0300-$03FF	768-1023	Page 3	        Operating System and BASIC pointers
-        $0400-$07FF	1024-2047	Page 4-7	    Screen Memory
-        $0800-$9FFF	2048-40959	Page 8-159	    Free BASIC program storage area (38911 bytes)
-        $A000-$BFFF	40960-49151	Page 160-191	Free machine language program storage area (when switched-out with ROM)
-        $C000-$CFFF	49152-53247	Page 192-207	Free machine language program storage area
-        $D000-$D3FF	53248-54271	Page 208-211
-        $D400-$D7FF	54272-54527	Page 212-215
-        $D800-$DBFF	55296-56319	Page 216-219
-        $DC00-$DCFF	56320-56575	Page 220
-        $DD00-$DDFF	56576-56831	Page 221
-        $DE00-$DFFF	56832-57343	Page 222-223	Reserved for interface extensions
-        $E000-$FFFF	57344-65535	Page 224-255	Free machine language program storage area (when switched-out with ROM)
-
-        ROM Table
-        Cartridge ROM only becomes resident if attached to the expansion port on power-up. It is included for completeness as a record of the addresses it occupies as a ROM bank.
-
-        Hex Address	Dec Address	Page	        Contents
-        ------------------------------------------------
-        $8000-$9FFF	32768-40959	Page 128-159	Cartridge ROM (low)
-        $A000-$BFFF	40960-49151	Page 160-191	BASIC interpretor ROM or cartridge ROM (high)
-        $D000-$DFFF	53248-57343	Page 208-223	Character generator ROM
-        $E000-$FFFF	57344-65535	Page 224-255	KERNAL ROM or cartridge ROM (high)
-
-        I/O Table
-        Hex Address	Dec Address	Page	        Contents
-        ------------------------------------------------
-        $0000-$0001	0-1	-	                    CPU I/O port - see Zeropage
-        $D000-$D3FF	53248-54271	Page 208-211	VIC-II registers
-        $D400-$D7FF	54272-55295	Page 212-215	SID registers
-        $D800-$DBFF	55296-56319	Page 216-219	Color Memory
-        $DC00-$DCFF	56320-56575	Page 220	    CIA 1
-        $DD00-$DDFF	56576-56831	Page 221	    CIA 2
-        $DE00-$DEFF	56832-57087	Page 222	    I/O 1
-        $DF00-$DFFF	57088-57343	Page 223	    I/O 2
-
+ * https://www.c64-wiki.com/wiki/Memory_Map
  */
 class CMemory: public IMemory {
 private:

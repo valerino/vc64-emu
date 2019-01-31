@@ -368,7 +368,8 @@ private:
     // the emulated memory
     IMemory* _memory;
 
-    uint16_t prevPc;
+    uint16_t _prevPc;
+    bool _isTest;
     void pushWord(uint16_t wd);
     void pushByte(uint8_t bt);
     uint16_t popWord();
@@ -525,6 +526,12 @@ public:
      * process a nonmaskable interrupt request
      */
     void nmi();
+
+    /**
+     * is cpu test running ?
+     * @return
+     */
+    bool isTestMode();
 
     /**
      * return the memory interface

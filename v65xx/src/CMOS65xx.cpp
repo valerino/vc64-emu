@@ -198,14 +198,14 @@ void CMOS65xx::logExecution(const char *name, uint8_t opcodeByte, uint16_t opera
             // 2 bytes operand, X/Y
             uint8_t opByte1 = operand >> 8;
             uint8_t opByte2 = operand & 0xff;
-            CLog::printRaw("\t$%04x: %02X %02X %02X\t\t%s $%04x, X\t%s\n",
+            CLog::printRaw("\t$%04x: %02X %02X %02X\t\t%s $%04x, X\t\t%s\n",
                            _regPC, opcodeByte, opByte2, opByte1, name, operand, statusString);
         } else if (addressingMode == ADDRESSING_MODE_ABSOLUTE_INDEXED_Y ||
                    addressingMode == ADDRESSING_MODE_ZEROPAGE_INDEXED_Y) {
             // 2 bytes operand, X/Y
             uint8_t opByte1 = operand >> 8;
             uint8_t opByte2 = operand & 0xff;
-            CLog::printRaw("\t$%04x: %02X %02X %02X\t\t%s $%04x, Y\t%s\n",
+            CLog::printRaw("\t$%04x: %02X %02X %02X\t\t%s $%04x, Y\t\t%s\n",
                            _regPC, opcodeByte, opByte2, opByte1, name, operand, statusString);
         } else if (addressingMode == ADDRESSING_MODE_INDIRECT) {
             // (2 bytes operand)
@@ -1638,6 +1638,7 @@ void CMOS65xx::dbgLoadFunctionalTest() {
     uint32_t size;
     int res = CBuffer::fromFile(path,&buf,&size);
     if (res == 0) {
+        _isTest = true;
         CLog::print("Loaded Klaus 6502 functional test!");
         // copy to emulated memory at address 0
         _memory->writeBytes(0, buf, size);
@@ -1816,4 +1817,8 @@ void CMOS65xx::debugger(int addressingMode, int* size) {
         }
         free(line);
     }
+}
+
+bool CMOS65xx::isTestMode() {
+    return _isTest;
 }

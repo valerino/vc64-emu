@@ -53,6 +53,7 @@ uint8_t CMemory::readByte(uint32_t address, uint8_t *b) {
     else if (address >= MEMORY_CHARSET_ADDRESS && address < MEMORY_CHARSET_ADDRESS + MEMORY_CHARSET_SIZE) {
         // accessing char rom
         if (IS_BIT_SET(_mem[ZEROPAGE_REG_IO_PORT], 2)) {
+            // access the IO registers
             *b = _mem[address];
         }
         else {

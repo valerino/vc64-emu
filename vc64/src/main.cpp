@@ -49,6 +49,11 @@ bool cpuCallbackWrite(uint16_t address, uint8_t val) {
         vic->write(address, val);
         return true;
     }
+    else if (address >= CIA2_REGISTERS_START && address <= CIA2_REGISTERS_END) {
+        // accessing cia-2 registers
+        cia2->write(address, val);
+        return true;
+    }
     return false;
 }
 
@@ -59,6 +64,10 @@ void cpuCallbackRead(uint16_t address, uint8_t* val) {
     if (address >= VIC_REGISTERS_START && address <= VIC_REGISTERS_END) {
         // accessing vic registers
         vic->read(address, val);
+    }
+    else if (address >= CIA2_REGISTERS_START && address <= CIA2_REGISTERS_END) {
+        // accessing cia-2 registers
+        cia2->read(address, val);
     }
 }
 
@@ -98,7 +107,7 @@ int main (int argc, char** argv) {
     }
 
     bool sdlInitialized = false;
-    uint64_t totalCycles = 0;
+    int64_t totalCycles = 0;
     uint32_t startTime = SDL_GetTicks();
     do {
         // initialize sdl
@@ -135,7 +144,7 @@ int main (int argc, char** argv) {
         cia1 = new CCIA1(cpu);
         cia2 = new CCIA2(cpu);
         sid = new CSID(cpu);
-        vic = new CVICII(cpu);
+        vic = new CVICII(cpu,cia2);
 
         // create the subsystems (display, input, audio)
         display = new CDisplay(vic);
@@ -167,7 +176,6 @@ int main (int argc, char** argv) {
             bool mustExit = false;
             // step the cpu
             int cycles = cpu->step(debugger, mustBreak);
-
             if (cycles == -1) {
                 // exit loop
                 running = false;
@@ -178,15 +186,19 @@ int main (int argc, char** argv) {
             // reset break status if any
             mustBreak = false;
 
-            // update chips
-            vic->run(cycleCount);
-            cia1->run(cycleCount);
-            cia2->run(cycleCount);
-            //sid->run();
+            if (!cpu->isTestMode()) {
+                // update chips
+                vic->run(cycleCount);
+                cia1->run(cycleCount);
+                cia2->run(cycleCount);
+                //sid->run();
+            }
 
             if (cycleCount <= 0) {
-                // screen update
-                display->update();
+                if (!cpu->isTestMode()) {
+                    // screen update, returns raster time
+                    display->update();
+                }
 
                 // process input
                 uint8_t* keys;
@@ -205,10 +217,13 @@ int main (int argc, char** argv) {
                     running = false;
                     continue;
                 }
-                input->update();
 
-                // play audio
-                audio->update();
+                if (!cpu->isTestMode()) {
+                    input->update();
+
+                    // play audio
+                    audio->update();
+                }
 
                 // next iteration
                 cycleCount += cyclesPerSecond;
@@ -217,7 +232,7 @@ int main (int argc, char** argv) {
         }
     } while(0);
     uint32_t endTime = SDL_GetTicks() - startTime;
-    CLog::print("done, step for %02d:%02d:%02d, total CPU cycles=%" PRIu64, endTime / 1000 / 60 / 60, endTime / 1000 / 60, (endTime / 1000) % 60, totalCycles);
+    CLog::print("done, step for %02d:%02d:%02d, total CPU cycles=%" PRId64, endTime / 1000 / 60 / 60, endTime / 1000 / 60, (endTime / 1000) % 60, totalCycles);
 
     // done
     SAFE_DELETE(cia1)
