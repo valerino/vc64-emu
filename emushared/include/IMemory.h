@@ -65,10 +65,10 @@ public:
 
     /**
      * return pointer to the raw memory
-     * @param size on return, size of the raw memory
+     * @param size on return, size of the raw memory (optional)
      * @return pointer to the raw memory
      */
-    virtual uint8_t* ram(uint32_t *size) = 0;
+    virtual uint8_t* raw(uint32_t *size = nullptr) = 0;
 
     /**
      * initializes emulated memory

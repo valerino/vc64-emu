@@ -484,20 +484,23 @@ private:
     void cpuStatusToString(int addressingMode, char *status, int size);
     void logStateAfterInstruction(int addressingMode);
     void logExecution(const char *opcodeName,  uint8_t opcodeByte, uint16_t operand, int addressingMode);
-    void parseInstruction(uint8_t opcodeByte, const char* functionName, int addressingMode, uint16_t* operand, int* size, int* cycles);
+    int parseInstruction(uint8_t opcodeByte, const char* functionName, int addressingMode, uint16_t* operand, int* size, int* cycles);
     void readOperand(int addressingMode, uint16_t addr, uint8_t* bt);
     void writeOperand(int addressingMode, uint16_t addr, uint8_t bt);
     void handlePageCrossingOnBranch(uint16_t operand, int *cycles);
     void handlePageCrossing(int addressingMode, uint16_t operand, int* cycles);
     void irqInternal();
     void dbgLoadFunctionalTest();
+    void debugger(int addressingMode, int* size);
 
 public:
     /**
      * run the cpu for an instruction
+     * @param debugging if true, debugging prompt is shown after executing
+     * @param used to break via hotkey
      * @return instruction cycles, or -1 to stop
      */
-    int step();
+    int step(bool debugging=false, bool forceDebugging=false);
 
     /**
      * resets the cpu and initializes for a new run

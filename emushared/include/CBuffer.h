@@ -19,7 +19,14 @@ public:
      * @param buffer on successful return, size of the allocated buffer
      * @return 0 on success, or errno
      */
-    static int fromFile(const char* path, uint8_t** buffer, uint32_t* size);
+    static int fromFile(const char *path, uint8_t **buffer, uint32_t *size);
+
+    /**
+     * hexdump buffer to stdout
+     * @param addr address to dump
+     * @param len size to dump
+     */
+    static void hexDump(void *addr, int len);
 };
 
 /**

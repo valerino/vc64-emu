@@ -18,7 +18,15 @@
 #define MEMORY_CHARSET_SIZE     0x1000
 #define MEMORY_KERNAL_ADDRESS   0xe000
 #define MEMORY_KERNAL_SIZE      0x2000
-#define MEMORY_VIDEO_ADDRESS     0x400
+#define MEMORY_VIDEO_ADDRESS    0x400
+#define MEMORY_VIDEO_SIZE       0x400
+#define MEMORY_COLOR_ADDRESS    0xd800
+#define MEMORY_COLOR_SIZE       0x400
+
+// zeropage
+#define ZEROPAGE_REG_DATA_DIRECTION 0
+#define ZEROPAGE_REG_IO_PORT 1
+
 
 /**
  * implements the emulated memory
@@ -101,11 +109,18 @@ public:
     int init() override;
 
     /**
-     * get the raw memory pointer
-     * @param size if not null, returns the memory size here
+     * get pointer to ram memory
+     * @return
+     */
+    uint8_t* ram();
+
+    uint8_t* raw(uint32_t *size = nullptr);
+
+    /**
+     * return the charset rom
      * @return the memory pointer
      */
-    uint8_t* ram(uint32_t *size);
+    uint8_t* charset();
 
     CMemory();
     ~CMemory();

@@ -8,6 +8,7 @@
 #include <CBuffer.h>
 #include <CLog.h>
 #include <string.h>
+#include <bitutils.h>
 
 CMemory::CMemory() {
     // allocate main memory and the shadows
@@ -25,46 +26,46 @@ CMemory::~CMemory() {
 }
 
 uint8_t CMemory::readByte(uint32_t address, uint8_t *b) {
-    if (b) {
-        // check addresses
-        if (address >= MEMORY_CHARSET_ADDRESS && address < MEMORY_CHARSET_ADDRESS + MEMORY_CHARSET_SIZE) {
-            // accessing char rom
-            if (_mem[1] & 4) {
-                *b = _mem[address];
-            }
-            else {
-                *b = _charRom[address - MEMORY_CHARSET_ADDRESS];
-            }
-        }
-        else if (address >= MEMORY_BASIC_ADDRESS && address < MEMORY_BASIC_ADDRESS + MEMORY_BASIC_SIZE) {
-            // accessing basic rom
-            if (_mem[1] & 1) {
-                *b = _basicRom[address - MEMORY_BASIC_ADDRESS];
-            }
-            else {
-                // basic rom is masked, returning ram
-                *b = _mem[address];
-            }
-        }
-        else if (address >= MEMORY_KERNAL_ADDRESS && address < MEMORY_KERNAL_ADDRESS + MEMORY_KERNAL_SIZE) {
-            // accessing kernal rom
-            if (_mem[1] & 2) {
-                *b = _kernalRom[address - MEMORY_KERNAL_ADDRESS];
-            }
-            else {
-                // kernal rom is masked, returning ram
-                *b = _mem[address];
-            }
-        }
-        else {
-            // ram
+    if (!b) {
+        return EINVAL;
+    }
+
+    // check addresses
+    if (address >= MEMORY_BASIC_ADDRESS && address < MEMORY_BASIC_ADDRESS + MEMORY_BASIC_SIZE) {
+        // accessing basic rom
+        if (IS_BIT_SET(_mem[ZEROPAGE_REG_IO_PORT], 0)) {
+            *b = _basicRom[address - MEMORY_BASIC_ADDRESS];
+        } else {
+            // basic rom is masked, returning ram
             *b = _mem[address];
         }
-
-        // TODO: handle other bankswitching types (see https://www.c64-wiki.com/wiki/Bank_Switching)
-        return 0;
     }
-    return EINVAL;
+    else if (address >= MEMORY_KERNAL_ADDRESS && address < MEMORY_KERNAL_ADDRESS + MEMORY_KERNAL_SIZE) {
+        // accessing kernal rom
+        if (IS_BIT_SET(_mem[ZEROPAGE_REG_IO_PORT], 1)) {
+            *b = _kernalRom[address - MEMORY_KERNAL_ADDRESS];
+        }
+        else {
+            // kernal rom is masked, returning ram
+            *b = _mem[address];
+        }
+    }
+    else if (address >= MEMORY_CHARSET_ADDRESS && address < MEMORY_CHARSET_ADDRESS + MEMORY_CHARSET_SIZE) {
+        // accessing char rom
+        if (IS_BIT_SET(_mem[ZEROPAGE_REG_IO_PORT], 2)) {
+            *b = _mem[address];
+        }
+        else {
+            *b = _charRom[address - MEMORY_CHARSET_ADDRESS];
+        }
+    }
+    else {
+        // ram
+        *b = _mem[address];
+    }
+
+    // TODO: handle other bankswitching types (see https://www.c64-wiki.com/wiki/Bank_Switching)
+    return 0;
 }
 
 int CMemory::writeByte(uint32_t address, uint8_t b) {
@@ -91,8 +92,8 @@ uint16_t CMemory::readWord(uint32_t address, uint16_t *w) {
 int CMemory::writeWord(uint32_t address, uint16_t w) {
     uint8_t hi = (uint8_t)(w >> 8);
     uint8_t lo = (w & 0xff);
-    writeByte(address + 1, hi);
-    writeByte(address, lo);
+    writeByte(address, hi);
+    writeByte(address +1, lo);
     return 0;
 }
 
@@ -143,10 +144,6 @@ int CMemory::loadBios() {
             CLog::error("%s: %s", strerror(res), path);
             break;
         }
-
-        // TODO: this write is to let it work, there's something wrong in the memory mapping ... shouldn't be
-        // necessary !
-        writeBytes(0xd000,_charRom, charsetSize);
         CLog::print("Loaded charset ROM: %s, size=0x%0x", path, charsetSize);
 
         // load basic
@@ -172,17 +169,31 @@ int CMemory::loadBios() {
 int CMemory::init() {
     memset(_mem,0,MEMORY_SIZE);
 
-    // initialize zeropage data direction/i/o port registers
-    _mem[0] = 0x7;
-    _mem[1] = 0x7;
+    // initialize zeropage data direction
+    BIT_SET(_mem[ZEROPAGE_REG_DATA_DIRECTION],0);
+    BIT_SET(_mem[ZEROPAGE_REG_DATA_DIRECTION],1);
+    BIT_SET(_mem[ZEROPAGE_REG_DATA_DIRECTION],2);
+
+    // and io/port
+    BIT_SET(_mem[ZEROPAGE_REG_IO_PORT],0);
+    BIT_SET(_mem[ZEROPAGE_REG_IO_PORT],1);
+    BIT_SET(_mem[ZEROPAGE_REG_IO_PORT],2);
 
     // load bios
     return loadBios();
 }
 
-uint8_t* CMemory::ram(uint32_t *size) {
+uint8_t* CMemory::ram() {
+    return raw();
+}
+
+uint8_t* CMemory::raw(uint32_t *size) {
     if (size) {
         *size = MEMORY_SIZE;
     }
     return _mem;
+}
+
+uint8_t *CMemory::charset() {
+    return _charRom;
 }

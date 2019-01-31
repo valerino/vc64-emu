@@ -67,25 +67,34 @@ void cpuCallbackRead(uint16_t address, uint8_t* val) {
  * @param argv
  */
 void usage(char** argv) {
-    CLog::error("usage: %s -f [file to play]\n", argv[0]);
+    CLog::error("usage: %s -f <file> [-d]\n\t-f: file to be run\n\t-d: debugger", argv[0]);
 }
 
 int main (int argc, char** argv) {
     // prints title
     banner();
+    bool debugger = false;
 
-    // TODO: getopt commandline
+    // get commandline
     char* path = nullptr;
-    int option = getopt(argc, argv, "f:");
-    switch (option) {
+    while (1) {
+        int option = getopt(argc, argv, "df:");
+        if (option == -1) {
+            break;
+        }
+        switch (option) {
         case '?':
             usage(argv);
             return 1;
         case 'f':
             path = optarg;
             break;
+        case 'd':
+            debugger = true;
+            break;
         default:
             break;
+        }
     }
 
     bool sdlInitialized = false;
@@ -118,6 +127,9 @@ int main (int argc, char** argv) {
             break;
         }
         CLog::print("CPU initialized OK!");
+        if (debugger) {
+            CLog::print("debugging mode ACTIVE!");
+        }
 
         // create additional chips
         cia1 = new CCIA1(cpu);
@@ -150,17 +162,21 @@ int main (int argc, char** argv) {
         int cyclesPerSecond = abs (cpu_hz / VIC_PAL_HZ);
         int cycleCount = cyclesPerSecond;
         bool running = true;
+        bool mustBreak = false;
         while (running) {
             bool mustExit = false;
             // step the cpu
-            int cycles = cpu->step();
+            int cycles = cpu->step(debugger, mustBreak);
+
             if (cycles == -1) {
                 // exit loop
                 running = false;
                 continue;
             }
-
             cycleCount -= cycles;
+
+            // reset break status if any
+            mustBreak = false;
 
             // update chips
             vic->run(cycleCount);
@@ -172,9 +188,18 @@ int main (int argc, char** argv) {
                 // screen update
                 display->update();
 
-                // process input;
+                // process input
                 uint8_t* keys;
                 CSDLUtils::pollEvents(&keys, &mustExit);
+
+                // check for break into debugger
+                if (debugger) {
+                    // ode to softice :)
+                    if (keys[SDL_SCANCODE_LCTRL] && keys[SDL_SCANCODE_D]) {
+                        // break requested!
+                        mustBreak = true;
+                    }
+                }
                 if (mustExit) {
                     // exit loop
                     running = false;
@@ -192,7 +217,7 @@ int main (int argc, char** argv) {
         }
     } while(0);
     uint32_t endTime = SDL_GetTicks() - startTime;
-    CLog::print("done, step for %02d:%02d:%02d, total CPU cycles=%lld", endTime / 1000 / 60 / 60, endTime / 1000 / 60, (endTime / 1000) % 60, totalCycles);
+    CLog::print("done, step for %02d:%02d:%02d, total CPU cycles=%" PRIu64, endTime / 1000 / 60 / 60, endTime / 1000 / 60, (endTime / 1000) % 60, totalCycles);
 
     // done
     SAFE_DELETE(cia1)
