@@ -14,6 +14,10 @@ my MOS 6502/6510/65xxx emulator/interpreter!
     
 * cycle accurate
 
+* built-in debugger
+    * call step() with debugging=true (and possibly with forceDebugging=true to interrupt while running, i.e. with an hotkey)
+    * while in debugging mode use 'h' for help on commands
+
 ## references
 * http://archive.6502.org/datasheets/mos_6510_mpu.pdf
 * http://archive.6502.org/datasheets/rockwell_r650x_r651x.pdf (rockwell 65xx, clearer version of the original above)
