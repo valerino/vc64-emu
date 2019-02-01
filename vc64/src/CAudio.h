@@ -5,12 +5,15 @@
 #ifndef VC64_EMU_CAUDIO_H
 #define VC64_EMU_CAUDIO_H
 
+#include "CSID.h"
+
 class CAudio {
 public:
-    CAudio();
+    CAudio(CSID* sid);
     ~CAudio();
     void update();
 private:
+    CSID* _sid;
 };
 
 

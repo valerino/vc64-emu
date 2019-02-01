@@ -14,12 +14,28 @@ class CCIA1: public CCIA {
 public:
     CCIA1(CMOS65xx* cpu);
     virtual ~CCIA1();
+
     /**
      * run the cia1
      * @param current cycle count
      * @return number of cycles occupied
      */
     int run(int cycleCount);
+
+    /**
+     * read from chip memory
+     * @param address
+     * @param bt
+     */
+    void read(uint16_t address, uint8_t* bt);
+
+    /**
+     * write to chip memory
+     * @param address
+     * @param bt
+     */
+    void write(uint16_t address, uint8_t bt);
+
 private:
 
 };

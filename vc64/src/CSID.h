@@ -17,8 +17,6 @@ public:
     void run();
 
 private:
-    uint8_t _cr1;
-    uint8_t _raserCounter;
     CMOS65xx* _cpu;
 };
 

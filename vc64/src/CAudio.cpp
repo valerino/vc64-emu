@@ -4,13 +4,13 @@
 
 #include "CAudio.h"
 
-CAudio::CAudio() {
-
-}
-
 CAudio::~CAudio() {
 
 }
 
 void CAudio::update() {
+}
+
+CAudio::CAudio(CSID *sid) {
+    _sid = sid;
 }

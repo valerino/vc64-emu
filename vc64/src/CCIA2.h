@@ -41,10 +41,10 @@ public:
     int getVicBank(uint16_t* address);
 
     /**
- * read from chip memory
- * @param address
- * @param bt
- */
+     * read from chip memory
+     * @param address
+     * @param bt
+     */
     void read(uint16_t address, uint8_t* bt);
 
     /**

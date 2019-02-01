@@ -44,20 +44,6 @@
 #define VECTOR_RESET    0xfffc
 #define VECTOR_IRQ      0xfffe
 
-// for the builtin debugger
-static bool ignoreDebugging = false;
-static bool isDebugging = false;
-static bool forceBreak = false;
-static uint32_t bpAddress = 0;
-static int64_t bpCycles = 0;
-static bool bpSet = false;
-static uint64_t currentTotalCycles = 0;
-static bool silenceLog = true;
-static bool breakIrq = false;
-static bool breakNmi = false;
-static bool breakIrqOccured = false;
-static bool breakNmiOccurred = false;
-
 /**
  * full cpu status to string
  * @param addressingMode one of the addressing modes
@@ -141,7 +127,7 @@ void CMOS65xx::cpuStatusToString(int addressingMode, char *status, int size) {
         s[0]='-';
     }
     snprintf(status, size, "AddrMode=%s,\tPC=$%04x, A=$%02x, X=$%02x, Y=$%02x, S=$%02x, P=$%02x(%s), cycles=%" PRIu64, mode, _regPC, _regA, _regX, _regY, _regS, _regP, s,
-            currentTotalCycles);
+            _currentTotalCycles);
 }
 
 void CMOS65xx::logStateAfterInstruction(int addressingMode) {
@@ -165,16 +151,16 @@ void CMOS65xx::logExecution(const char *name, uint8_t opcodeByte, uint16_t opera
 #else
     bool doPrint = false;
 #endif
-    if (isDebugging) {
+    if (_isDebugging) {
         // always show log on debugging
         doPrint = true;
     }
     else {
         // honor DEBUG_LOG_EXECUTION
-        silenceLog = false;
+        _silenceLog = false;
     }
 
-    if (doPrint && !silenceLog) {
+    if (doPrint && !_silenceLog) {
         // fill status
         char statusString[128];
         cpuStatusToString(addressingMode, statusString, sizeof(statusString));
@@ -427,7 +413,7 @@ int CMOS65xx::parseInstruction(uint8_t opcodeByte, const char* functionName, int
     }
 
     // add to total cycles
-    currentTotalCycles += *cycles;
+    _currentTotalCycles += *cycles;
 
     // run the debugger if requested
     debugger(addressingMode,size);
@@ -480,7 +466,7 @@ void CMOS65xx::handlePageCrossingOnBranch(uint16_t operand, int *cycles) {
         *cycles+=1;
 
         // add here to total cycles, since this is not called by the parseInstruction() code
-        currentTotalCycles += 1;
+        _currentTotalCycles += 1;
     }
 }
 
@@ -544,8 +530,8 @@ void CMOS65xx::readOperand(int addressingMode, uint16_t addr, uint8_t* bt) {
 }
 
 int CMOS65xx::step(bool debugging, bool forceDebugging) {
-    isDebugging = debugging;
-    forceBreak = forceDebugging;
+    _isDebugging = debugging;
+    _forceBreak = forceDebugging;
 
     // get opcode byte
     uint8_t bt;
@@ -606,6 +592,21 @@ CMOS65xx::CMOS65xx(IMemory *mem, CpuCallbackRead callbackRead, CpuCallbackWrite 
     _memory = mem;
     _callbackR = callbackRead;
     _callbackW = callbackWrite;
+
+    _ignoreDebugging = false;
+    _isDebugging = false;
+    _forceBreak = false;
+    _bpAddress = 0;
+    _bpCycles = 0;
+    _bpSet = false;
+    _currentTotalCycles = 0;
+    _silenceLog = true;
+    _breakIrq = false;
+    _breakNmi = false;
+    _breakIrqOccured = false;
+    _breakNmiOccurred = false;
+    _ignoreMapping = false;
+
 }
 
 /**
@@ -1605,9 +1606,9 @@ void CMOS65xx::irq() {
         irqInternal();
     }
 
-    if (breakIrq) {
+    if (_breakIrq) {
         // break on irq requested
-        breakIrqOccured = true;
+        _breakIrqOccured = true;
     }
 }
 
@@ -1618,9 +1619,9 @@ void CMOS65xx::nmi() {
     // set pc to the nmi vector address
     _memory->readWord(VECTOR_NMI, &_regPC);
 
-    if (breakNmi) {
+    if (_breakNmi) {
         // break on nmi requested
-        breakNmi = true;
+        _breakNmi = true;
     }
 }
 
@@ -1658,34 +1659,34 @@ IMemory *CMOS65xx::memory() {
 void CMOS65xx::debugger(int addressingMode, int* size) {
     // check if we need to break
     bool doBreak = false;
-    if (forceBreak || isDebugging && !ignoreDebugging) {
+    if (_forceBreak || _isDebugging && !_ignoreDebugging) {
         // requested break
         doBreak = true;
-        if (forceBreak) {
-            ignoreDebugging = false;
+        if (_forceBreak) {
+            _ignoreDebugging = false;
         }
     }
-    if (bpSet) {
+    if (_bpSet) {
         // breakpoint is set
-        if (bpCycles != 0 && currentTotalCycles >= bpCycles) {
+        if (_bpCycles != 0 && _currentTotalCycles >= _bpCycles) {
             // cycles bp hit!
             doBreak = true;
         }
-        if (_regPC == bpAddress) {
+        if (_regPC == _bpAddress) {
             // address bp hit!
             doBreak = true;
         }
         // check breakpoints on irq/nmi
-        if (breakIrqOccured) {
+        if (_breakIrqOccured) {
             doBreak = true;
             CLog::printRaw("\tIRQ occurred!\n");
-            breakIrqOccured = false;
+            _breakIrqOccured = false;
 
         }
-        if (breakNmiOccurred) {
+        if (_breakNmiOccurred) {
             doBreak = true;
             CLog::printRaw("\tNMI occurred!\n");
-            breakNmiOccurred = false;
+            _breakNmiOccurred = false;
         }
     }
 
@@ -1697,19 +1698,19 @@ void CMOS65xx::debugger(int addressingMode, int* size) {
         getline(&line, &lineSize, stdin);
 
         // inhibit standard debugprint of instruction parser by default
-        silenceLog = true;
+        _silenceLog = true;
 
         // parse line
         switch (line[0]) {
             case 'p':
                 // step
-                ignoreDebugging = false;
-                silenceLog = false;
+                _ignoreDebugging = false;
+                _silenceLog = false;
                 break;
 
             case 'r':
                 // print registers
-                silenceLog = true;
+                _silenceLog = true;
                 char statusString[128];
                 cpuStatusToString(addressingMode, statusString, sizeof(statusString));
                 CLog::printRaw("\t%s\n", statusString);
@@ -1720,19 +1721,19 @@ void CMOS65xx::debugger(int addressingMode, int* size) {
 
             case 'g':
                 // go
-                silenceLog = false;
-                ignoreDebugging = true;
+                _silenceLog = false;
+                _ignoreDebugging = true;
                 break;
 
             case 'c':
                 // clear breakpoints
-                silenceLog = true;
-                bpSet = false;
-                bpAddress = 0;
-                bpCycles = 0;
-                breakIrq = false;
-                breakNmi = false;
-                ignoreDebugging = false;
+                _silenceLog = true;
+                _bpSet = false;
+                _bpAddress = 0;
+                _bpCycles = 0;
+                _breakIrq = false;
+                _breakNmi = false;
+                _ignoreDebugging = false;
                 CLog::printRaw("\tbreakpoint clear!\n");
 
                 // do not advance
@@ -1743,20 +1744,20 @@ void CMOS65xx::debugger(int addressingMode, int* size) {
                 // check breakpoint type, if on cycle or address
                 if (line[1] == 'p') {
                     // on address
-                    sscanf(line, "bp $%x", &bpAddress);
-                    CLog::printRaw("\tset breakpoint at address $%x !\n", bpAddress);
+                    sscanf(line, "bp $%x", &_bpAddress);
+                    CLog::printRaw("\tset breakpoint at address $%x !\n", _bpAddress);
                 } else if (line[1] == 'c') {
                     // on cycles > n
-                    sscanf(line, "bc %" PRIu64, &bpCycles);
-                    CLog::printRaw("\tset breakpoint at cycles >= %lld !\n", bpCycles);
+                    sscanf(line, "bc %" PRIu64, &_bpCycles);
+                    CLog::printRaw("\tset breakpoint at cycles >= %lld !\n", _bpCycles);
                 } else if (line[1] == 'q') {
                     // on irq
                     CLog::printRaw("\tset breakpoint on IRQ !\n");
-                    breakIrq = true;
+                    _breakIrq = true;
                 } else if (line[1] == 'n') {
                     // break on nmi
                     CLog::printRaw("\tset breakpoint on NMI !\n");
-                    breakNmi = true;
+                    _breakNmi = true;
                 } else {
                     // unknown!
                     CLog::printRaw("\t ERROR, unknown command: %s\n", line);
@@ -1764,30 +1765,89 @@ void CMOS65xx::debugger(int addressingMode, int* size) {
                 }
                 // do not advance
                 *size = 0;
-                bpSet = true;
-                silenceLog = true;
+                _bpSet = true;
+                _silenceLog = true;
                 break;
 
             case 'd': {
                 // dump address (d $1234 nbytes)
-                silenceLog = true;
-                uint32_t address;
-                int numBytes;
+                _silenceLog = true;
+                uint32_t address = 0;
+                int numBytes = 0;
                 sscanf(line, "d $%x %d", &address, &numBytes);
                 uint32_t memSize;
                 uint8_t *mem = _memory->raw(&memSize);
                 if (address + numBytes > memSize) {
-                    CLog::printRaw("\t ERROR, invalid address/size (max address = $x!\n", memSize);
+                    CLog::printRaw("\t ERROR, invalid address=%x or size=%d\n", address, numBytes);
                     break;
                 }
-                CLog::printRaw("\tdumping %d bytes at address $%x (%d):\n", numBytes, address, address);
-                mem += address;
-                CBuffer::hexDump(mem, numBytes);
+                if (numBytes > 0) {
+                    CLog::printRaw("\tdumping %d bytes at address $%x (%d):\n", numBytes, address, address);
+                    if (_ignoreMapping) {
+                        CBuffer::hexDump(mem + address, numBytes);
+                    }
+                    else {
+                        uint8_t* m = (uint8_t*)calloc(1,numBytes);
+                        _memory->readBytes(address, m, numBytes, numBytes);
+                        CBuffer::hexDump(m, numBytes);
+                        SAFE_FREE(m);
+                    }
+                }
 
                 // do not advance
                 *size = 0;
                 break;
             }
+
+            case 'e': {
+                // edit memory at address (e $1234 aa,bb,cc,dd)
+                _silenceLog = true;
+                uint32_t address;
+                char bytes[1024];
+                sscanf(line, "e $%x %s", &address, bytes);
+
+                // tokenize and write memory
+                uint32_t memSize;
+                uint8_t *mem = _memory->raw(&memSize);
+                char* tok = strtok (bytes,",");
+                int i = 0;
+                while (tok) {
+                    uint16_t addr = address + i;
+                    if (addr <= memSize) {
+                        uint8_t c = (uint8_t) strtol(tok, nullptr, 16);
+                        if (_ignoreMapping) {
+                            mem[addr] = c;
+                        }
+                        else {
+                            _memory->writeByte(addr, c);
+                        }
+                        CLog::printRaw("\twriting %x at $%x\n", c, addr);
+                    } else {
+                        // avoid overrun
+                        break;
+                    }
+                    tok = strtok(nullptr, ",");
+                    i++;
+                }
+
+                // do not advance
+                *size = 0;
+                break;
+            }
+
+            case 'f':
+                _silenceLog = true;
+                if (_ignoreMapping) {
+                    CLog::printRaw("'d' and 'e' set to use client memory mapping\n");
+                }
+                else {
+                    CLog::printRaw("'d' and 'e' set to use raw memory\n");
+                }
+                _ignoreMapping = !_ignoreMapping;
+
+                // do not advance
+                *size = 0;
+                break;
 
             case 'h': {
                 CLog::printRaw("built-in 65xx debugger\n");
@@ -1795,6 +1855,8 @@ void CMOS65xx::debugger(int addressingMode, int* size) {
                 CLog::printRaw("\tp:\t\t\t\tstep instruction\n");
                 CLog::printRaw("\tr:\t\t\t\tdisplay registers\n");
                 CLog::printRaw("\td <$address> <num_bytes>:\tdisplay num_bytes at address\n");
+                CLog::printRaw("\te <$address> <1a,2b,...>:\twrite given hex bytes at address\n");
+                CLog::printRaw("\tf:\t\t\t\ttoggle force 'd' and 'e' to use raw memory disregarding of mapping\n");
                 CLog::printRaw("\tbp <$address>:\t\t\tbreak at address (overwrite existent)\n");
                 CLog::printRaw("\tbc <num_cycles>:\t\tbreak when the cpu reaches (or exceeds) the given cyclecount\n");
                 CLog::printRaw("\tbq:\t\t\t\tbreakpoint on IRQ\n");
@@ -1804,14 +1866,14 @@ void CMOS65xx::debugger(int addressingMode, int* size) {
             }
             default:
                 // unknown!
-                silenceLog = true;
+                _silenceLog = true;
                 CLog::printRaw("\t ERROR, unknown command: %s\n", line);
 
                 // do not advance
                 *size = 0;
                 break;
         }
-        free(line);
+        SAFE_FREE(line)
     }
 }
 

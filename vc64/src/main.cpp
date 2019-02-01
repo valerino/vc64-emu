@@ -153,8 +153,8 @@ int main (int argc, char** argv) {
 
         // create the subsystems (display, input, audio)
         display = new CDisplay(vic);
-        input = new CInput();
-        audio = new CAudio();
+        input = new CInput(cia1);
+        audio = new CAudio(sid);
         SDLDisplayCreateOptions displayOpts = {};
         displayOpts.posX = SDL_WINDOWPOS_CENTERED;
         displayOpts.posY = SDL_WINDOWPOS_CENTERED;
@@ -224,7 +224,7 @@ int main (int argc, char** argv) {
                 }
 
                 if (!cpu->isTestMode()) {
-                    input->update();
+                    input->update(keys);
 
                     // play audio
                     audio->update();

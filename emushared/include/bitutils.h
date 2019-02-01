@@ -25,4 +25,9 @@
  */
 #define BIT_TOGGLE(_x_,_n_) _x_ ^= (1 << n);
 
+/**
+ * make an uint32 as ARGB8888
+ */
+#define MAKEARGB8888(_opacity_,_r_,_g_,_b_) ( (_opacity_ << 24) | ( _r_ << 16) | (_g_ << 8) | (_b_) )
+
 #endif //VC64_EMU_MATHUTILS_H

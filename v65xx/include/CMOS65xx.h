@@ -49,7 +49,6 @@ typedef void (*CpuCallbackRead)(uint16_t address, uint8_t* val);
 
 class CMOS65xx {
 private:
-    // the opcode matrix
     // each opcode handler takes the addressing mode and number of cycles for that addressing mode in input,
     // and returns the number of cycles effectively occupied by the instruction (which may be different than the input
     // cycles) and the instruction size
@@ -363,7 +362,7 @@ private:
     uint8_t _regS;
     uint8_t _regP;
 
-    // the emulated memory
+    // interface to the emulated memory
     IMemory* _memory;
 
     uint16_t _prevPc;
@@ -374,6 +373,7 @@ private:
     uint8_t popByte();
     CpuCallbackRead _callbackR;
     CpuCallbackWrite _callbackW;
+
 
     // standard instructions
     void ADC(int opcodeByte, int addressingMode, int* cycles, int* size);
@@ -491,6 +491,24 @@ private:
     void irqInternal();
     void dbgLoadFunctionalTest();
     void debugger(int addressingMode, int* size);
+
+    /*
+     * for the builtin debugger
+     */
+    bool _ignoreDebugging;
+    bool _isDebugging;
+    bool _forceBreak;
+    uint32_t _bpAddress;
+    int64_t _bpCycles;
+    bool _bpSet;
+    uint64_t _currentTotalCycles;
+    bool _silenceLog;
+    bool _breakIrq;
+    bool _breakNmi;
+    bool _breakIrqOccured;
+    bool _breakNmiOccurred;
+    bool _ignoreMapping;
+
 
 public:
     /**

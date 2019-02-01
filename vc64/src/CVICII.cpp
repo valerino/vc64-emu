@@ -169,13 +169,10 @@ void CVICII::updateScreenLoRes(uint32_t *frameBuffer) {
     for (int borderX = 0; borderX < VIC_PAL_SCREEN_W; borderX++) {
         for (int borderY = 0; borderY < VIC_PAL_SCREEN_H; borderY++) {
             if (borderX <= borderHSize || borderX >= (VIC_PAL_SCREEN_W - borderHSize) ||
-                    borderY <= borderVSize || borderY >= (VIC_PAL_SCREEN_H - borderVSize) ) {
+                borderY <= borderVSize || borderY >= (VIC_PAL_SCREEN_H - borderVSize) ) {
                     // draw border
                     int posB = ((borderY*VIC_PAL_SCREEN_W) + borderX);
-                    frameBuffer[posB] = borderRgb.b;
-                    frameBuffer[posB+1] = borderRgb.g;
-                    frameBuffer[posB+2] = borderRgb.r;
-                    frameBuffer[posB+3] = 0xff;
+                    frameBuffer[posB]=MAKEARGB8888(0xff, borderRgb.r, borderRgb.g, borderRgb.b);
             }
         }
     }
@@ -209,16 +206,10 @@ void CVICII::updateScreenLoRes(uint32_t *frameBuffer) {
                 // get the color code (0-15)
                 if (IS_BIT_SET(row, 7)) {
                     // bit is set, set foreground color
-                    frameBuffer[pos] = fRgb.b;
-                    frameBuffer[pos+1] = fRgb.g;
-                    frameBuffer[pos+2] = fRgb.r;
-                    frameBuffer[pos+3] = 0xff;
+                    frameBuffer[pos]=MAKEARGB8888(0xff, fRgb.r, fRgb.g, fRgb.b);
                 }
                 else {
-                    frameBuffer[pos] = bRgb.b;
-                    frameBuffer[pos+1] = bRgb.g;
-                    frameBuffer[pos+2] = bRgb.r;
-                    frameBuffer[pos+3] = 0xff;
+                    frameBuffer[pos]=MAKEARGB8888(0xff, bRgb.r, bRgb.g, bRgb.b);
                 }
 
                 // next row

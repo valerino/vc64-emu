@@ -20,3 +20,15 @@ int CCIA1::run(int cycleCount) {
     }
     return 0;
 }
+
+void CCIA1::read(uint16_t address, uint8_t *bt) {
+
+    // default
+    _cpu->memory()->readByte(address, bt);
+}
+
+void CCIA1::write(uint16_t address, uint8_t bt) {
+
+    // default
+    _cpu->memory()->writeByte(address, bt);
+}
