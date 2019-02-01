@@ -41,24 +41,25 @@ void banner() {
 }
 
 /**
- * a callback for memory writes, allows client to replace the value being written
+ * a callback for memory writes
  */
-bool cpuCallbackWrite(uint16_t address, uint8_t val) {
+void cpuCallbackWrite(uint16_t address, uint8_t val) {
     if (address >= VIC_REGISTERS_START && address <= VIC_REGISTERS_END) {
         // accessing vic registers
         vic->write(address, val);
-        return true;
     }
     else if (address >= CIA2_REGISTERS_START && address <= CIA2_REGISTERS_END) {
         // accessing cia-2 registers
         cia2->write(address, val);
-        return true;
     }
-    return false;
+    else {
+        // default
+        cpu->memory()->writeByte(address, val);
+    }
 }
 
 /**
- * a callback for memory reads, allows client to replace the value being read
+ * a callback for memory reads
  */
 void cpuCallbackRead(uint16_t address, uint8_t* val) {
     if (address >= VIC_REGISTERS_START && address <= VIC_REGISTERS_END) {
@@ -68,6 +69,10 @@ void cpuCallbackRead(uint16_t address, uint8_t* val) {
     else if (address >= CIA2_REGISTERS_START && address <= CIA2_REGISTERS_END) {
         // accessing cia-2 registers
         cia2->read(address, val);
+    }
+    else {
+        // default
+        cpu->memory()->readByte(address, val);
     }
 }
 

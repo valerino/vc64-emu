@@ -30,13 +30,11 @@
 #define CPU_MEM_READ 0
 #define CPU_MEM_WRITE 1
 /**
- * a callback for memory writes, allows client to replace the value being written and possibly write at another address.
- * the callback happens before the actual write, if it returns true the write has been consumed by the callback and must
- * be discarded.
+ * a callback for memory writes, allows client to replace the value being written and/or possibly write at another address.
  */
-typedef bool (*CpuCallbackWrite)(uint16_t address, uint8_t val);
+typedef void (*CpuCallbackWrite)(uint16_t address, uint8_t val);
 /**
- * a callback for memory reads, allows client to replace the value being read
+ * a callback for memory reads, allows client to replace the value being read and/or possibly read at another address.
  */
 typedef void (*CpuCallbackRead)(uint16_t address, uint8_t* val);
 

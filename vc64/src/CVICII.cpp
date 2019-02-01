@@ -52,12 +52,10 @@ void CVICII::read(uint16_t address, uint8_t* bt) {
     }
 
     // check shadow
-    bool hit;
-    uint16_t addr = check_shadow_address(address, &hit);
-    if (hit) {
-        // read again
-        _cpu->memory()->readByte(addr,bt);
-    }
+    uint16_t addr = check_shadow_address(address);
+
+    // finally read
+    _cpu->memory()->readByte(addr,bt);
 }
 
 void CVICII::write(uint16_t address, uint8_t bt) {
@@ -78,42 +76,33 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         }
     }
     else if (address == VIC_REG_BASE_ADDR) {
-        int a = 111;
-        a++;
+
     }
 
     // check shadow
-    bool hit;
-    uint16_t addr = check_shadow_address(address,&hit);
-    if (hit) {
-        // duplicate the write at another address
-        _cpu->memory()->writeByte(addr,bt);
-    }
+    uint16_t addr = check_shadow_address(address);
 
     // finally write
-    _cpu->memory()->writeByte(address,bt);
+    _cpu->memory()->writeByte(addr,bt);
 }
 
 /**
  * some addresses are shadowed and maps to other addresses
  * @param address the input address
- * @param hit true if read/write hits a shadowed address (so the memory must be read again)
  * @return the effective address
  */
-uint16_t CVICII::check_shadow_address(uint16_t address, bool* hit) {
+uint16_t CVICII::check_shadow_address(uint16_t address) {
     // check for shadow addresses
     if (address >= 0xd040 && address <= 0xd3ff) {
         // these are shadows for $d000-$d03f
-        *hit = true;
         return (VIC_REGISTERS_START + ((address % VIC_REGISTERS_START) % 0x40));
     }
-    *hit = false;
     return address;
 }
 
 /**
- * read/write to these addresses has no effect or returns a fixed values
- * @param type
+ * read/write to these addresses has no effect or returns a fixed value
+ * @param type CPU_MEM_READ or CPU_MEM_WRITE
  * @param address
  * @param bt
  * @return true if it's an unused address
@@ -123,9 +112,9 @@ bool CVICII::check_unused_address(int type, uint16_t address, uint8_t *bt) {
         if (type == CPU_MEM_READ) {
             // these locations always return 0xff on read
             *bt = 0xff;
-        } else {
-            // unused
         }
+
+        // on write, it's ignored
         return true;
     }
     return false;

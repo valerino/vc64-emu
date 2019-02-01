@@ -52,6 +52,7 @@ int CCIA2::getVicBank(uint16_t* address) {
 }
 
 void CCIA2::read(uint16_t address, uint8_t *bt) {
+    _cpu->memory()->readByte(address,bt);
 }
 
 void CCIA2::write(uint16_t address, uint8_t bt) {
@@ -70,4 +71,7 @@ void CCIA2::write(uint16_t address, uint8_t bt) {
             CLog::printRaw("mirroring charset ROM in RAM at $9000\n");
         }
     }
+
+    // write
+    _cpu->memory()->writeByte(address,bt);
 }

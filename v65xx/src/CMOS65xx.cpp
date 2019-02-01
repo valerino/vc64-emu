@@ -504,16 +504,10 @@ void CMOS65xx::writeOperand(int addressingMode, uint16_t addr, uint8_t bt) {
         CLog::printRaw("\t\tWrite(PRE): -->\t($%04x)=$%02x\n", addr, m);
 #endif
         if (_callbackW != nullptr) {
-            if (!_callbackW(addr, bt)) {
-                // write not handled by callback
-                _memory->writeByte(addr, bt);
-            }
-            else {
-                // write handled by callback
-            }
+            // client may change the address and value being written
+            _callbackW(addr, bt);
         }
         else {
-            // no callback, write
             _memory->writeByte(addr, bt);
         }
 #ifdef DEBUG_LOG_VERBOSE
@@ -536,14 +530,16 @@ void CMOS65xx::readOperand(int addressingMode, uint16_t addr, uint8_t* bt) {
 #endif
     }
     else {
-        _memory->readByte(addr, bt);
-#ifdef DEBUG_LOG_VERBOSE
-        CLog::printRaw("\t\tRead: -------->\t($%04x)=$%02x\n", addr, *bt);
-#endif
         if (_callbackR != nullptr) {
             // client may change the address and value being read
             _callbackR(addr, bt);
         }
+        else {
+            _memory->readByte(addr, bt);
+        }
+#ifdef DEBUG_LOG_VERBOSE
+        CLog::printRaw("\t\tRead: -------->\t($%04x)=$%02x\n", addr, *bt);
+#endif
     }
 }
 

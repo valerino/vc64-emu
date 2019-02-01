@@ -94,7 +94,7 @@ private:
     rgbStruct _palette[16];
     CCIA2* _cia2;
     void updateRasterCounter(uint16_t cnt);
-    uint16_t check_shadow_address(uint16_t address, bool* hit);
+    uint16_t check_shadow_address(uint16_t address);
     bool check_unused_address(int type, uint16_t address, uint8_t *bt);
     void updateScreenLoRes(uint32_t* frameBuffer);
     void getTextModeScreenAddress(uint16_t* screenCharacterRamAddress, uint16_t* charsetAddress);
