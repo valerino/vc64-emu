@@ -12,6 +12,12 @@
  */
 
 /**
+ * callback to receive events via CSDLUtils::pollEvents()
+ * @param event
+ */
+typedef void (*SDLEventCallback)(SDL_Event* event);
+
+/**
  * filled by initializeDisplayContext()
  */
  typedef struct _SDLDisplayCtx {
@@ -47,11 +53,11 @@ class CSDLUtils {
 public:
     /**
       * poll sdl events and return keyboard state
-      * @param keys on return, if not NULL is the keyboard state returned by SDL_GetKeyboardState()
+      * @param cb callback to receive events
       * @param mustExit on return, true if quit is requested
       * @return 0 on success, or errno
       */
-    static int pollEvents(uint8_t **keys, bool* mustExit);
+    static void pollEvents(SDLEventCallback cb);
 
     /**
      * initializes an SDL display context with a texture in ARGB8888 format

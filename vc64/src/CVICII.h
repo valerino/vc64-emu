@@ -7,6 +7,7 @@
 
 #include <CMOS65xx.h>
 #include "CCIA2.h"
+#include <CSDLUtils.h>
 
 #define VIC_PAL_HZ  50.124
 
@@ -40,6 +41,11 @@
  * emulates the vic-ii 6569 chip
  */
 class CVICII {
+    /**
+     * can access private members
+     */
+    friend class CDisplay;
+
 public:
     /**
      * constructor
@@ -56,12 +62,6 @@ public:
      * @return number of cycles occupied
      */
     int run(int cycleCount);
-
-    /**
-     * get the connected cpu
-     * @return the cpu instance
-     */
-    CMOS65xx* cpu();
 
     /**
      * read from chip memory
@@ -86,12 +86,20 @@ public:
 private:
     CMOS65xx* _cpu;
     uint16_t _rasterCounter;
+
+    void setSdlCtx(SDLDisplayCtx* ctx);
+
+    /**
+     * for the c64 palettte
+     */
     typedef struct _rgbStruct {
         uint8_t r;
         uint8_t g;
         uint8_t b;
     } rgbStruct;
     rgbStruct _palette[16];
+
+    SDLDisplayCtx* _sdlCtx;
     CCIA2* _cia2;
     void updateRasterCounter(uint16_t cnt);
     uint16_t check_shadow_address(uint16_t address);

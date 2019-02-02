@@ -31,6 +31,8 @@ CVICII* vic = nullptr;
 CCIA1* cia1 = nullptr;
 CCIA2* cia2 = nullptr;
 CSID* sid = nullptr;
+bool running = true;
+bool mustBreak = false;
 
 /**
  * shows banner
@@ -52,6 +54,10 @@ void cpuCallbackWrite(uint16_t address, uint8_t val) {
         // accessing cia-2 registers
         cia2->write(address, val);
     }
+    else if (address >= CIA1_REGISTERS_START && address <= CIA1_REGISTERS_END) {
+        // accessing cia-1 registers
+        cia1->write(address, val);
+    }
     else {
         // default
         cpu->memory()->writeByte(address, val);
@@ -70,9 +76,42 @@ void cpuCallbackRead(uint16_t address, uint8_t* val) {
         // accessing cia-2 registers
         cia2->read(address, val);
     }
+    else if (address >= CIA1_REGISTERS_START && address <= CIA1_REGISTERS_END) {
+        // accessing cia-1 registers
+        cia1->read(address, val);
+    }
     else {
         // default
         cpu->memory()->readByte(address, val);
+    }
+}
+
+/**
+ * callback for sdl events
+ * @param event
+ */
+void sdlEventCallback(SDL_Event* event) {
+    if (event->type == SDL_QUIT) {
+        // SDL window closed, application must quit asap
+        CLog::print("QUIT requested!");
+        running = false;
+        return;
+    }
+
+    switch (event->type) {
+        case SDL_KEYUP:
+        case SDL_KEYDOWN:
+            // process input
+            uint32_t hotkeys;
+            input->update(event,&hotkeys);
+            if (hotkeys & HOTKEY_DEBUGGER) {
+                // we must break!
+                CLog::print("DEBUGBREAK requested (works only in debugger mode!)");
+                mustBreak = true;
+            }
+            break;
+        default:
+            break;
     }
 }
 
@@ -175,12 +214,9 @@ int main (int argc, char** argv) {
         int cpu_hz = CPU_HZ;
         int cyclesPerSecond = abs (cpu_hz / VIC_PAL_HZ);
         int cycleCount = cyclesPerSecond;
-        bool running = true;
-        bool mustBreak = false;
         while (running) {
-            bool mustExit = false;
             // step the cpu
-            int cycles = cpu->step(debugger, mustBreak);
+            int cycles = cpu->step(debugger, debugger ? mustBreak : false);
             if (cycles == -1) {
                 // exit loop
                 running = false;
@@ -196,36 +232,19 @@ int main (int argc, char** argv) {
                 vic->run(cycleCount);
                 cia1->run(cycleCount);
                 cia2->run(cycleCount);
-                //sid->run();
+                sid->run(cycleCount);
             }
 
             if (cycleCount <= 0) {
                 if (!cpu->isTestMode()) {
-                    // screen update, returns raster time
+                    // refresh
                     display->update();
                 }
 
                 // process input
-                uint8_t* keys;
-                CSDLUtils::pollEvents(&keys, &mustExit);
-
-                // check for break into debugger
-                if (debugger) {
-                    // ode to softice :)
-                    if (keys[SDL_SCANCODE_LCTRL] && keys[SDL_SCANCODE_D]) {
-                        // break requested!
-                        mustBreak = true;
-                    }
-                }
-                if (mustExit) {
-                    // exit loop
-                    running = false;
-                    continue;
-                }
+                CSDLUtils::pollEvents(sdlEventCallback);
 
                 if (!cpu->isTestMode()) {
-                    input->update(keys);
-
                     // play audio
                     audio->update();
                 }

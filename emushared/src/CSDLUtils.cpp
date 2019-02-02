@@ -8,24 +8,12 @@
 #include <include/CSDLUtils.h>
 
 
-int CSDLUtils::pollEvents(uint8_t **keys, bool* mustExit) {
-    if (!keys || !mustExit) {
-        return EINVAL;
-    }
-    *keys = nullptr;
-    *mustExit = false;
-
+void CSDLUtils::pollEvents(SDLEventCallback cb) {
     // step an SDL poll cycle
     SDL_Event ev;
     while (SDL_PollEvent(&ev)) {
-        if (ev.type == SDL_QUIT) {
-            // SDL window closed, application must quit asap
-            *mustExit = true;
-            break;
-        }
+        cb(&ev);
     }
-    *keys = const_cast<uint8_t *>(SDL_GetKeyboardState(nullptr));
-    return 0;
 }
 
 int CSDLUtils::initializeDisplayContext(SDLDisplayCtx *ctx, SDLDisplayCreateOptions *options, char **errorString) {

@@ -8,6 +8,13 @@
 #include "CCIA.h"
 
 /**
+ * registers
+ * https://www.c64-wiki.com/wiki/CIA
+ */
+#define CIA1_REGISTERS_START 0xdc00
+#define CIA1_REGISTERS_END   0xdcff
+
+/**
  * implements the 1st CIA 6526, which controls keyboard, joystick, paddles, datassette and IRQ
  */
 class CCIA1: public CCIA {

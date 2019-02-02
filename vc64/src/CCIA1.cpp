@@ -22,9 +22,20 @@ int CCIA1::run(int cycleCount) {
 }
 
 void CCIA1::read(uint16_t address, uint8_t *bt) {
-
     // default
     _cpu->memory()->readByte(address, bt);
+    /*
+    if (address == 0xdc01) {
+        uint8_t dc00;
+        _cpu->memory()->readByte(address, &dc00);
+        if (dc00 == 0xf7 || dc00 == 0) {
+            *bt = 0xef;
+        }
+        else {
+            *bt = 0xff;
+        }
+    }
+    */
 }
 
 void CCIA1::write(uint16_t address, uint8_t bt) {

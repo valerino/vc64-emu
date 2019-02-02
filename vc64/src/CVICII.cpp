@@ -12,10 +12,6 @@ CVICII::~CVICII() {
 
 }
 
-CMOS65xx *CVICII::cpu() {
-    return _cpu;
-}
-
 void CVICII::updateRasterCounter(uint16_t cnt) {
     _rasterCounter = cnt;
     if (cnt <= 0xff) {
@@ -172,7 +168,7 @@ void CVICII::updateScreenLoRes(uint32_t *frameBuffer) {
                 borderY <= borderVSize || borderY >= (VIC_PAL_SCREEN_H - borderVSize) ) {
                     // draw border
                     int posB = ((borderY*VIC_PAL_SCREEN_W) + borderX);
-                    frameBuffer[posB]=MAKEARGB8888(0xff, borderRgb.r, borderRgb.g, borderRgb.b);
+                    frameBuffer[posB]=SDL_MapRGB(_sdlCtx->pxFormat, borderRgb.r, borderRgb.g, borderRgb.b);
             }
         }
     }
@@ -206,10 +202,10 @@ void CVICII::updateScreenLoRes(uint32_t *frameBuffer) {
                 // get the color code (0-15)
                 if (IS_BIT_SET(row, 7)) {
                     // bit is set, set foreground color
-                    frameBuffer[pos]=MAKEARGB8888(0xff, fRgb.r, fRgb.g, fRgb.b);
+                    frameBuffer[pos]=SDL_MapRGB(_sdlCtx->pxFormat, fRgb.r, fRgb.g, fRgb.b);
                 }
                 else {
-                    frameBuffer[pos]=MAKEARGB8888(0xff, bRgb.r, bRgb.g, bRgb.b);
+                    frameBuffer[pos]=SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
                 }
 
                 // next row
@@ -268,6 +264,14 @@ void CVICII::getTextModeScreenAddress(uint16_t *screenCharacterRamAddress, uint1
 
 void CVICII::getBitmapModeScreenAddress(uint16_t *colorInfoAddress, uint16_t *bitmapAddress) {
     // TODO: implement
+}
+
+/**
+ * set the SDL display context
+ * @param ctx
+ */
+void CVICII::setSdlCtx(SDLDisplayCtx *ctx) {
+    _sdlCtx = ctx;
 }
 
 

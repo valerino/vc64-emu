@@ -21,6 +21,7 @@ int CDisplay::init(SDLDisplayCreateOptions* options, char** errorString) {
     if (res != 0) {
         return res;
     }
+    _vic->setSdlCtx(&_ctx);
 
     // show!
     CSDLUtils::update(&_ctx, (void*)_fb, VIC_PAL_SCREEN_W);

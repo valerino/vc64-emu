@@ -47,7 +47,7 @@ int CCIA2::getVicBank(uint16_t* address) {
         *address = 0xc000;
     }
 
-    CLog::printRaw("VIC-II bank %d selected!\n", bank);
+    CLog::printRaw("\tVIC-II bank %d selected!\n", bank);
     return bank;
 }
 
@@ -63,12 +63,12 @@ void CCIA2::write(uint16_t address, uint8_t bt) {
         if (bank == 0) {
             // shadow character rom at $1000
             memcpy(ram->raw() + 0x1000, ram->charset(), MEMORY_CHARSET_SIZE);
-            CLog::printRaw("mirroring charset ROM in RAM at $1000\n");
+            CLog::printRaw("\tmirroring charset ROM in RAM at $1000\n");
         }
         else if (bank == 1) {
             // shadow character rom at $9000
             memcpy(ram->raw() + 0x9000, ram->charset(), MEMORY_CHARSET_SIZE);
-            CLog::printRaw("mirroring charset ROM in RAM at $9000\n");
+            CLog::printRaw("\tmirroring charset ROM in RAM at $9000\n");
         }
     }
 

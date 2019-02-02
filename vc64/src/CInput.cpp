@@ -12,6 +12,12 @@ CInput::~CInput() {
 
 }
 
-void CInput::update(uint8_t* keys) {
-
+void CInput::update(SDL_Event* event, uint32_t* hotkeys) {
+    // we have a keyup or keydown
+    const uint8_t* keys = SDL_GetKeyboardState(nullptr);
+    if (keys[SDL_SCANCODE_LCTRL] && keys[SDL_SCANCODE_D]) {
+        // break requested!
+        *hotkeys = HOTKEY_DEBUGGER;
+        return;
+    }
 }
