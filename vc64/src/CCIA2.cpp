@@ -136,7 +136,6 @@ void CCIA2::write(uint16_t address, uint8_t bt) {
                 _timerBRunning = false;
             }
             break;
-
         default:
             break;
     }

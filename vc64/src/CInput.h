@@ -28,7 +28,7 @@ public:
 
 private:
     CCIA1* _cia1;
-    uint8_t sdlKeycodeToc64Scancode(uint32_t sdlKeyCode);
+    uint8_t sdlScancodeToc64Scancode(uint32_t sdlScanCode);
 };
 
 

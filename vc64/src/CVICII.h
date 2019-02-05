@@ -104,7 +104,7 @@ private:
     void updateRasterCounter(uint16_t cnt);
     uint16_t checkShadowAddress(uint16_t address);
     bool checkUnusedAddress(int type, uint16_t address, uint8_t *bt);
-    void updateScreenTextMode(uint32_t *frameBuffer);
+    void updateScreenCharacterMode(uint32_t *frameBuffer);
     void getTextModeScreenAddress(uint16_t* screenCharacterRamAddress, uint16_t* charsetAddress);
     void getBitmapModeScreenAddress(uint16_t* colorInfoAddress, uint16_t* bitmapAddress);
 };

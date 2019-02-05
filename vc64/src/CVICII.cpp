@@ -8,6 +8,12 @@
 #include <CLog.h>
 #include "globals.h"
 
+#ifndef NDEBUG
+// debug-only flag
+//#define DEBUG_VIC
+#endif
+
+
 CVICII::~CVICII() {
 
 }
@@ -125,8 +131,7 @@ void CVICII::updateScreen(uint32_t* frameBuffer) {
     _cpu->memory()->readByte(VIC_REG_CR2, &cr2);
     if (!IS_BIT_SET(cr1, 6) && !IS_BIT_SET(cr1, 5)) {
         if (!IS_BIT_SET(cr2, 5)) {
-            // https://www.c64-wiki.com/wiki/Standard_Character_Mode
-            updateScreenTextMode(frameBuffer);
+            updateScreenCharacterMode(frameBuffer);
         }
     }
     else {
@@ -135,16 +140,24 @@ void CVICII::updateScreen(uint32_t* frameBuffer) {
 }
 
 /**
- * update screen in low resolution mode (40x25)
+ * update screen in character (low resolution) mode (40x25)
  * https://www.c64-wiki.com/wiki/Standard_Character_Mode
  * @param frameBuffer the framebuffer memory to be updated
  */
-void CVICII::updateScreenTextMode(uint32_t *frameBuffer) {
+void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
     // get the addresses with the help of the cia-2
     uint16_t charsetAddress;
     uint16_t screenAddress;
     uint8_t* colorMem = _cpu->memory()->raw() + MEMORY_COLOR_ADDRESS;
     getTextModeScreenAddress(&screenAddress,&charsetAddress);
+
+    // check for multicolor mode
+    uint8_t cr2;
+    _cpu->memory()->readByte(VIC_REG_CR2, &cr2);
+    bool multicolor = IS_BIT_SET(cr2, 4);
+    if (multicolor) {
+        CLog::print("multicolor mode!");
+    }
 
     uint8_t* charset = _cpu->memory()->raw() + charsetAddress;
     if (charsetAddress == VIC_REGISTERS_START) {

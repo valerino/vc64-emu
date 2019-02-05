@@ -27,6 +27,8 @@
  * implements the 1st CIA 6526, which controls keyboard, joystick, paddles, datassette and IRQ
  */
 class CCIA1 {
+    friend class CInput;
+
 public:
     CCIA1(CMOS65xx* cpu);
     virtual ~CCIA1();
@@ -64,6 +66,7 @@ private:
     uint16_t checkShadowAddress(uint16_t address);
 
     uint8_t _keyboard[0x40];
+
     uint16_t _timerA;
     uint16_t _timerB;
     bool _timerARunning;

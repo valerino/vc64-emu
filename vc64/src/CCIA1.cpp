@@ -43,6 +43,7 @@ int CCIA1::run(int cycleCount) {
 void CCIA1::processDc01Read(uint8_t* bt) {
     // read dc00, this holds the row in the keyboard matrix
     // https://www.c64-wiki.com/wiki/Keyboard#Hardware
+    // https://sites.google.com/site/h2obsession/CBM/C128/keyboard-scan
     uint8_t dc00;
     read(CIA1_REG_DATAPORT_A, &dc00);
 
