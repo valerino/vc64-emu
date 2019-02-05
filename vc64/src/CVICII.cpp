@@ -13,7 +13,6 @@
 //#define DEBUG_VIC
 #endif
 
-
 CVICII::~CVICII() {
 
 }
@@ -187,10 +186,10 @@ void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
         }
     }
 
-    // 40x25=1000 screen codes total, draw the screen character per character
+    // 40x25=1000 screen codes total, draw the screen character per character, left to right
     for (int i=0; i < 1000; i++) {
         // read foreground color
-        uint8_t fgColor = (colorMem[(currentRow * 40) + currentColumn]) & 0xf;
+        uint8_t fgColor = (colorMem[(currentRow * 40) + currentColumn]);// & 0xf;
         rgbStruct fRgb = _palette[fgColor];
 
         // read background color
@@ -225,17 +224,15 @@ void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
                 // next row
                 row <<= 1;
             }
-
-            // screen is 40x25
-            if (currentColumn == 40) {
-                // next screen row
-                currentRow++;
-                currentColumn = 0;
-            }
         }
 
-        // next screen column
+        // screen is 40x25
         currentColumn++;
+        if (currentColumn == 40) {
+            // next screen row
+            currentRow++;
+            currentColumn = 0;
+        }
     }
 }
 

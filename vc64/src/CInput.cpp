@@ -4,6 +4,13 @@
 
 #include "CInput.h"
 #include <CLog.h>
+
+#ifndef NDEBUG
+// debug-only flag
+//#define DEBUG_INPUT
+#endif
+
+
 CInput::CInput(CCIA1* cia1) {
     _cia1 = cia1;
 
@@ -28,8 +35,9 @@ void CInput::update(SDL_Event* event, uint32_t* hotkeys) {
     }
 
     // update internal keyboard state
+#ifdef DEBUG_INPUT
     CLog::print("scancode: %d",  event->key.keysym.scancode);
-    //uint8_t scancode = sdlKeycodeToc64Scancode(event->key.keysym.sym, event->key.keysym.scancode);
+#endif
     uint8_t scancode = sdlScancodeToc64Scancode(event->key.keysym.scancode);
     if (scancode != 0xff) {
         _cia1->setKeyState(scancode, event->type == SDL_KEYDOWN ? true : false);
@@ -40,7 +48,7 @@ void CInput::update(SDL_Event* event, uint32_t* hotkeys) {
  * maps sdl keycode to c64 scancode
  * https://www.c64-wiki.com/wiki/Keyboard_code
  * https://sites.google.com/site/h2obsession/CBM/C128/keyboard-scan
- * @param sdlKeyCode
+ * @param sdlScanCode
  * @return
  */
 uint8_t CInput::sdlScancodeToc64Scancode(uint32_t sdlScanCode){
