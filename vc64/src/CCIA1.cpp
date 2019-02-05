@@ -6,6 +6,11 @@
 #include <SDL.h>
 #include <bitutils.h>
 
+#ifndef NDEBUG
+// debug-only flag
+//#define DEBUG_CIA1
+#endif
+
 CCIA1::CCIA1(CMOS65xx* cpu) {
     // set all keys to unpressed state
     for (int i = 0; i < sizeof(_keyboard); i++) {

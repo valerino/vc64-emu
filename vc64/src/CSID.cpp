@@ -4,6 +4,11 @@
 
 #include "CSID.h"
 
+#ifndef NDEBUG
+// debug-only flag
+//#define DEBUG_SID
+#endif
+
 CSID::CSID(CMOS65xx *cpu) {
     _cpu = cpu;
 }

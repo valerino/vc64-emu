@@ -106,7 +106,7 @@ void sdlEventCallback(SDL_Event* event) {
             input->update(event, &hotkeys);
             if (hotkeys & HOTKEY_DEBUGGER) {
                 // we must break!
-                CLog::print("DEBUGBREAK requested (works only in debugger mode!)");
+                CLog::print("DEBUGBREAK requested (wwerorks only in debugger mode!)");
                 mustBreak = true;
             }
         }
@@ -121,7 +121,12 @@ void sdlEventCallback(SDL_Event* event) {
  * @param argv
  */
 void usage(char** argv) {
-    CLog::error("usage: %s -f <file> [-d]\n\t-f: file to be run\n\t-d: debugger", argv[0]);
+    CLog::error("usage: %s -f <file> [-dsh]\n" \
+    "\t-f: file to be run (TAP/PRG/CRT)\n" \
+    "\t-d: debugger\n" \
+    "\t-s: fullscreen\n" \
+    "\t-h: this help\n",
+    argv[0]);
 }
 
 int main (int argc, char** argv) {
@@ -130,16 +135,18 @@ int main (int argc, char** argv) {
     // prints title
     banner();
     bool debugger = false;
+    bool fullScreen = false;
 
     // get commandline
     char* path = nullptr;
     while (1) {
-        int option = getopt(argc, argv, "df:");
+        int option = getopt(argc, argv, "dshf:");
         if (option == -1) {
             break;
         }
         switch (option) {
         case '?':
+        case 'h':
             usage(argv);
             return 1;
         case 'f':
@@ -148,6 +155,10 @@ int main (int argc, char** argv) {
         case 'd':
             debugger = true;
             break;
+        case 's':
+            fullScreen = true;
+            break;
+
         default:
             break;
         }
@@ -204,6 +215,7 @@ int main (int argc, char** argv) {
         displayOpts.w = VIC_PAL_SCREEN_W;
         displayOpts.h = VIC_PAL_SCREEN_H;
         displayOpts.windowName = "vc64-emu";
+        displayOpts.windowFlags = fullScreen ? SDL_WINDOW_FULLSCREEN : 0;
         displayOpts.rendererFlags = SDL_RENDERER_ACCELERATED;
         char* sdlError;
         res = display->init(&displayOpts, &sdlError);

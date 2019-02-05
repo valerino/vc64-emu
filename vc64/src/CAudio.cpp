@@ -4,6 +4,11 @@
 
 #include "CAudio.h"
 
+#ifndef NDEBUG
+// debug-only flag
+//#define DEBUG_AUDIO
+#endif
+
 CAudio::~CAudio() {
 
 }

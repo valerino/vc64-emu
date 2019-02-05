@@ -177,8 +177,8 @@ void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
     // draw the border
     for (int borderX = 0; borderX < VIC_PAL_SCREEN_W; borderX++) {
         for (int borderY = 0; borderY < VIC_PAL_SCREEN_H; borderY++) {
-            if (borderX <= borderHSize || borderX >= (VIC_PAL_SCREEN_W - borderHSize) ||
-                borderY <= borderVSize || borderY >= (VIC_PAL_SCREEN_H - borderVSize) ) {
+            if (borderX <= borderHSize || borderX >= (VIC_PAL_SCREEN_W - borderHSize - 1) ||
+                borderY <= borderVSize || borderY >= (VIC_PAL_SCREEN_H - borderVSize - 1) ) {
                     // draw border
                     int posB = ((borderY*VIC_PAL_SCREEN_W) + borderX);
                     frameBuffer[posB]=SDL_MapRGB(_sdlCtx->pxFormat, borderRgb.r, borderRgb.g, borderRgb.b);
