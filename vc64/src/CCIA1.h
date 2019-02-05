@@ -14,21 +14,14 @@
 #define CIA1_REGISTERS_START 0xdc00
 #define CIA1_REGISTERS_END   0xdcff
 
-#define CIA1_REG_DATAPORT_B 0xdc01
-
 #define CIA1_REG_DATAPORT_A 0xdc00
-
-#define CIA1_REG_CONTROL_TIMER_A 0xdc0e
-
-#define CIA1_REG_CONTROL_TIMER_B 0xdc0f
-
+#define CIA1_REG_DATAPORT_B 0xdc01
 #define CIA1_REG_TIMER_A_LO 0xdc04
-
 #define CIA1_REG_TIMER_A_HI 0xdc05
-
 #define CIA1_REG_TIMER_B_LO 0xdc06
-
 #define CIA1_REG_TIMER_B_HI 0xdc07
+#define CIA1_REG_CONTROL_TIMER_A 0xdc0e
+#define CIA1_REG_CONTROL_TIMER_B 0xdc0f
 
 /**
  * implements the 1st CIA 6526, which controls keyboard, joystick, paddles, datassette and IRQ
@@ -75,8 +68,6 @@ private:
     uint16_t _timerB;
     bool _timerARunning;
     bool _timerBRunning;
-    int _timerAhz;
-    int _timerBhz;
     CMOS65xx* _cpu;
 };
 

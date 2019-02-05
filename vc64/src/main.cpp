@@ -100,15 +100,16 @@ void sdlEventCallback(SDL_Event* event) {
 
     switch (event->type) {
         case SDL_KEYUP:
-        case SDL_KEYDOWN:
+        case SDL_KEYDOWN: {
             // process input
-            uint32_t hotkeys;
-            input->update(event,&hotkeys);
+            uint32_t hotkeys = 0;
+            input->update(event, &hotkeys);
             if (hotkeys & HOTKEY_DEBUGGER) {
                 // we must break!
                 CLog::print("DEBUGBREAK requested (works only in debugger mode!)");
                 mustBreak = true;
             }
+        }
             break;
         default:
             break;

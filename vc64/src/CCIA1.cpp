@@ -15,8 +15,6 @@ CCIA1::CCIA1(CMOS65xx* cpu) {
     _timerB = 0;
     _timerARunning = false;
     _timerBRunning = false;
-    _timerAhz = 50;
-    _timerBhz = 50;
     _cpu = cpu;
 }
 
@@ -25,21 +23,17 @@ CCIA1::~CCIA1() {
 }
 
 int CCIA1::run(int cycleCount) {
-    // TODO: properly implement timer, for now we trigger an irq at every screen refresh
-    /*if (cycleCount <= 0) {
-        // trigger an interrupt
-        _cpu->irq();
-    }
-     */
     if (_timerARunning) {
         _timerA--;
         if (_timerA == 0) {
+            // timer A expired
             _cpu->irq();
         }
     }
     if (_timerBRunning) {
         _timerB--;
         if (_timerB == 0) {
+            // timer B expired
             _cpu->irq();
         }
     }
@@ -122,12 +116,6 @@ void CCIA1::write(uint16_t address, uint8_t bt) {
             else {
                 _timerARunning = false;
             }
-            if (IS_BIT_SET(bt, 7)) {
-                _timerAhz = 50;
-            }
-            else {
-                _timerAhz = 60;
-            }
             break;
 
         case CIA1_REG_CONTROL_TIMER_B:
@@ -136,12 +124,6 @@ void CCIA1::write(uint16_t address, uint8_t bt) {
             }
             else {
                 _timerBRunning = false;
-            }
-            if (IS_BIT_SET(bt, 7)) {
-                _timerBhz = 50;
-            }
-            else {
-                _timerBhz = 60;
             }
             break;
 
