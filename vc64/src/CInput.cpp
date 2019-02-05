@@ -153,7 +153,8 @@ uint8_t CInput::sdlScancodeToc64Scancode(uint32_t sdlScanCode){
             return 0x26;
         case SDL_SCANCODE_N:
             return 0x27;
-        case SDL_SCANCODE_KP_PLUS:
+        case SDL_SCANCODE_BACKSLASH:
+            // 'ù' on IT keyboard, returns '+'
             return 0x28;
         case SDL_SCANCODE_P:
             return 0x29;
@@ -165,7 +166,8 @@ uint8_t CInput::sdlScancodeToc64Scancode(uint32_t sdlScanCode){
             return 0x2c;
         case SDL_SCANCODE_SEMICOLON:
             return 0x2d;
-        case SDL_SCANCODE_BACKSLASH:
+        case SDL_SCANCODE_NONUSBACKSLASH:
+            // '<' on IT keyboard, returns '@'
             return 0x2e;
         case SDL_SCANCODE_COMMA:
             return 0x2f;

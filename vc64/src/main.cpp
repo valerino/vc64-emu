@@ -106,7 +106,7 @@ void sdlEventCallback(SDL_Event* event) {
             input->update(event, &hotkeys);
             if (hotkeys & HOTKEY_DEBUGGER) {
                 // we must break!
-                CLog::print("DEBUGBREAK requested (wwerorks only in debugger mode!)");
+                CLog::print("DEBUGBREAK requested (works only in debugger mode!)");
                 mustBreak = true;
             }
         }

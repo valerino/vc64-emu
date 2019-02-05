@@ -140,7 +140,6 @@ void CVICII::updateScreen(uint32_t* frameBuffer) {
 
 /**
  * update screen in character (low resolution) mode (40x25)
- * https://www.c64-wiki.com/wiki/Standard_Character_Mode
  * @param frameBuffer the framebuffer memory to be updated
  */
 void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
@@ -155,7 +154,9 @@ void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
     _cpu->memory()->readByte(VIC_REG_CR2, &cr2);
     bool multicolor = IS_BIT_SET(cr2, 4);
     if (multicolor) {
+#ifdef VIC_DEBUG
         CLog::print("multicolor mode!");
+#endif
     }
 
     uint8_t* charset = _cpu->memory()->raw() + charsetAddress;
@@ -195,34 +196,71 @@ void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
         // read background color
         uint8_t bgColor;
         _cpu->memory()->readByte(VIC_REG_BG_COLOR_0, &bgColor);
-        bgColor &= 0xf;
-        rgbStruct bRgb = _palette[bgColor];
+        rgbStruct bRgb = _palette[bgColor & 0xf];
 
         // read screencode in video memory -> each screencode corresponds to a character in the charset memory
         uint8_t screenCode;
         _cpu->memory()->readByte(screenAddress + i, &screenCode);
 
         // each character in the charset is 8 bytes (8x8 font)
-        for (int j=0; j < 8; j ++) {
-            // read row
-            uint8_t row = charset[(screenCode*8) + j];
+        for (int charIdx=0; charIdx < 8; charIdx ++) {
+            // read one byte from character memory
+            uint8_t row = charset[(screenCode*8) + charIdx];
+
             for (int k = 0; k < 8; k ++) {
                 // and blit it pixel per pixel in the framebuffer
                 int pixX=(currentColumn * 8) + k + borderHSize;
-                int pixY=(currentRow * 8) + j+ borderVSize;
+                int pixY=(currentRow * 8) + charIdx + borderVSize;
                 int pos = ((pixY*VIC_PAL_SCREEN_W) + pixX);
 
-                // get the color code (0-15)
-                if (IS_BIT_SET(row, 7)) {
-                    // bit is set, set foreground color
-                    frameBuffer[pos]=SDL_MapRGB(_sdlCtx->pxFormat, fRgb.r, fRgb.g, fRgb.b);
+                if (multicolor) {
+                    // https://www.c64-wiki.com/wiki/Character_set#Defining_a_multi-color_character
+                    if (!(IS_BIT_SET(row, 7))) {
+                        if (!(IS_BIT_SET(row, 6))) {
+                            // 00 background
+                            frameBuffer[pos] = SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
+                            frameBuffer[pos + 1] = SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
+                        } else {
+                            // 01
+                            uint8_t d022;
+                            _cpu->memory()->readByte(VIC_REG_BG_COLOR_1, &d022);
+                            rgbStruct rgb = _palette[d022 & 0xf];
+                            frameBuffer[pos] = SDL_MapRGB(_sdlCtx->pxFormat, rgb.r, rgb.g, rgb.b);
+                            frameBuffer[pos + 1] = SDL_MapRGB(_sdlCtx->pxFormat, rgb.r, rgb.g, rgb.b);
+                        }
+                    } else {
+                        if (IS_BIT_SET(row, 6)) {
+                            // 11, individual
+                            frameBuffer[pos] = SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
+                            frameBuffer[pos + 1] = SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
+                        } else {
+                            // 10
+                            uint8_t d023;
+                            _cpu->memory()->readByte(VIC_REG_BG_COLOR_2, &d023);
+                            rgbStruct rgb = _palette[d023 & 0xf];
+                            frameBuffer[pos] = SDL_MapRGB(_sdlCtx->pxFormat, rgb.r, rgb.g, rgb.b);
+                            frameBuffer[pos + 1] = SDL_MapRGB(_sdlCtx->pxFormat, rgb.r, rgb.g, rgb.b);
+                        }
+                    }
+
+                    // next bit
+                    row <<= 2;
+                    k++;
                 }
                 else {
-                    frameBuffer[pos]=SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
-                }
+                    // standard text mode
+                    // https://www.c64-wiki.com/wiki/Standard_Character_Mode
+                    if (IS_BIT_SET(row, 7)) {
+                        // bit is set, set foreground color
+                        frameBuffer[pos]=SDL_MapRGB(_sdlCtx->pxFormat, fRgb.r, fRgb.g, fRgb.b);
+                    }
+                    else {
+                        frameBuffer[pos]=SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
+                    }
 
-                // next row
-                row <<= 1;
+                    // next bit
+                    row <<= 1;
+                }
             }
         }
 
