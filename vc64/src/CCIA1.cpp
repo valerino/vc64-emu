@@ -4,12 +4,20 @@
 
 #include "CCIA1.h"
 #include <SDL.h>
+#include <bitutils.h>
 
-CCIA1::CCIA1(CMOS65xx* cpu) : CCIA(cpu) {
+CCIA1::CCIA1(CMOS65xx* cpu) {
     // set all keys to unpressed state
     for (int i = 0; i < sizeof(_keyboard); i++) {
         _keyboard[i] = false;
     }
+    _timerA = 0;
+    _timerB = 0;
+    _timerARunning = false;
+    _timerBRunning = false;
+    _timerAhz = 50;
+    _timerBhz = 50;
+    _cpu = cpu;
 }
 
 CCIA1::~CCIA1() {
@@ -18,9 +26,22 @@ CCIA1::~CCIA1() {
 
 int CCIA1::run(int cycleCount) {
     // TODO: properly implement timer, for now we trigger an irq at every screen refresh
-    if (cycleCount <= 0) {
+    /*if (cycleCount <= 0) {
         // trigger an interrupt
         _cpu->irq();
+    }
+     */
+    if (_timerARunning) {
+        _timerA--;
+        if (_timerA == 0) {
+            _cpu->irq();
+        }
+    }
+    if (_timerBRunning) {
+        _timerB--;
+        if (_timerB == 0) {
+            _cpu->irq();
+        }
     }
     return 0;
 }
@@ -57,21 +78,95 @@ void CCIA1::processDc01Read(uint8_t* bt) {
 }
 
 void CCIA1::read(uint16_t address, uint8_t *bt) {
-    if (address == CIA1_REG_DATAPORT_B) {
-        processDc01Read(bt);
-        return;
+    // check shadow
+    uint16_t addr = checkShadowAddress(address);
+    switch (addr) {
+        case CIA1_REG_DATAPORT_B:
+            // read keyboard matrix column
+            processDc01Read(bt);
+            return;
+
+        default:
+            break;
     }
 
-    // default
-    _cpu->memory()->readByte(address, bt);
+    // finally read
+    _cpu->memory()->readByte(addr, bt);
 }
 
 void CCIA1::write(uint16_t address, uint8_t bt) {
+    // check shadow
+    uint16_t addr = checkShadowAddress(address);
 
-    // default
-    _cpu->memory()->writeByte(address, bt);
+    switch (addr) {
+        case CIA1_REG_TIMER_A_LO:
+            _timerA = (_timerA & 0xff00) | bt;
+            break;
+
+        case CIA1_REG_TIMER_A_HI:
+            _timerA = (_timerA & 0xff) | ( bt << 8);
+            break;
+
+        case CIA1_REG_TIMER_B_LO:
+            _timerB = (_timerB & 0xff00) | bt;
+            break;
+
+        case CIA1_REG_TIMER_B_HI:
+            _timerB = (_timerB & 0xff) | ( bt << 8);
+            break;
+
+        case CIA1_REG_CONTROL_TIMER_A:
+            if (IS_BIT_SET(bt, 0)) {
+                _timerARunning = true;
+            }
+            else {
+                _timerARunning = false;
+            }
+            if (IS_BIT_SET(bt, 7)) {
+                _timerAhz = 50;
+            }
+            else {
+                _timerAhz = 60;
+            }
+            break;
+
+        case CIA1_REG_CONTROL_TIMER_B:
+            if (IS_BIT_SET(bt, 0)) {
+                _timerBRunning = true;
+            }
+            else {
+                _timerBRunning = false;
+            }
+            if (IS_BIT_SET(bt, 7)) {
+                _timerBhz = 50;
+            }
+            else {
+                _timerBhz = 60;
+            }
+            break;
+
+        default:
+            break;
+    }
+
+    // finally write
+    _cpu->memory()->writeByte(addr, bt);
 }
 
 void CCIA1::setKeyState(uint8_t scancode, bool pressed) {
     _keyboard[scancode] = pressed;
+}
+
+/**
+ * some addresses are shadowed and maps to other addresses
+ * @param address the input address
+ * @return the effective address
+ */
+uint16_t CCIA1::checkShadowAddress(uint16_t address) {
+    // check for shadow addresses
+    if (address >= 0xdc10 && address <= 0xdcff) {
+        // these are shadows for $dc00-$dc10
+        return (CIA1_REGISTERS_START + ((address % CIA1_REGISTERS_START) % 0x10));
+    }
+    return address;
 }

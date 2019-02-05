@@ -10,8 +10,13 @@
 
 FILE* CLog::_out = stdout;
 FILE* CLog::_err = stderr;
+bool CLog::_enabled = false;
 
 void CLog::printInternal(int error, FILE* stream, const char*format,  va_list ap) {
+    if (!_enabled) {
+        return;
+    }
+
     FILE* s;
     if (stream == nullptr) {
         if (error == 1 || error == 2) {
@@ -123,4 +128,8 @@ void CLog::fatal(const char *format, ...) {
     printInternal(2, nullptr, format, ap);
     va_end(ap);
     exit(1);
+}
+
+void CLog::enableLog(bool enable) {
+    _enabled = enable;
 }

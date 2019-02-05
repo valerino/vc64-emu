@@ -164,6 +164,15 @@ int CMemory::loadBios() {
         SAFE_FREE(_basicRom)
         return res;
     }
+
+    /*
+    uint32_t crtSize;
+    uint8_t* gridrunner;
+    snprintf(path,sizeof(path),"%s/grid.prg", bios);
+    CBuffer::fromFile(path, &gridrunner, &crtSize);
+    CLog::print("Loaded gridrunner, size=0x%0x", path, crtSize);
+    memcpy(_mem + 0x8000, gridrunner, crtSize);
+     */
     return 0;
 }
 

@@ -8,7 +8,7 @@ my MOS 6502/6510/65xxx emulator/interpreter!
 * passes the Klaus's functional tests from 6502.org!
     * https://github.com/Klaus2m5/6502_65C02_functional_tests
     * latest version as 1/2019 included in this repo
-    * to test, enable *DEBUG_RUN_FUNCTIONAL_TESTS* in *include/CMOS65xx.h*
+    * to test, enable *DEBUG_RUN_FUNCTIONAL_TESTS* in *include/CMOS65xx.cpp*
 * emulates all undocumented instructions
     * TODO: implemented, but still to be tested!
     

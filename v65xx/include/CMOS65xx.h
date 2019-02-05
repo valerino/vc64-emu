@@ -38,15 +38,6 @@ typedef void (*CpuCallbackWrite)(uint16_t address, uint8_t val);
  */
 typedef void (*CpuCallbackRead)(uint16_t address, uint8_t* val);
 
-#ifndef NDEBUG
-// debug-only flag, disable to toggle debug log
-#define DEBUG_LOG_EXECUTION
-// debug-only flag, log also read/writes and status after each instruction
-//#define DEBUG_LOG_VERBOSE
-// debug-only flag, to step functional tests
-//#define DEBUG_RUN_FUNCTIONAL_TESTS
-#endif
-
 class CMOS65xx {
 private:
     // each opcode handler takes the addressing mode and number of cycles for that addressing mode in input,

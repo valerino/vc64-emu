@@ -10,6 +10,15 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
+#ifndef NDEBUG
+// debug-only flag, disable to toggle debug log
+//#define DEBUG_LOG_EXECUTION
+// debug-only flag, log also read/writes and status after each instruction
+//#define DEBUG_LOG_VERBOSE
+// debug-only flag, to step functional tests
+//#define DEBUG_RUN_FUNCTIONAL_TESTS
+#endif
+
 // flags for the P register
 #define P_FLAG_CARRY        0x01
 #define P_FLAG_ZERO         0x02

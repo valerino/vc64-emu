@@ -10,8 +10,13 @@
 #include <CLog.h>
 #include "CMemory.h"
 
-CCIA2::CCIA2(CMOS65xx* cpu) : CCIA(cpu) {
+#ifndef NDEBUG
+// debug-only flag
+//#define DEBUG_CIA2
+#endif
 
+CCIA2::CCIA2(CMOS65xx* cpu) {
+    _cpu = cpu;
 }
 
 CCIA2::~CCIA2() {
@@ -47,7 +52,9 @@ int CCIA2::getVicBank(uint16_t* address) {
         *address = 0xc000;
     }
 
+#ifdef DEBUG_CIA2
     CLog::printRaw("\tVIC-II bank %d selected!\n", bank);
+#endif
     return bank;
 }
 
@@ -63,12 +70,16 @@ void CCIA2::write(uint16_t address, uint8_t bt) {
         if (bank == 0) {
             // shadow character rom at $1000
             memcpy(ram->raw() + 0x1000, ram->charset(), MEMORY_CHARSET_SIZE);
+#ifdef DEBUG_CIA2
             CLog::printRaw("\tmirroring charset ROM in RAM at $1000\n");
+#endif
         }
         else if (bank == 1) {
             // shadow character rom at $9000
             memcpy(ram->raw() + 0x9000, ram->charset(), MEMORY_CHARSET_SIZE);
+#ifdef DEBUG_CIA2
             CLog::printRaw("\tmirroring charset ROM in RAM at $9000\n");
+#endif
         }
     }
 

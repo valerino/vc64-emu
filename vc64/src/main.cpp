@@ -124,6 +124,8 @@ void usage(char** argv) {
 }
 
 int main (int argc, char** argv) {
+    CLog::enableLog(true);
+
     // prints title
     banner();
     bool debugger = false;

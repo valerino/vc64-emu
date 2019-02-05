@@ -43,40 +43,41 @@ int CVICII::run(int cycleCount) {
 }
 
 void CVICII::read(uint16_t address, uint8_t* bt) {
-    if (check_unused_address(CPU_MEM_READ, address, bt)) {
+    // check shadow
+    uint16_t addr = checkShadowAddress(address);
+
+    if (checkUnusedAddress(CPU_MEM_READ, addr, bt)) {
         return;
     }
-
-    // check shadow
-    uint16_t addr = check_shadow_address(address);
 
     // finally read
     _cpu->memory()->readByte(addr,bt);
 }
 
 void CVICII::write(uint16_t address, uint8_t bt) {
+    // check shadow
+    uint16_t addr = checkShadowAddress(address);
+
     // on write these are unused
-    if (check_unused_address(CPU_MEM_WRITE, address, nullptr)) {
+    if (checkUnusedAddress(CPU_MEM_WRITE, addr, nullptr)) {
         return;
     }
 
-    if (address == VIC_REG_RASTERCOUNTER) {
-        // raster counter
-        _rasterCounter = bt;
+    switch(addr) {
+        case VIC_REG_RASTERCOUNTER:
+            // raster counter
+            _rasterCounter = bt;
+            break;
+        case VIC_REG_CR1:
+            // setting cr1 also affects the raster counter
+            if (IS_BIT_SET(bt, 7)) {
+                // bit 7 is the 9th bit of the raster counter
+                _rasterCounter |= (bt >> 7);
+            }
+            break;
+        default:
+            break;
     }
-    else if (address == VIC_REG_CR1) {
-        // setting cr1 also affects the raster counter
-        if (IS_BIT_SET(bt, 7)) {
-            // bit 7 is the 9th bit of the raster counter
-            _rasterCounter |= (bt >> 7);
-        }
-    }
-    else if (address == VIC_REG_BASE_ADDR) {
-
-    }
-
-    // check shadow
-    uint16_t addr = check_shadow_address(address);
 
     // finally write
     _cpu->memory()->writeByte(addr,bt);
@@ -87,7 +88,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
  * @param address the input address
  * @return the effective address
  */
-uint16_t CVICII::check_shadow_address(uint16_t address) {
+uint16_t CVICII::checkShadowAddress(uint16_t address) {
     // check for shadow addresses
     if (address >= 0xd040 && address <= 0xd3ff) {
         // these are shadows for $d000-$d03f
@@ -103,7 +104,7 @@ uint16_t CVICII::check_shadow_address(uint16_t address) {
  * @param bt
  * @return true if it's an unused address
  */
-bool CVICII::check_unused_address(int type, uint16_t address, uint8_t *bt) {
+bool CVICII::checkUnusedAddress(int type, uint16_t address, uint8_t *bt) {
     if (address >= 0xd02f && address <= 0xd03f) {
         if (type == CPU_MEM_READ) {
             // these locations always return 0xff on read
@@ -125,7 +126,7 @@ void CVICII::updateScreen(uint32_t* frameBuffer) {
     if (!IS_BIT_SET(cr1, 6) && !IS_BIT_SET(cr1, 5)) {
         if (!IS_BIT_SET(cr2, 5)) {
             // https://www.c64-wiki.com/wiki/Standard_Character_Mode
-            updateScreenLoRes(frameBuffer);
+            updateScreenTextMode(frameBuffer);
         }
     }
     else {
@@ -138,7 +139,7 @@ void CVICII::updateScreen(uint32_t* frameBuffer) {
  * https://www.c64-wiki.com/wiki/Standard_Character_Mode
  * @param frameBuffer the framebuffer memory to be updated
  */
-void CVICII::updateScreenLoRes(uint32_t *frameBuffer) {
+void CVICII::updateScreenTextMode(uint32_t *frameBuffer) {
     // get the addresses with the help of the cia-2
     uint16_t charsetAddress;
     uint16_t screenAddress;

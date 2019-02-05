@@ -102,9 +102,9 @@ private:
     SDLDisplayCtx* _sdlCtx;
     CCIA2* _cia2;
     void updateRasterCounter(uint16_t cnt);
-    uint16_t check_shadow_address(uint16_t address);
-    bool check_unused_address(int type, uint16_t address, uint8_t *bt);
-    void updateScreenLoRes(uint32_t* frameBuffer);
+    uint16_t checkShadowAddress(uint16_t address);
+    bool checkUnusedAddress(int type, uint16_t address, uint8_t *bt);
+    void updateScreenTextMode(uint32_t *frameBuffer);
     void getTextModeScreenAddress(uint16_t* screenCharacterRamAddress, uint16_t* charsetAddress);
     void getBitmapModeScreenAddress(uint16_t* colorInfoAddress, uint16_t* bitmapAddress);
 };

@@ -5,7 +5,7 @@
 #ifndef VC64_EMU_CCIA2_H
 #define VC64_EMU_CCIA2_H
 
-#include "CCIA.h"
+#include <CMOS65xx.h>
 
 /**
  * registers
@@ -17,10 +17,11 @@
 #define CIA2_REG_DATA           0xdd00
 #define CIA2_REG_DIRECTIONAL    0xdd02
 
+
 /**
  * implements the 2nd CIA 6526, which controls the serial bus, rs232, vic memory and NMI
  */
-class CCIA2: public CCIA {
+class CCIA2 {
 public:
     CCIA2(CMOS65xx* cpu);
     virtual ~CCIA2();
@@ -55,7 +56,7 @@ public:
     void write(uint16_t address, uint8_t bt);
 
 private:
-
+    CMOS65xx* _cpu;
 };
 
 #endif //VC64_EMU_CCIA2_H

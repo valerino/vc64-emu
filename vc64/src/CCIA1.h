@@ -5,7 +5,7 @@
 #ifndef VC64_EMU_CCIA1_H
 #define VC64_EMU_CCIA1_H
 
-#include "CCIA.h"
+#include <CMOS65xx.h>
 
 /**
  * registers
@@ -18,10 +18,22 @@
 
 #define CIA1_REG_DATAPORT_A 0xdc00
 
+#define CIA1_REG_CONTROL_TIMER_A 0xdc0e
+
+#define CIA1_REG_CONTROL_TIMER_B 0xdc0f
+
+#define CIA1_REG_TIMER_A_LO 0xdc04
+
+#define CIA1_REG_TIMER_A_HI 0xdc05
+
+#define CIA1_REG_TIMER_B_LO 0xdc06
+
+#define CIA1_REG_TIMER_B_HI 0xdc07
+
 /**
  * implements the 1st CIA 6526, which controls keyboard, joystick, paddles, datassette and IRQ
  */
-class CCIA1: public CCIA {
+class CCIA1 {
 public:
     CCIA1(CMOS65xx* cpu);
     virtual ~CCIA1();
@@ -55,9 +67,17 @@ public:
     void setKeyState(uint8_t scancode, bool pressed);
 
 private:
-    uint8_t _keyboard[0x40];
     void processDc01Read(uint8_t* bt);
+    uint16_t checkShadowAddress(uint16_t address);
 
+    uint8_t _keyboard[0x40];
+    uint16_t _timerA;
+    uint16_t _timerB;
+    bool _timerARunning;
+    bool _timerBRunning;
+    int _timerAhz;
+    int _timerBhz;
+    CMOS65xx* _cpu;
 };
 
 

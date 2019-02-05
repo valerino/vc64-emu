@@ -13,12 +13,19 @@
  */
 class CLog {
 private:
+    static bool _enabled;
     static FILE* _out;
     static FILE* _err;
     static void printInternal(int error, FILE* stream, const char* format, va_list ap);
     static int redirectInternal(bool error, const char *path);
 
 public:
+    /**
+     * enable or disable log functionality
+     * @param enable
+     */
+    static void enableLog(bool enable);
+
     /**
      * redirect stdout to file
      * @param path path to redirect stdout to
