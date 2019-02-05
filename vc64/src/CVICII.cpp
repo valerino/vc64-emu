@@ -187,11 +187,11 @@ void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
         }
     }
 
-    // 40x25=1000 screen codes total, draw the screen character per character, left to right
+    // 40x25=1000 characters (screen codes) total, draw the screen character per character, left to right
     for (int i=0; i < 1000; i++) {
-        // read foreground color
-        uint8_t fgColor = (colorMem[(currentRow * 40) + currentColumn]);// & 0xf;
-        rgbStruct fRgb = _palette[fgColor];
+        // read this screen code color
+        uint8_t charColor = (colorMem[(currentRow * 40) + currentColumn]);
+        rgbStruct cRgb = _palette[charColor & 0xf];
 
         // read background color
         uint8_t bgColor;
@@ -217,11 +217,11 @@ void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
                     // https://www.c64-wiki.com/wiki/Character_set#Defining_a_multi-color_character
                     if (!(IS_BIT_SET(row, 7))) {
                         if (!(IS_BIT_SET(row, 6))) {
-                            // 00 background
+                            // 00 background, use background color
                             frameBuffer[pos] = SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
                             frameBuffer[pos + 1] = SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
                         } else {
-                            // 01
+                            // 01, read from background color 1 register
                             uint8_t d022;
                             _cpu->memory()->readByte(VIC_REG_BG_COLOR_1, &d022);
                             rgbStruct rgb = _palette[d022 & 0xf];
@@ -230,11 +230,13 @@ void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
                         }
                     } else {
                         if (IS_BIT_SET(row, 6)) {
-                            // 11, individual
+                            // 11, use background color
+                            // TODO: according to the page above, should be the character color instead (cRgb) ?
+                            // but, checking with vice output, this needs to be bRgb.....
                             frameBuffer[pos] = SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
                             frameBuffer[pos + 1] = SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
                         } else {
-                            // 10
+                            // 10, read from background color 2 register
                             uint8_t d023;
                             _cpu->memory()->readByte(VIC_REG_BG_COLOR_2, &d023);
                             rgbStruct rgb = _palette[d023 & 0xf];
@@ -243,7 +245,7 @@ void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
                         }
                     }
 
-                    // next bit
+                    // next bit pair
                     row <<= 2;
                     k++;
                 }
@@ -252,7 +254,7 @@ void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
                     // https://www.c64-wiki.com/wiki/Standard_Character_Mode
                     if (IS_BIT_SET(row, 7)) {
                         // bit is set, set foreground color
-                        frameBuffer[pos]=SDL_MapRGB(_sdlCtx->pxFormat, fRgb.r, fRgb.g, fRgb.b);
+                        frameBuffer[pos]=SDL_MapRGB(_sdlCtx->pxFormat, cRgb.r, cRgb.g, cRgb.b);
                     }
                     else {
                         frameBuffer[pos]=SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
