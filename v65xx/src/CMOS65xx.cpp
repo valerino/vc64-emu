@@ -444,14 +444,14 @@ void CMOS65xx::handlePageCrossing(int addressingMode, uint16_t operand, int *cyc
     switch (addressingMode) {
         case ADDRESSING_MODE_ABSOLUTE_INDEXED_X:
             addr = operand + _regX;
-            if (addr & 0xff00 != page) {
+            if ((addr & 0xff00) != page) {
                 *cycles += 1;
             }
             break;
         case ADDRESSING_MODE_ABSOLUTE_INDEXED_Y:
         case ADDRESSING_MODE_INDIRECT_INDEXED_Y:
             addr = operand + _regY;
-            if (addr & 0xff00 != page) {
+            if ((addr & 0xff00) != page) {
                 *cycles += 1;
             }
             break;
@@ -1668,7 +1668,7 @@ IMemory *CMOS65xx::memory() {
 void CMOS65xx::debugger(int addressingMode, int* size) {
     // check if we need to break
     bool doBreak = false;
-    if (_forceBreak || _isDebugging && !_ignoreDebugging) {
+    if ((_forceBreak || _isDebugging) &&  !_ignoreDebugging) {
         // requested break
         doBreak = true;
         if (_forceBreak) {

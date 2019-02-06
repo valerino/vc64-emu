@@ -69,7 +69,7 @@ public:
      */
     uint8_t* ram();
 
-    uint8_t* raw(uint32_t *size = nullptr);
+    uint8_t* raw(uint32_t *size = nullptr) override;
 
     /**
      * return the charset rom
