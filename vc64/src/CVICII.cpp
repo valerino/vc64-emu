@@ -170,6 +170,12 @@ void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
     int borderHSize = (VIC_PAL_SCREEN_W - 320) / 2;
     int borderVSize = (VIC_PAL_SCREEN_H - 200) / 2;
 
+    // scroll
+    uint8_t cr1;
+    _cpu->memory()->readByte(VIC_REG_CR1, &cr1);
+    int scrollX = cr2 & 0x7;
+    int scrollY = cr1 & 0x7;
+
     // get border color
     uint8_t borderColor;
     _cpu->memory()->readByte(VIC_REG_BORDER_COLOR, &borderColor);
@@ -178,10 +184,10 @@ void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
     // draw the border
     for (int borderX = 0; borderX < VIC_PAL_SCREEN_W; borderX++) {
         for (int borderY = 0; borderY < VIC_PAL_SCREEN_H; borderY++) {
-            if (borderX <= borderHSize || borderX >= (VIC_PAL_SCREEN_W - borderHSize - 1) ||
+            if (borderX <= borderHSize || borderX >= (VIC_PAL_SCREEN_W - borderHSize - 1 ) ||
                 borderY <= borderVSize || borderY >= (VIC_PAL_SCREEN_H - borderVSize - 1) ) {
                     // draw border
-                    int posB = ((borderY*VIC_PAL_SCREEN_W) + borderX);
+                    int posB = ((borderY*VIC_PAL_SCREEN_W) + borderX + scrollX);
                     frameBuffer[posB]=SDL_MapRGB(_sdlCtx->pxFormat, borderRgb.r, borderRgb.g, borderRgb.b);
             }
         }
@@ -209,7 +215,7 @@ void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
 
             for (int k = 0; k < 8; k ++) {
                 // and blit it pixel per pixel in the framebuffer
-                int pixX=(currentColumn * 8) + k + borderHSize;
+                int pixX=(currentColumn * 8) + k + borderHSize + scrollX;
                 int pixY=(currentRow * 8) + charIdx + borderVSize;
                 int pos = ((pixY*VIC_PAL_SCREEN_W) + pixX);
 
