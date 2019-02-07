@@ -81,21 +81,12 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
             // RSEL
             if (IS_BIT_SET(bt, 3)) {
-                _textLines = 25;
-                _firstScanLine = 51;
-                _lastScanLine = 250;
                 _displayH = 200;
             }
             else {
-                _textLines = 24;
-                _firstScanLine = 55;
-                _lastScanLine = 246;
                 _displayH = 192;
             }
             _borderVSize = (VIC_PAL_SCREEN_H - _displayH) / 2;
-            if (! (IS_BIT_SET(bt, 3))) {
-                _borderVSize += 4;
-            }
 
             // YSCROLL
             _scrollY = bt & 0x7;
@@ -104,21 +95,12 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         case VIC_REG_CR2:
             // CSEL
             if (IS_BIT_SET(bt, 3)) {
-                _columns = 40;
-                _firstX = 24;
-                _lastX = 343;
                 _displayW = 320;
             }
             else {
-                _columns = 38;
-                _firstX = 31;
-                _lastX = 334;
                 _displayW = 304;
             }
             _borderHSize = (VIC_PAL_SCREEN_W - _displayW) / 2;
-            if (! (IS_BIT_SET(bt, 3))) {
-                _borderHSize += 7;
-            }
 
             // XSCROLL
             _scrollX = (bt & 0x7);
@@ -179,7 +161,7 @@ int CVICII::updateScreen(uint32_t *frameBuffer) {
             updateScreenCharacterMode(frameBuffer);
 
             // vic takes 40 additional cycles to per character
-            additionalCycles = _textLines*_columns;
+            additionalCycles = 40*25;
         }
     }
     else {
@@ -346,10 +328,6 @@ CVICII::CVICII(CMOS65xx *cpu, CCIA2 *cia2) {
     _displayW = 320;
     _borderHSize = (VIC_PAL_SCREEN_W - _displayW) / 2;
     _borderVSize = (VIC_PAL_SCREEN_H - _displayH) / 2;
-    _firstScanLine = 51;
-    _lastScanLine = 250;
-    _textLines = 25;
-    _columns = 40;
 
     // initialize color palette
     // https://www.c64-wiki.com/wiki/Color
