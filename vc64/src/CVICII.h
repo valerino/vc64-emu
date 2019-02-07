@@ -89,8 +89,16 @@ private:
     uint16_t _rasterCounter;
     int _borderHSize;
     int _borderVSize;
-
-
+    int _textLines;
+    int _columns;
+    int _firstScanLine;
+    int _lastScanLine;
+    int _firstX;
+    int _lastX;
+    int _scrollX;
+    int _scrollY;
+    int _displayH;
+    int _displayW;
     void setSdlCtx(SDLDisplayCtx* ctx);
 
     /**

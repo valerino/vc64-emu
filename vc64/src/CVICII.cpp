@@ -78,7 +78,52 @@ void CVICII::write(uint16_t address, uint8_t bt) {
                 // bit 7 is the 9th bit of the raster counter
                 _rasterCounter |= (bt >> 7);
             }
+
+            // RSEL
+            if (IS_BIT_SET(bt, 3)) {
+                _textLines = 25;
+                _firstScanLine = 51;
+                _lastScanLine = 250;
+                _displayH = 200;
+            }
+            else {
+                _textLines = 24;
+                _firstScanLine = 55;
+                _lastScanLine = 246;
+                _displayH = 192;
+            }
+            _borderVSize = (VIC_PAL_SCREEN_H - _displayH) / 2;
+            if (! (IS_BIT_SET(bt, 3))) {
+                _borderVSize += 4;
+            }
+
+            // YSCROLL
+            _scrollY = bt & 0x7;
+
             break;
+        case VIC_REG_CR2:
+            // CSEL
+            if (IS_BIT_SET(bt, 3)) {
+                _columns = 40;
+                _firstX = 24;
+                _lastX = 343;
+                _displayW = 320;
+            }
+            else {
+                _columns = 38;
+                _firstX = 31;
+                _lastX = 334;
+                _displayW = 304;
+            }
+            _borderHSize = (VIC_PAL_SCREEN_W - _displayW) / 2;
+            if (! (IS_BIT_SET(bt, 3))) {
+                _borderHSize += 7;
+            }
+
+            // XSCROLL
+            _scrollX = (bt & 0x7);
+            break;
+
         default:
             break;
     }
@@ -133,8 +178,8 @@ int CVICII::updateScreen(uint32_t *frameBuffer) {
         if (!IS_BIT_SET(cr2, 5)) {
             updateScreenCharacterMode(frameBuffer);
 
-            // vic takes 40 cycles to update the text screen
-            additionalCycles = 40;
+            // vic takes 40 additional cycles to per character
+            additionalCycles = _textLines*_columns;
         }
     }
     else {
@@ -146,6 +191,29 @@ int CVICII::updateScreen(uint32_t *frameBuffer) {
     return additionalCycles;
 
 }
+
+/**
+ * draw screen border
+ */
+void CVICII::drawBorder(uint32_t* frameBuffer) {
+    // get border color
+    uint8_t borderColor;
+    _cpu->memory()->readByte(VIC_REG_BORDER_COLOR, &borderColor);
+    rgbStruct borderRgb = _palette[borderColor];
+
+    // draw the border
+    for (int x = 0; x < VIC_PAL_SCREEN_W; x++) {
+        for (int y = 0; y < VIC_PAL_SCREEN_H; y++) {
+            if (x < (_borderHSize ) || x >= (VIC_PAL_SCREEN_W - _borderHSize - 1) ||
+                y < _borderVSize || y >= (VIC_PAL_SCREEN_H - _borderVSize - 1) ) {
+                // draw border
+                int posB = ((y*VIC_PAL_SCREEN_W) + x);
+                frameBuffer[posB]=SDL_MapRGB(_sdlCtx->pxFormat, borderRgb.r, borderRgb.g, borderRgb.b);
+            }
+        }
+    }
+}
+
 
 /**
  * update screen in character (low resolution) mode (40x25)
@@ -177,13 +245,11 @@ void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
     // scroll
     uint8_t cr1;
     _cpu->memory()->readByte(VIC_REG_CR1, &cr1);
-    int scrollX = (cr2 & 0x7);
-    int scrollY = cr1 & 0x7;
 
-    // 40x25=1000 characters (screen codes) total, draw the screen character per character, left to right
+    // draw the screen character per character, left to right
     int currentColumn = 0;
     int currentRow = 0;
-    for (int i=0; i < 1000; i++) {
+    for (int i=0; i < (40 * 25); i++) {
         // read this screen code color
         uint8_t charColor = (colorMem[(currentRow * 40) + currentColumn]);
         rgbStruct cRgb = _palette[charColor & 0xf];
@@ -261,7 +327,6 @@ void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
             }
         }
 
-        // screen is 40x25
         currentColumn++;
         if (currentColumn == 40) {
             // next screen row
@@ -276,8 +341,15 @@ CVICII::CVICII(CMOS65xx *cpu, CCIA2 *cia2) {
     _cia2 = cia2;
     _rasterCounter = 0;
 
-    _borderHSize = (VIC_PAL_SCREEN_W - 320) / 2;
-    _borderVSize = (VIC_PAL_SCREEN_H - 200) / 2;
+    // initialize to default values
+    _displayH = 200;
+    _displayW = 320;
+    _borderHSize = (VIC_PAL_SCREEN_W - _displayW) / 2;
+    _borderVSize = (VIC_PAL_SCREEN_H - _displayH) / 2;
+    _firstScanLine = 51;
+    _lastScanLine = 250;
+    _textLines = 25;
+    _columns = 40;
 
     // initialize color palette
     // https://www.c64-wiki.com/wiki/Color
@@ -322,35 +394,4 @@ void CVICII::getBitmapModeScreenAddress(uint16_t *colorInfoAddress, uint16_t *bi
 void CVICII::setSdlCtx(SDLDisplayCtx *ctx) {
     _sdlCtx = ctx;
 }
-
-/**
- * draw screen border
- */
-void CVICII::drawBorder(uint32_t* frameBuffer) {
-    // scroll
-    uint8_t cr2;
-    _cpu->memory()->readByte(VIC_REG_CR2, &cr2);
-    uint8_t cr1;
-    _cpu->memory()->readByte(VIC_REG_CR1, &cr1);
-    int scrollX = (cr2 & 0x7);
-    int scrollY = cr1 & 0x7;
-
-    // get border color
-    uint8_t borderColor;
-    _cpu->memory()->readByte(VIC_REG_BORDER_COLOR, &borderColor);
-    rgbStruct borderRgb = _palette[borderColor];
-
-    // draw the border
-    for (int borderX = 0; borderX < VIC_PAL_SCREEN_W; borderX++) {
-        for (int borderY = 0; borderY < VIC_PAL_SCREEN_H; borderY++) {
-            if (borderX < (_borderHSize + scrollX) || borderX >= (VIC_PAL_SCREEN_W - _borderHSize - scrollX - 1) ||
-                borderY < _borderVSize || borderY >= (VIC_PAL_SCREEN_H - _borderVSize - 1) ) {
-                // draw border
-                int posB = ((borderY*VIC_PAL_SCREEN_W) + borderX);
-                frameBuffer[posB]=SDL_MapRGB(_sdlCtx->pxFormat, borderRgb.r, borderRgb.g, borderRgb.b);
-            }
-        }
-    }
-}
-
 
