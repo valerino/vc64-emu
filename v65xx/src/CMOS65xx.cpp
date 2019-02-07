@@ -424,7 +424,7 @@ int CMOS65xx::parseInstruction(uint8_t opcodeByte, const char* functionName, int
     // add to total cycles
     _currentTotalCycles += *cycles;
 
-    // run the debugger if requested
+    // update the debugger if requested
     debugger(addressingMode,size);
     if (*size == 0) {
         // running under debugger

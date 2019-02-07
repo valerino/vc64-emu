@@ -28,8 +28,9 @@ public:
 
     /**
      * update the display
+     * @return cycles taken to update the screen
      */
-    void update();
+    int update();
 
     /**
      * constructor

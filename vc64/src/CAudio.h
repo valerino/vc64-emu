@@ -11,7 +11,7 @@ class CAudio {
 public:
     CAudio(CSID* sid);
     ~CAudio();
-    void update();
+    int update();
 private:
     CSID* _sid;
 };

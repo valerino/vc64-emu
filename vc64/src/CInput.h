@@ -23,8 +23,9 @@ public:
      * update input status
      * @param ev the input event
      * @param hotkeys on return, signal hotkeys pressed
+     * @return
      */
-    void update(SDL_Event* ev, uint32_t* hotkeys);
+    int update(SDL_Event *ev, uint32_t *hotkeys);
 
 private:
     CCIA1* _cia1;

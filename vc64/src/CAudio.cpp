@@ -13,7 +13,8 @@ CAudio::~CAudio() {
 
 }
 
-void CAudio::update() {
+int CAudio::update() {
+    return 0;
 }
 
 CAudio::CAudio(CSID *sid) {

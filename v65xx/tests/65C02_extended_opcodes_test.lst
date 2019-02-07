@@ -38,8 +38,8 @@ AS65 Assembler for R6502 [1.42].  Copyright 1994-2007, Frank A. Kingswood       
                         ;                         |  expand macros in listing
                         ;                         generate pass2 listing
                         ;
-                        ; No IO - should be run from a monitor with access to registers.
-                        ; To run load intel hex image with a load command, than alter PC to 400 hex
+                        ; No IO - should be update from a monitor with access to registers.
+                        ; To update load intel hex image with a load command, than alter PC to 400 hex
                         ; (code_segment) and enter a go command.
                         ; Loop on program counter determines error or successful completion of test.
                         ; Check listing for relevant traps (jump/branch *).

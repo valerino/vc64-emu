@@ -57,11 +57,11 @@ public:
     ~CVICII();
 
     /**
-     * run the vic
+     * update the internal state
      * @param current cycle count
-     * @return number of cycles occupied
+     * @return additional cycles used
      */
-    int run(int cycleCount);
+    int update(int cycleCount);
 
     /**
      * read from chip memory
@@ -80,8 +80,9 @@ public:
     /**
      * update the screen
      * @param frameBuffer
+     * @return cycles taken to update the screen
      */
-    void updateScreen(uint32_t* frameBuffer);
+    int updateScreen(uint32_t *frameBuffer);
 
 private:
     CMOS65xx* _cpu;

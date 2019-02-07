@@ -27,7 +27,7 @@ CCIA1::~CCIA1() {
 
 }
 
-int CCIA1::run(int cycleCount) {
+int CCIA1::update(int cycleCount) {
     if (_timerARunning) {
         _timerA--;
         if (_timerA == 0) {

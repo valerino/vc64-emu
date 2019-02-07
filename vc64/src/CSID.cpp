@@ -17,6 +17,6 @@ CSID::~CSID() {
 
 }
 
-void CSID::run(int cycleCount) {
-
+int CSID::update(int cycleCount) {
+    return 0;
 }

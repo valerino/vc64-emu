@@ -38,10 +38,11 @@ CDisplay::~CDisplay() {
     SAFE_FREE(_fb)
 }
 
-void CDisplay::update() {
+int CDisplay::update() {
     // tell the vic to update the framebuffer
-    _vic->updateScreen(_fb);
+    int additionalCycles = _vic->updateScreen(_fb);
 
     // and redraw the texture
     CSDLUtils::update(&_ctx,_fb,VIC_PAL_SCREEN_W);
+    return additionalCycles;
 }

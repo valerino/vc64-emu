@@ -122,7 +122,7 @@ void sdlEventCallback(SDL_Event* event) {
  */
 void usage(char** argv) {
     CLog::error("usage: %s -f <file> [-dsh]\n" \
-    "\t-f: file to be run (TAP/PRG/CRT)\n" \
+    "\t-f: file to be update (TAP/PRG/CRT)\n" \
     "\t-d: debugger\n" \
     "\t-s: fullscreen\n" \
     "\t-h: this help\n",
@@ -242,18 +242,19 @@ int main (int argc, char** argv) {
             // reset break status if any
             mustBreak = false;
 
+            // after each cycle, update internal chips state
             if (!cpu->isTestMode()) {
-                // update chips
-                vic->run(cycleCount);
-                cia1->run(cycleCount);
-                cia2->run(cycleCount);
-                sid->run(cycleCount);
+                vic->update(cycleCount);
+                cia1->update(cycleCount);
+                cia2->update(cycleCount);
+                sid->update(cycleCount);
             }
 
+            // after cycles x seconds elapsed, update the display, process input and play sound
             if (cycleCount <= 0) {
                 if (!cpu->isTestMode()) {
-                    // refresh
-                    display->update();
+                    // update display
+                    cycleCount -= display->update();
                 }
 
                 // process input

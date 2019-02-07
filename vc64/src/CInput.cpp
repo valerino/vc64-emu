@@ -20,28 +20,29 @@ CInput::~CInput() {
 
 }
 
-void CInput::update(SDL_Event* event, uint32_t* hotkeys) {
+int CInput::update(SDL_Event *ev, uint32_t *hotkeys) {
     // we have a keyup or keydown
     const uint8_t* keys = SDL_GetKeyboardState(nullptr);
     if (keys[SDL_SCANCODE_LCTRL] && keys[SDL_SCANCODE_D]) {
         // break requested!
         *hotkeys = HOTKEY_DEBUGGER;
-        return;
+        return 0;
     }
     if (keys[SDL_SCANCODE_TAB] && keys[SDL_SCANCODE_PAGEUP]) {
         // runstop + restore causes a nonmaskable interrupt
         _cia1->_cpu->nmi();
-        return;
+        return 0;
     }
 
     // update internal keyboard state
 #ifdef DEBUG_INPUT
     CLog::print("scancode: %d",  event->key.keysym.scancode);
 #endif
-    uint8_t scancode = sdlScancodeToc64Scancode(event->key.keysym.scancode);
+    uint8_t scancode = sdlScancodeToc64Scancode(ev->key.keysym.scancode);
     if (scancode != 0xff) {
-        _cia1->setKeyState(scancode, event->type == SDL_KEYDOWN ? true : false);
+        _cia1->setKeyState(scancode, ev->type == SDL_KEYDOWN ? true : false);
     }
+    return 0;
 }
 
 /**

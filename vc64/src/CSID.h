@@ -14,7 +14,13 @@ class CSID {
 public:
     CSID(CMOS65xx* cpu);
     ~CSID();
-    void run(int cycleCount);
+
+    /**
+     * update the internal state
+     * @param current cycle count
+     * @return additional cycles used
+     */
+    int update(int cycleCount);
 
 private:
     CMOS65xx* _cpu;

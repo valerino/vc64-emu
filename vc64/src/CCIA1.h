@@ -31,14 +31,14 @@ class CCIA1 {
 
 public:
     CCIA1(CMOS65xx* cpu);
-    virtual ~CCIA1();
+    ~CCIA1();
 
     /**
-     * run the cia1
+     * update the internal state
      * @param current cycle count
-     * @return number of cycles occupied
+     * @return additional cycles used
      */
-    int run(int cycleCount);
+    int update(int cycleCount);
 
     /**
      * read from chip memory

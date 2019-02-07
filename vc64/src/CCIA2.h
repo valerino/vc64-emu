@@ -28,14 +28,14 @@
 class CCIA2 {
 public:
     CCIA2(CMOS65xx* cpu);
-    virtual ~CCIA2();
+    ~CCIA2();
 
     /**
-     * run the cia2
+     * update the internal state
      * @param current cycle count
-     * @return number of cycles occupied
+     * @return additional cycles used
      */
-    int run(int cycleCount);
+    int update(int cycleCount);
 
     /**
      * get the bank connected to vic-ii by looking at the data register

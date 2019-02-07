@@ -34,14 +34,13 @@ void CVICII::updateRasterCounter(uint16_t cnt) {
     }
 }
 
-int CVICII::run(int cycleCount) {
+int CVICII::update(int cycleCount) {
     if ((cycleCount % CYCLES_PER_LINE) == 0) {
         // increment the raster counter
         updateRasterCounter(_rasterCounter + 1);
         if (_rasterCounter > VIC_PAL_SCANLINES_PER_VBLANK) {
             // reset raster counter
             updateRasterCounter(0);
-            return 1;
         }
     }
     return 0;
@@ -122,7 +121,9 @@ bool CVICII::checkUnusedAddress(int type, uint16_t address, uint8_t *bt) {
     return false;
 }
 
-void CVICII::updateScreen(uint32_t* frameBuffer) {
+int CVICII::updateScreen(uint32_t *frameBuffer) {
+    int additionalCycles = 0;
+
     // check cr1 and cr2
     uint8_t cr1;
     uint8_t cr2;
@@ -131,6 +132,9 @@ void CVICII::updateScreen(uint32_t* frameBuffer) {
     if (!IS_BIT_SET(cr1, 6) && !IS_BIT_SET(cr1, 5)) {
         if (!IS_BIT_SET(cr2, 5)) {
             updateScreenCharacterMode(frameBuffer);
+
+            // vic takes 40 cycles to update the text screen
+            additionalCycles = 40;
         }
     }
     else {
@@ -139,6 +143,8 @@ void CVICII::updateScreen(uint32_t* frameBuffer) {
 
     // draw border
     drawBorder(frameBuffer);
+    return additionalCycles;
+
 }
 
 /**
