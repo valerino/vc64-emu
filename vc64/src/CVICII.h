@@ -86,6 +86,9 @@ public:
 private:
     CMOS65xx* _cpu;
     uint16_t _rasterCounter;
+    int _borderHSize;
+    int _borderVSize;
+
 
     void setSdlCtx(SDLDisplayCtx* ctx);
 
@@ -107,6 +110,7 @@ private:
     void updateScreenCharacterMode(uint32_t *frameBuffer);
     void getTextModeScreenAddress(uint16_t* screenCharacterRamAddress, uint16_t* charsetAddress);
     void getBitmapModeScreenAddress(uint16_t* colorInfoAddress, uint16_t* bitmapAddress);
+    void drawBorder(uint32_t* frameBuffer);
 };
 
 

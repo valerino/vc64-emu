@@ -136,6 +136,9 @@ void CVICII::updateScreen(uint32_t* frameBuffer) {
     else {
         CLog::fatal("screen mode not yet implemented!");
     }
+
+    // draw border
+    drawBorder(frameBuffer);
 }
 
 /**
@@ -165,35 +168,15 @@ void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
         charset = ((CMemory*)_cpu->memory())->charset();
     }
 
-    int currentColumn = 0;
-    int currentRow = 0;
-    int borderHSize = (VIC_PAL_SCREEN_W - 320) / 2;
-    int borderVSize = (VIC_PAL_SCREEN_H - 200) / 2;
-
     // scroll
     uint8_t cr1;
     _cpu->memory()->readByte(VIC_REG_CR1, &cr1);
-    int scrollX = cr2 & 0x7;
+    int scrollX = (cr2 & 0x7);
     int scrollY = cr1 & 0x7;
 
-    // get border color
-    uint8_t borderColor;
-    _cpu->memory()->readByte(VIC_REG_BORDER_COLOR, &borderColor);
-    rgbStruct borderRgb = _palette[borderColor];
-
-    // draw the border
-    for (int borderX = 0; borderX < VIC_PAL_SCREEN_W; borderX++) {
-        for (int borderY = 0; borderY < VIC_PAL_SCREEN_H; borderY++) {
-            if (borderX <= borderHSize || borderX >= (VIC_PAL_SCREEN_W - borderHSize - 1 ) ||
-                borderY <= borderVSize || borderY >= (VIC_PAL_SCREEN_H - borderVSize - 1) ) {
-                    // draw border
-                    int posB = ((borderY*VIC_PAL_SCREEN_W) + borderX + scrollX);
-                    frameBuffer[posB]=SDL_MapRGB(_sdlCtx->pxFormat, borderRgb.r, borderRgb.g, borderRgb.b);
-            }
-        }
-    }
-
     // 40x25=1000 characters (screen codes) total, draw the screen character per character, left to right
+    int currentColumn = 0;
+    int currentRow = 0;
     for (int i=0; i < 1000; i++) {
         // read this screen code color
         uint8_t charColor = (colorMem[(currentRow * 40) + currentColumn]);
@@ -215,8 +198,8 @@ void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
 
             for (int k = 0; k < 8; k ++) {
                 // and blit it pixel per pixel in the framebuffer
-                int pixX=(currentColumn * 8) + k + borderHSize + scrollX;
-                int pixY=(currentRow * 8) + charIdx + borderVSize;
+                int pixX=(currentColumn * 8) + k + _borderHSize;
+                int pixY=(currentRow * 8) + charIdx + _borderVSize;
                 int pos = ((pixY*VIC_PAL_SCREEN_W) + pixX);
 
                 if (multicolor) {
@@ -258,7 +241,7 @@ void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
                 else {
                     // standard text mode
                     // https://www.c64-wiki.com/wiki/Standard_Character_Mode
-                    if (IS_BIT_SET(row, 7)) {
+                    if ( IS_BIT_SET(row, 7) ) {
                         // bit is set, set foreground color
                         frameBuffer[pos]=SDL_MapRGB(_sdlCtx->pxFormat, cRgb.r, cRgb.g, cRgb.b);
                     }
@@ -286,6 +269,9 @@ CVICII::CVICII(CMOS65xx *cpu, CCIA2 *cia2) {
     _cpu = cpu;
     _cia2 = cia2;
     _rasterCounter = 0;
+
+    _borderHSize = (VIC_PAL_SCREEN_W - 320) / 2;
+    _borderVSize = (VIC_PAL_SCREEN_H - 200) / 2;
 
     // initialize color palette
     // https://www.c64-wiki.com/wiki/Color
@@ -329,6 +315,36 @@ void CVICII::getBitmapModeScreenAddress(uint16_t *colorInfoAddress, uint16_t *bi
  */
 void CVICII::setSdlCtx(SDLDisplayCtx *ctx) {
     _sdlCtx = ctx;
+}
+
+/**
+ * draw screen border
+ */
+void CVICII::drawBorder(uint32_t* frameBuffer) {
+    // scroll
+    uint8_t cr2;
+    _cpu->memory()->readByte(VIC_REG_CR2, &cr2);
+    uint8_t cr1;
+    _cpu->memory()->readByte(VIC_REG_CR1, &cr1);
+    int scrollX = (cr2 & 0x7);
+    int scrollY = cr1 & 0x7;
+
+    // get border color
+    uint8_t borderColor;
+    _cpu->memory()->readByte(VIC_REG_BORDER_COLOR, &borderColor);
+    rgbStruct borderRgb = _palette[borderColor];
+
+    // draw the border
+    for (int borderX = 0; borderX < VIC_PAL_SCREEN_W; borderX++) {
+        for (int borderY = 0; borderY < VIC_PAL_SCREEN_H; borderY++) {
+            if (borderX < (_borderHSize + scrollX) || borderX >= (VIC_PAL_SCREEN_W - _borderHSize - scrollX - 1) ||
+                borderY < _borderVSize || borderY >= (VIC_PAL_SCREEN_H - _borderVSize - 1) ) {
+                // draw border
+                int posB = ((borderY*VIC_PAL_SCREEN_W) + borderX);
+                frameBuffer[posB]=SDL_MapRGB(_sdlCtx->pxFormat, borderRgb.r, borderRgb.g, borderRgb.b);
+            }
+        }
+    }
 }
 
 
