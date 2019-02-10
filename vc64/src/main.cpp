@@ -244,7 +244,7 @@ int main (int argc, char** argv) {
 
             // after each cycle, update internal chips state
             if (!cpu->isTestMode()) {
-                vic->update(cycleCount);
+                cycleCount -= vic->update(cycleCount);
                 cia1->update(cycleCount);
                 cia2->update(cycleCount);
                 sid->update(cycleCount);
@@ -254,7 +254,7 @@ int main (int argc, char** argv) {
             if (cycleCount <= 0) {
                 if (!cpu->isTestMode()) {
                     // update display
-                    cycleCount -= display->update();
+                    display->update();
                 }
 
                 // process input

@@ -26,7 +26,7 @@ int CDisplay::init(SDLDisplayCreateOptions* options, char** errorString) {
     if (res != 0) {
         return res;
     }
-    _vic->setSdlCtx(&_ctx);
+    _vic->setSdlCtx(&_ctx, _fb);
 
     // show!
     CSDLUtils::update(&_ctx, (void*)_fb, VIC_PAL_SCREEN_W);
@@ -38,11 +38,10 @@ CDisplay::~CDisplay() {
     SAFE_FREE(_fb)
 }
 
-int CDisplay::update() {
+void CDisplay::update() {
     // tell the vic to update the framebuffer
-    int additionalCycles = _vic->updateScreen(_fb);
+    _vic->updateScreen();
 
     // and redraw the texture
     CSDLUtils::update(&_ctx,_fb,VIC_PAL_SCREEN_W);
-    return additionalCycles;
 }

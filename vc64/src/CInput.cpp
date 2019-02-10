@@ -13,7 +13,6 @@
 
 CInput::CInput(CCIA1* cia1) {
     _cia1 = cia1;
-
 }
 
 CInput::~CInput() {

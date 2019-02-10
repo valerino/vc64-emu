@@ -28,9 +28,8 @@ public:
 
     /**
      * update the display
-     * @return cycles taken to update the screen
      */
-    int update();
+    void update();
 
     /**
      * constructor
@@ -39,6 +38,5 @@ public:
     CDisplay(CVICII* vic);
     ~CDisplay();
 };
-
 
 #endif //VC64_EMU_DISPLAY_H

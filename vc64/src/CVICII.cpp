@@ -13,37 +13,139 @@
 //#define DEBUG_VIC
 #endif
 
+CVICII::CVICII(CMOS65xx *cpu, CCIA2 *cia2) {
+    _cpu = cpu;
+    _cia2 = cia2;
+    _rasterCounter = 0;
+    _rasterIrqLine = 0;
+
+    // initialize to default values
+    _displayH = 200;
+    _displayW = 320;
+    _borderHSize = (VIC_PAL_SCREEN_W - _displayW) / 2;
+    _borderVSize = (VIC_PAL_SCREEN_H - _displayH) / 2;
+
+    // initialize color palette
+    // https://www.c64-wiki.com/wiki/Color
+    _palette[0] = {0,0,0};
+    _palette[1] = {0xff,0xff,0xff};
+    _palette[2] = {0x88,0,0};
+    _palette[3] = {0xaa,0xff,0xee};
+    _palette[4] = {0xcc,0x44,0xcc};
+    _palette[5] = {0x00,0xcc,0x55};
+    _palette[6] = {0,0,0xaa};
+    _palette[7] = {0xee,0xee,0x77};
+    _palette[8] = {0xdd,0x88,0x55};
+    _palette[9] = {0x66,0x44,0};
+    _palette[10] = {0xff,0x77,0x77};
+    _palette[11] = {0x33,0x33,0x33};
+    _palette[12] = {0x77,0x77,0x77};
+    _palette[13] = {0xaa,0xff,0x66};
+    _palette[14] = {0,0x88,0xff};
+    _palette[15] = {0xbb,0xbb,0xbb};
+}
+
 CVICII::~CVICII() {
 
 }
 
-void CVICII::updateRasterCounter(uint16_t cnt) {
-    _rasterCounter = cnt;
-    if (cnt <= 0xff) {
-        // 8 bit
-        _cpu->memory()->writeByte(VIC_REG_RASTERCOUNTER, cnt & 0xff);
+void CVICII::updateRasterCounter() {
+    uint8_t cr1;
+    _cpu->memory()->readByte(VIC_REG_CR1, &cr1);
+    if (_rasterCounter <= 0xff) {
+        // raster counter is still 8 bit
+        _cpu->memory()->writeByte(VIC_REG_RASTERCOUNTER, _rasterCounter & 0xff);
     }
     else {
-        // 9th bit of the raster counter is set into bit 7 of cr1
-        uint8_t cr1;
-        _cpu->memory()->readByte(VIC_REG_CR1, &cr1);
-        cr1 |= (cnt >> 8) << 7;
+        // bit 8 of the raster counter is set into bit 7 of cr1
+        cr1 |= (_rasterCounter >> 8) << 7;
+        _cpu->memory()->writeByte(VIC_REG_RASTERCOUNTER, _rasterCounter & 0xff);
+    }
 
-        _cpu->memory()->writeByte(VIC_REG_RASTERCOUNTER, cnt & 0xff);
-        _cpu->memory()->writeByte(VIC_REG_CR1, cr1);
+    // rewrite both
+    _cpu->memory()->writeByte(VIC_REG_RASTERCOUNTER, _rasterCounter & 0xff);
+    _cpu->memory()->writeByte(VIC_REG_CR1, cr1);
+}
+
+void CVICII::drawBorderRow(int row) {
+    // get border color
+    uint8_t borderColor;
+    _cpu->memory()->readByte(VIC_REG_BORDER_COLOR, &borderColor);
+    rgbStruct borderRgb = _palette[borderColor];
+
+    // draw border row
+    for (int i=0; i < VIC_PAL_SCREEN_W; i++ ) {
+        int pos = ((row*VIC_PAL_SCREEN_W) + i);
+        _fb[pos]=SDL_MapRGB(_sdlCtx->pxFormat, borderRgb.r, borderRgb.g, borderRgb.b);
     }
 }
 
+
 int CVICII::update(int cycleCount) {
-    if ((cycleCount % CYCLES_PER_LINE) == 0) {
-        // increment the raster counter
-        updateRasterCounter(_rasterCounter + 1);
-        if (_rasterCounter > VIC_PAL_SCANLINES_PER_VBLANK) {
-            // reset raster counter
-            updateRasterCounter(0);
-        }
+    int occupiedCycles = 0;
+
+    uint8_t d019;
+    _cpu->memory()->readByte(VIC_REG_INTERRUPT, &d019);
+    uint8_t d01a;
+    _cpu->memory()->readByte(VIC_REG_IRQ_ENABLED, &d01a);
+    uint8_t cr1;
+    _cpu->memory()->readByte(VIC_REG_CR1, &cr1);
+
+    if (IS_BIT_SET(d019,7)) {
+        // IRQ is set
+        _cpu->irq();
     }
-    return 0;
+
+    if ((cycleCount % VIC_CYCLES_PER_LINE) != 0) {
+        return 0;
+    }
+
+    // increment the raster counter
+    _rasterCounter++;
+    updateRasterCounter();
+
+    // check if interrupt is enabled
+    if ( IS_BIT_SET(d01a, 7)) {
+        // interrupt enabled, generate a raster interrupt if needed
+        if (_rasterCounter == _rasterIrqLine) {
+            _cpu->irq();
+        }
+            /*if (_rasterCounter ==)
+                _cpu->irq();
+                */
+    }
+
+    if (_rasterCounter >= VIC_FIRST_VISIBLE_LINE && _rasterCounter <=VIC_LAST_VISIBLE_LINE) {
+        // draw border row
+        int borderRow = _rasterCounter - 14;
+        drawBorderRow(borderRow);
+    }
+
+    if (_rasterCounter >= VIC_PAL_SCANLINES_PER_VBLANK) {
+        // reset raster counter
+        _rasterCounter = 0;
+        updateRasterCounter();
+    }
+
+    // check for bad line, taken from http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
+    /*
+         A Bad Line Condition is given at any arbitrary clock cycle, if at the
+         negative edge of ø0 at the beginning of the cycle RASTER >= $30 and RASTER
+         <= $f7 and the lower three bits of RASTER are equal to YSCROLL and if the
+         DEN bit was set during an arbitrary cycle of raster line $30.
+     */
+    int scrollY = cr1 & 7;
+    bool isBadLine = ((_rasterCounter >= 0x30) && (_rasterCounter <= 0xf7)) && (_rasterCounter & 7 == scrollY);
+    if (_rasterCounter == 0x30) {
+        isBadLine = (IS_BIT_SET(cr1, 4));
+    }
+    if (isBadLine) {
+        occupiedCycles = VIC_CYCLES_PER_BADLINE;
+    }
+    else {
+        occupiedCycles = VIC_CYCLES_PER_LINE;
+    }
+    return occupiedCycles;
 }
 
 void CVICII::read(uint16_t address, uint8_t* bt) {
@@ -68,16 +170,17 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     }
 
     switch(addr) {
-        case VIC_REG_RASTERCOUNTER:
-            // raster counter
-            _rasterCounter = bt;
+        case VIC_REG_RASTERCOUNTER: {
+            // sets the raster line at which the interrupt must happen, needs also bit 7 from cr1
+            uint8_t cr1;
+            _cpu->memory()->readByte(VIC_REG_CR1, &cr1);
+            _rasterIrqLine |= (cr1 >> 7);
+        }
             break;
+
         case VIC_REG_CR1:
-            // setting cr1 also affects the raster counter
-            if (IS_BIT_SET(bt, 7)) {
-                // bit 7 is the 9th bit of the raster counter
-                _rasterCounter |= (bt >> 7);
-            }
+            // setting cr1 also affects the raster counter (bit 8 of the raster counter is bit 7 of cr1)
+            _rasterIrqLine |= (bt >> 7);
 
             // RSEL
             if (IS_BIT_SET(bt, 3)) {
@@ -148,9 +251,10 @@ bool CVICII::checkUnusedAddress(int type, uint16_t address, uint8_t *bt) {
     return false;
 }
 
-int CVICII::updateScreen(uint32_t *frameBuffer) {
-    int additionalCycles = 0;
-
+/**
+ * update the screen
+ */
+void CVICII::updateScreen() {
     // check cr1 and cr2
     uint8_t cr1;
     uint8_t cr2;
@@ -158,44 +262,13 @@ int CVICII::updateScreen(uint32_t *frameBuffer) {
     _cpu->memory()->readByte(VIC_REG_CR2, &cr2);
     if (!IS_BIT_SET(cr1, 6) && !IS_BIT_SET(cr1, 5)) {
         if (!IS_BIT_SET(cr2, 5)) {
-            updateScreenCharacterMode(frameBuffer);
-
-            // vic takes 40 additional cycles to per character
-            additionalCycles = 40*25;
+            updateScreenCharacterMode(_fb);
         }
     }
     else {
         CLog::fatal("screen mode not yet implemented!");
     }
-
-    // draw border
-    drawBorder(frameBuffer);
-    return additionalCycles;
-
 }
-
-/**
- * draw screen border
- */
-void CVICII::drawBorder(uint32_t* frameBuffer) {
-    // get border color
-    uint8_t borderColor;
-    _cpu->memory()->readByte(VIC_REG_BORDER_COLOR, &borderColor);
-    rgbStruct borderRgb = _palette[borderColor];
-
-    // draw the border
-    for (int x = 0; x < VIC_PAL_SCREEN_W; x++) {
-        for (int y = 0; y < VIC_PAL_SCREEN_H; y++) {
-            if (x < (_borderHSize ) || x >= (VIC_PAL_SCREEN_W - _borderHSize - 1) ||
-                y < _borderVSize || y >= (VIC_PAL_SCREEN_H - _borderVSize - 1) ) {
-                // draw border
-                int posB = ((y*VIC_PAL_SCREEN_W) + x);
-                frameBuffer[posB]=SDL_MapRGB(_sdlCtx->pxFormat, borderRgb.r, borderRgb.g, borderRgb.b);
-            }
-        }
-    }
-}
-
 
 /**
  * update screen in character (low resolution) mode (40x25)
@@ -229,124 +302,87 @@ void CVICII::updateScreenCharacterMode(uint32_t *frameBuffer) {
     _cpu->memory()->readByte(VIC_REG_CR1, &cr1);
 
     // draw the screen character per character, left to right
-    int currentColumn = 0;
-    int currentRow = 0;
-    for (int i=0; i < (40 * 25); i++) {
-        // read this screen code color
-        uint8_t charColor = (colorMem[(currentRow * 40) + currentColumn]);
-        rgbStruct cRgb = _palette[charColor & 0xf];
+    int numColumns = 40;
+    int numRows = 25;
+    for (int r=0; r < numRows; r++) {
+        for (int c=0; c < numColumns; c++) {
+            // read this screen code color
+            uint8_t charColor = (colorMem[(r * numRows) + c]);
+            rgbStruct cRgb = _palette[charColor & 0xf];
 
-        // read background color
-        uint8_t bgColor;
-        _cpu->memory()->readByte(VIC_REG_BG_COLOR_0, &bgColor);
-        rgbStruct bRgb = _palette[bgColor & 0xf];
+            // read background color
+            uint8_t bgColor;
+            _cpu->memory()->readByte(VIC_REG_BG_COLOR_0, &bgColor);
+            rgbStruct bRgb = _palette[bgColor & 0xf];
 
-        // read screencode in video memory -> each screencode corresponds to a character in the charset memory
-        uint8_t screenCode;
-        _cpu->memory()->readByte(screenAddress + i, &screenCode);
+            // read screencode in video memory -> each screencode corresponds to a character in the charset memory
+            uint8_t screenCode;
+            _cpu->memory()->readByte(screenAddress + (r*numColumns) + c, &screenCode);
 
-        // each character in the charset is 8 bytes (8x8 font)
-        for (int charIdx=0; charIdx < 8; charIdx ++) {
-            // read one byte from character memory
-            uint8_t row = charset[(screenCode*8) + charIdx];
+            // each character in the charset is 8x8
+            for (int charRow=0; charRow < 8; charRow ++) {
+                uint8_t rowData = charset[(screenCode*8) + charRow];
+                for (int charColumn = 0; charColumn < 8; charColumn ++) {
+                    // blit it pixel per pixel in the framebuffer
+                    int pixX=(c * 8) + charColumn + _borderHSize;
+                    int pixY=(r * 8) + charRow + _borderVSize;
+                    int pos = ((pixY*VIC_PAL_SCREEN_W) + pixX);
 
-            for (int k = 0; k < 8; k ++) {
-                // and blit it pixel per pixel in the framebuffer
-                int pixX=(currentColumn * 8) + k + _borderHSize;
-                int pixY=(currentRow * 8) + charIdx + _borderVSize;
-                int pos = ((pixY*VIC_PAL_SCREEN_W) + pixX);
-
-                if (multicolor) {
-                    // https://www.c64-wiki.com/wiki/Character_set#Defining_a_multi-color_character
-                    if (!(IS_BIT_SET(row, 7))) {
-                        if (!(IS_BIT_SET(row, 6))) {
-                            // 00 background, use background color
-                            frameBuffer[pos] = SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
-                            frameBuffer[pos + 1] = SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
+                    if (multicolor) {
+                        // https://www.c64-wiki.com/wiki/Character_set#Defining_a_multi-color_character
+                        if (!(IS_BIT_SET(rowData, 7))) {
+                            if (!(IS_BIT_SET(rowData, 6))) {
+                                // 00 background, use background color
+                                frameBuffer[pos] = SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
+                                frameBuffer[pos + 1] = SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
+                            } else {
+                                // 01, read from background color 1 register
+                                uint8_t d022;
+                                _cpu->memory()->readByte(VIC_REG_BG_COLOR_1, &d022);
+                                rgbStruct rgb = _palette[d022 & 0xf];
+                                frameBuffer[pos] = SDL_MapRGB(_sdlCtx->pxFormat, rgb.r, rgb.g, rgb.b);
+                                frameBuffer[pos + 1] = SDL_MapRGB(_sdlCtx->pxFormat, rgb.r, rgb.g, rgb.b);
+                            }
                         } else {
-                            // 01, read from background color 1 register
-                            uint8_t d022;
-                            _cpu->memory()->readByte(VIC_REG_BG_COLOR_1, &d022);
-                            rgbStruct rgb = _palette[d022 & 0xf];
-                            frameBuffer[pos] = SDL_MapRGB(_sdlCtx->pxFormat, rgb.r, rgb.g, rgb.b);
-                            frameBuffer[pos + 1] = SDL_MapRGB(_sdlCtx->pxFormat, rgb.r, rgb.g, rgb.b);
+                            if (IS_BIT_SET(rowData, 6)) {
+                                // 11, use background color
+                                // TODO: according to https://www.c64-wiki.com/wiki/Character_set#Defining_a_multi-color_character,
+                                //  should be the character color instead (cRgb) ?
+                                // but, checking with vice output, this needs to be bRgb.....
+                                frameBuffer[pos] = SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
+                                frameBuffer[pos + 1] = SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
+                            } else {
+                                // 10, read from background color 2 register
+                                uint8_t d023;
+                                _cpu->memory()->readByte(VIC_REG_BG_COLOR_2, &d023);
+                                rgbStruct rgb = _palette[d023 & 0xf];
+                                frameBuffer[pos] = SDL_MapRGB(_sdlCtx->pxFormat, rgb.r, rgb.g, rgb.b);
+                                frameBuffer[pos + 1] = SDL_MapRGB(_sdlCtx->pxFormat, rgb.r, rgb.g, rgb.b);
+                            }
                         }
-                    } else {
-                        if (IS_BIT_SET(row, 6)) {
-                            // 11, use background color
-                            // TODO: according to the page above, should be the character color instead (cRgb) ?
-                            // but, checking with vice output, this needs to be bRgb.....
-                            frameBuffer[pos] = SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
-                            frameBuffer[pos + 1] = SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
-                        } else {
-                            // 10, read from background color 2 register
-                            uint8_t d023;
-                            _cpu->memory()->readByte(VIC_REG_BG_COLOR_2, &d023);
-                            rgbStruct rgb = _palette[d023 & 0xf];
-                            frameBuffer[pos] = SDL_MapRGB(_sdlCtx->pxFormat, rgb.r, rgb.g, rgb.b);
-                            frameBuffer[pos + 1] = SDL_MapRGB(_sdlCtx->pxFormat, rgb.r, rgb.g, rgb.b);
-                        }
-                    }
 
-                    // next bit pair
-                    row <<= 2;
-                    k++;
-                }
-                else {
-                    // standard text mode
-                    // https://www.c64-wiki.com/wiki/Standard_Character_Mode
-                    if ( IS_BIT_SET(row, 7) ) {
-                        // bit is set, set foreground color
-                        frameBuffer[pos]=SDL_MapRGB(_sdlCtx->pxFormat, cRgb.r, cRgb.g, cRgb.b);
+                        // next bit pair
+                        rowData <<= 2;
+                        charColumn++;
                     }
                     else {
-                        frameBuffer[pos]=SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
-                    }
+                        // standard text mode
+                        // https://www.c64-wiki.com/wiki/Standard_Character_Mode
+                        if ( IS_BIT_SET(rowData, 7) ) {
+                            // bit is set, set foreground color
+                            frameBuffer[pos]=SDL_MapRGB(_sdlCtx->pxFormat, cRgb.r, cRgb.g, cRgb.b);
+                        }
+                        else {
+                            frameBuffer[pos]=SDL_MapRGB(_sdlCtx->pxFormat, bRgb.r, bRgb.g, bRgb.b);
+                        }
 
-                    // next bit
-                    row <<= 1;
+                        // next bit
+                        rowData <<= 1;
+                    }
                 }
             }
         }
-
-        currentColumn++;
-        if (currentColumn == 40) {
-            // next screen row
-            currentRow++;
-            currentColumn = 0;
-        }
     }
-}
-
-CVICII::CVICII(CMOS65xx *cpu, CCIA2 *cia2) {
-    _cpu = cpu;
-    _cia2 = cia2;
-    _rasterCounter = 0;
-
-    // initialize to default values
-    _displayH = 200;
-    _displayW = 320;
-    _borderHSize = (VIC_PAL_SCREEN_W - _displayW) / 2;
-    _borderVSize = (VIC_PAL_SCREEN_H - _displayH) / 2;
-
-    // initialize color palette
-    // https://www.c64-wiki.com/wiki/Color
-    _palette[0] = {0,0,0};
-    _palette[1] = {0xff,0xff,0xff};
-    _palette[2] = {0x88,0,0};
-    _palette[3] = {0xaa,0xff,0xee};
-    _palette[4] = {0xcc,0x44,0xcc};
-    _palette[5] = {0x00,0xcc,0x55};
-    _palette[6] = {0,0,0xaa};
-    _palette[7] = {0xee,0xee,0x77};
-    _palette[8] = {0xdd,0x88,0x55};
-    _palette[9] = {0x66,0x44,0};
-    _palette[10] = {0xff,0x77,0x77};
-    _palette[11] = {0x33,0x33,0x33};
-    _palette[12] = {0x77,0x77,0x77};
-    _palette[13] = {0xaa,0xff,0x66};
-    _palette[14] = {0,0x88,0xff};
-    _palette[15] = {0xbb,0xbb,0xbb};
 }
 
 void CVICII::getTextModeScreenAddress(uint16_t *screenCharacterRamAddress, uint16_t *charsetAddress) {
@@ -368,8 +404,10 @@ void CVICII::getBitmapModeScreenAddress(uint16_t *colorInfoAddress, uint16_t *bi
 /**
  * set the SDL display context
  * @param ctx
+ * @param frameBuffer
  */
-void CVICII::setSdlCtx(SDLDisplayCtx *ctx) {
+void CVICII::setSdlCtx(SDLDisplayCtx *ctx, uint32_t* frameBuffer) {
+    _fb = frameBuffer;
     _sdlCtx = ctx;
 }
 
