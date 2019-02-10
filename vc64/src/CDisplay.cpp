@@ -42,6 +42,4 @@ void CDisplay::update() {
     // tell the vic to update the framebuffer
     _vic->updateScreen();
 
-    // and redraw the texture
-    CSDLUtils::update(&_ctx,_fb,VIC_PAL_SCREEN_W);
 }

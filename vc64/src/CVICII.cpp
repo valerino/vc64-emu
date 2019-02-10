@@ -96,13 +96,10 @@ int CVICII::update(int cycleCount) {
         _cpu->irq();
     }
 
+    // need to draw a line ?
     if ((cycleCount % VIC_CYCLES_PER_LINE) != 0) {
         return 0;
     }
-
-    // increment the raster counter
-    _rasterCounter++;
-    updateRasterCounter();
 
     // check if interrupt is enabled
     if ( IS_BIT_SET(d01a, 7)) {
@@ -110,21 +107,12 @@ int CVICII::update(int cycleCount) {
         if (_rasterCounter == _rasterIrqLine) {
             _cpu->irq();
         }
-            /*if (_rasterCounter ==)
-                _cpu->irq();
-                */
     }
 
     if (_rasterCounter >= VIC_FIRST_VISIBLE_LINE && _rasterCounter <=VIC_LAST_VISIBLE_LINE) {
         // draw border row
         int borderRow = _rasterCounter - 14;
         drawBorderRow(borderRow);
-    }
-
-    if (_rasterCounter >= VIC_PAL_SCANLINES_PER_VBLANK) {
-        // reset raster counter
-        _rasterCounter = 0;
-        updateRasterCounter();
     }
 
     // check for bad line, taken from http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
@@ -145,6 +133,15 @@ int CVICII::update(int cycleCount) {
     else {
         occupiedCycles = VIC_CYCLES_PER_LINE;
     }
+
+    // increment the raster counter
+    _rasterCounter++;
+    if (_rasterCounter >= VIC_PAL_SCANLINES_PER_VBLANK) {
+        // reset raster counter and update the display
+        _rasterCounter = 0;
+        CSDLUtils::update(_sdlCtx,_fb,VIC_PAL_SCREEN_W);
+    }
+    updateRasterCounter();
     return occupiedCycles;
 }
 
