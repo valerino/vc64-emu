@@ -23,6 +23,10 @@ CVICII::CVICII(CMOS65xx *cpu, CCIA2 *cia2) {
     _regCr2 = 0;
     _rasterCounter = 0;
     _rasterIrqLine = 0;
+    _regInterruptEnabled = 0;
+    _regInterrupt = 0;
+    _scrollX = 0;
+    _scrollY = 0;
     for (int i=0; i < sizeof(_regBackgroundColors) / sizeof(uint8_t); i++) {
         _regBackgroundColors[i]=0;
     }
@@ -45,10 +49,26 @@ CVICII::CVICII(CMOS65xx *cpu, CCIA2 *cia2) {
     _palette[13] = {0xaa,0xff,0x66};
     _palette[14] = {0,0x88,0xff};
     _palette[15] = {0xbb,0xbb,0xbb};
+
 }
 
 CVICII::~CVICII() {
 
+}
+
+ /**
+  * blit into the framebuffer
+  * @param x x coordinate
+  * @param y y coordinate
+  * @param rgb rgb color
+  */
+void CVICII::blit(int x, int y, CVICII::rgbStruct *rgb) {
+    int pos = ((y*VIC_PAL_SCREEN_W) + x);
+    if (y >= VIC_PAL_SCREEN_H) {
+        // not visible, vblank
+        return;
+    }
+    _fb[pos]=SDL_MapRGB(_sdlCtx->pxFormat, rgb->r, rgb->g, rgb->b);
 }
 
 void CVICII::updateRasterCounter() {
@@ -67,8 +87,7 @@ void CVICII::drawBorder(int rasterLine) {
 
     // draw border row
     for (int i=0; i < VIC_PAL_SCREEN_W; i++ ) {
-        int pos = ((rasterLine*VIC_PAL_SCREEN_W) + i);
-        _fb[pos]=SDL_MapRGB(_sdlCtx->pxFormat, borderRgb.r, borderRgb.g, borderRgb.b);
+        blit(i, rasterLine, &borderRgb);
     }
 }
 
@@ -153,9 +172,8 @@ void CVICII::drawCharacterMode(int rasterLine) {
                         break;
                 }
                 int pixelX = x + 8 - i + _scrollX;
-                int pos = ((rasterLine * VIC_PAL_SCREEN_W) + pixelX);
-                _fb[pos] = SDL_MapRGB(_sdlCtx->pxFormat, charRgb.r, charRgb.g, charRgb.b);
-                _fb[pos + 1] = SDL_MapRGB(_sdlCtx->pxFormat, charRgb.r, charRgb.g, charRgb.b);
+                blit(pixelX, rasterLine, &charRgb);
+                blit(pixelX + 1, rasterLine, &charRgb);
 
                 // each pixel is doubled
                 i++;
@@ -167,14 +185,12 @@ void CVICII::drawCharacterMode(int rasterLine) {
                 int pixelX = x + 8 - i + _scrollX;
                 if (IS_BIT_SET(data, i)) {
                     // put pixel
-                    int pos = ((rasterLine * VIC_PAL_SCREEN_W) + pixelX);
-                    _fb[pos] = SDL_MapRGB(_sdlCtx->pxFormat, charRgb.r, charRgb.g, charRgb.b);
+                    blit(pixelX, rasterLine, &charRgb);
                 }
                 else {
                     // put pixel in background color
                     rgbStruct backgroundRgb = _palette[_regBackgroundColors[0]];
-                    int pos = ((rasterLine * VIC_PAL_SCREEN_W) + pixelX);
-                    _fb[pos] = SDL_MapRGB(_sdlCtx->pxFormat, backgroundRgb.r, backgroundRgb.g, backgroundRgb.b);
+                    blit(pixelX, rasterLine, &backgroundRgb);
                 }
             }
         }
@@ -209,6 +225,7 @@ int CVICII::update(int cycleCount) {
 
         if (!IS_BIT_SET(_regCr1, 6) && !IS_BIT_SET(_regCr1, 5)) {
             if (!IS_BIT_SET(_regCr2, 5)) {
+                // character mode
                 drawCharacterMode(rasterLine);
             }
         }
@@ -383,4 +400,3 @@ void CVICII::setSdlCtx(SDLDisplayCtx *ctx, uint32_t* frameBuffer) {
     _fb = frameBuffer;
     _sdlCtx = ctx;
 }
-

@@ -130,8 +130,8 @@ private:
     void getBitmapModeScreenAddress(uint16_t* colorInfoAddress, uint16_t* bitmapAddress);
     void drawBorder(int rasterLine);
     void drawCharacterMode(int rasterLine);
-
-    };
+    void blit(int x, int y, rgbStruct* rgb);
+};
 
 
 #endif //VC64_EMU_CVICII_H
