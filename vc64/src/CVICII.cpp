@@ -84,13 +84,6 @@ void CVICII::drawCharacterMode(int rasterLine) {
         return;
     }
 
-    // draw background
-    rgbStruct backgroundRgb = _palette[_regBackgroundColors[0]];
-    for (int i = 0; i < VIC_RES_W; i++) {
-        int pos = ((rasterLine * VIC_PAL_SCREEN_W) + i + _scrollX + VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN);
-        _fb[pos] = SDL_MapRGB(_sdlCtx->pxFormat, backgroundRgb.r, backgroundRgb.g, backgroundRgb.b);
-    }
-
     // get screen and character set address
     uint16_t charsetAddress;
     uint16_t screenAddress;
@@ -105,15 +98,19 @@ void CVICII::drawCharacterMode(int rasterLine) {
     // draw characters
     int columns = VIC_CHAR_MODE_COLUMNS;
     for (int c = 0; c < columns; c++) {
-        // check 38 coluns
+        // check 38 columns
         if (!(IS_BIT_SET(_regCr2, 3))) {
             if (c == 0 || c == VIC_CHAR_MODE_COLUMNS - 1) {
                 continue;
             }
         }
-        int x = VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN + (c * 8) - 1;
+        int x = VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN + (c * 8);
         int line = _rasterCounter - VIC_PAL_FIRST_DISPLAYWINDOW_LINE;
+
+        // screen row from raster line
         int row = line / 8;
+
+        // character row
         int charRow = line % 8;
 
         // read screenchode from screen memory
@@ -131,9 +128,10 @@ void CVICII::drawCharacterMode(int rasterLine) {
         // draw character bit by bit
         if (multicolor) {
             // https://www.c64-wiki.com/wiki/Character_set#Defining_a_multi-color_character
-            for(int i=0 ; i < 4 ; i++) {
-                uint8_t cs = ((data >> i * 2) & 0x3);
-                switch (cs) {
+            for(int i=0 ; i < 8 ; i++) {
+                // only the last 3 bits count
+                uint8_t bits = data & 3;
+                switch (bits) {
                     case 0:
                         // 00
                         charRgb = _palette[_regBackgroundColors[0]];
@@ -150,25 +148,33 @@ void CVICII::drawCharacterMode(int rasterLine) {
                         break;
 
                     case 3:
-                        // 11, default (use character color)
+                        // 11, default (use background color, doc says use character color ??)
+                        charRgb = _palette[_regBackgroundColors[0]];
                         break;
                 }
-                int pixelX = x + 8 - (i * 2) + _scrollX;
+                int pixelX = x + 8 - i + _scrollX;
                 int pos = ((rasterLine * VIC_PAL_SCREEN_W) + pixelX);
                 _fb[pos] = SDL_MapRGB(_sdlCtx->pxFormat, charRgb.r, charRgb.g, charRgb.b);
                 _fb[pos + 1] = SDL_MapRGB(_sdlCtx->pxFormat, charRgb.r, charRgb.g, charRgb.b);
+
+                // each pixel is doubled
+                i++;
+                data >>= 2;
             }
         }
         else {
             for (int i=0; i < 8; i++) {
                 int pixelX = x + 8 - i + _scrollX;
-                if (pixelX > VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN + VIC_RES_W) {
-                    continue;
-                }
                 if (IS_BIT_SET(data, i)) {
                     // put pixel
                     int pos = ((rasterLine * VIC_PAL_SCREEN_W) + pixelX);
                     _fb[pos] = SDL_MapRGB(_sdlCtx->pxFormat, charRgb.r, charRgb.g, charRgb.b);
+                }
+                else {
+                    // put pixel in background color
+                    rgbStruct backgroundRgb = _palette[_regBackgroundColors[0]];
+                    int pos = ((rasterLine * VIC_PAL_SCREEN_W) + pixelX);
+                    _fb[pos] = SDL_MapRGB(_sdlCtx->pxFormat, backgroundRgb.r, backgroundRgb.g, backgroundRgb.b);
                 }
             }
         }
@@ -192,9 +198,6 @@ int CVICII::update(int cycleCount) {
     if ( IS_BIT_SET(_regInterruptEnabled, 0)) {
         // interrupt enabled, generate a raster interrupt if needed
         if (_rasterCounter == _rasterIrqLine) {
-            // set bit 0
-            _regInterruptEnabled |= 1;
-            _cpu->memory()->writeByte(VIC_REG_IRQ_ENABLED,_regInterruptEnabled);
             _cpu->irq();
         }
     }
@@ -233,9 +236,8 @@ int CVICII::update(int cycleCount) {
     // increment the raster counter
     _rasterCounter++;
     if (_rasterCounter >= VIC_PAL_SCANLINES_PER_VBLANK) {
-        // reset raster counter and update the display
+        // reset raster counter
         _rasterCounter = 0;
-//        CSDLUtils::update(_sdlCtx,_fb,VIC_PAL_SCREEN_W);
     }
     updateRasterCounter();
     return occupiedCycles;
@@ -305,7 +307,6 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
             // YSCROLL
             _scrollY = bt & 0x7;
-
             break;
 
         case VIC_REG_CR2:

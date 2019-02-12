@@ -11,16 +11,23 @@
 
 #define VIC_RES_W 320
 #define VIC_RES_H 200
+
+// refresh rate
 #define VIC_PAL_HZ  50.124
+
+// sizes comprensive of vblank and hblank
 #define VIC_PAL_SCREEN_W 403
 #define VIC_PAL_SCREEN_H 284
 #define VIC_PAL_SCANLINES_PER_VBLANK 312
 #define VIC_PAL_FIRST_VISIBLE_LINE 14
 #define VIC_PAL_LAST_VISIBLE_LINE 298
+
+#define VIC_CHAR_MODE_COLUMNS 40
+
+// display window is intended the 'blue' window surrounded by the border, when c64 boots :)
 #define VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN 42
 #define VIC_PAL_FIRST_DISPLAYWINDOW_LINE 56
 #define VIC_PAL_LAST_DISPLAYWINDOW_LINE 256
-#define VIC_CHAR_MODE_COLUMNS 40
 
 // 63 cycles per line (19656 / 312)
 #define VIC_PAL_CYCLES_PER_LINE 63
