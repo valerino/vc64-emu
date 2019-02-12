@@ -3,7 +3,6 @@
 //
 
 #include <stdio.h>
-#include <time.h>
 #include <CBuffer.h>
 #include <CSDLUtils.h>
 #include <CLog.h>
@@ -229,6 +228,7 @@ int main (int argc, char** argv) {
         int cpu_hz = CPU_HZ;
         int cyclesPerSecond = abs (cpu_hz / VIC_PAL_HZ);
         int cycleCount = cyclesPerSecond;
+        int lastTime = SDL_GetTicks();
         while (running) {
             // step the cpu
             int cycles = cpu->step(debugger, debugger ? mustBreak : false);
@@ -257,13 +257,19 @@ int main (int argc, char** argv) {
                     display->update();
                 }
 
-                // process input
-                CSDLUtils::pollEvents(sdlEventCallback);
-
                 if (!cpu->isTestMode()) {
                     // play audio
                     audio->update();
                 }
+
+                // process input
+                CSDLUtils::pollEvents(sdlEventCallback);
+
+                // vsync
+                while (lastTime - SDL_GetTicks() < (1000 / VIC_PAL_HZ)) {
+                    SDL_Delay(1);
+                }
+                lastTime = SDL_GetTicks();
 
                 // next iteration
                 cycleCount += cyclesPerSecond;
