@@ -49,7 +49,7 @@
 // https://www.c64-wiki.com/wiki/53272
 #define VIC_REG_BASE_ADDR  0xd018
 
-#define VIC_REG_INTERRUPT  0xd019
+#define VIC_REG_INTERRUPT_LATCH  0xd019
 #define VIC_REG_IRQ_ENABLED 0xd01a
 #define VIC_REG_BORDER_COLOR 0xd020
 #define VIC_REG_BG_COLOR_0 0xd021
@@ -101,13 +101,17 @@ private:
     CMOS65xx* _cpu;
     uint16_t _rasterCounter;
     uint16_t _rasterIrqLine;
+    int _firstY;
+    int _lastY;
+    int _firstX;
+    int _lastX;
     int _scrollX;
     int _scrollY;
     uint8_t _regBackgroundColors[3];
     uint8_t _regBorderColor;
     uint8_t _regCr1;
     uint8_t _regCr2;
-    uint8_t _regInterrupt;
+    uint8_t _regInterruptLatch;
     uint8_t _regInterruptEnabled;
     void setSdlCtx(SDLDisplayCtx* ctx, uint32_t* frameBuffer);
 
@@ -130,6 +134,7 @@ private:
     void getBitmapModeScreenAddress(uint16_t* colorInfoAddress, uint16_t* bitmapAddress);
     void drawBorder(int rasterLine);
     void drawCharacterMode(int rasterLine);
+    bool isCharacterMode();
     void blit(int x, int y, rgbStruct* rgb);
 };
 

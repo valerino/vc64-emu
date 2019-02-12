@@ -272,7 +272,7 @@ int main (int argc, char** argv) {
                 lastTime = SDL_GetTicks();
 
                 // next iteration
-                cycleCount += cyclesPerSecond;
+                cycleCount = cyclesPerSecond;
                 totalCycles += cycleCount;
             }
         }
