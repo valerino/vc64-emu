@@ -39,7 +39,6 @@ CDisplay::~CDisplay() {
 }
 
 void CDisplay::update() {
-    // tell the vic to update the framebuffer
-    _vic->updateScreen();
-
+    // update the framebuffer
+    CSDLUtils::update(&_ctx,_fb,VIC_PAL_SCREEN_W);
 }

@@ -9,20 +9,24 @@
 #include "CCIA2.h"
 #include <CSDLUtils.h>
 
+#define VIC_RES_W 320
+#define VIC_RES_H 200
 #define VIC_PAL_HZ  50.124
-
 #define VIC_PAL_SCREEN_W 403
 #define VIC_PAL_SCREEN_H 284
 #define VIC_PAL_SCANLINES_PER_VBLANK 312
+#define VIC_PAL_FIRST_VISIBLE_LINE 14
+#define VIC_PAL_LAST_VISIBLE_LINE 298
+#define VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN 42
+#define VIC_PAL_FIRST_DISPLAYWINDOW_LINE 56
+#define VIC_PAL_LAST_DISPLAYWINDOW_LINE 256
+#define VIC_CHAR_MODE_COLUMNS 40
 
-#define VIC_FIRST_VISIBLE_LINE 14
-#define VIC_LAST_VISIBLE_LINE 298
-
-// 63 cycles per line
-#define VIC_CYCLES_PER_LINE 19656 / 312
+// 63 cycles per line (19656 / 312)
+#define VIC_PAL_CYCLES_PER_LINE 63
 
 // 23 cycles per badline
-#define VIC_CYCLES_PER_BADLINE 23
+#define VIC_PAL_CYCLES_PER_BADLINE 23
 
 /**
  * registers
@@ -90,13 +94,14 @@ private:
     CMOS65xx* _cpu;
     uint16_t _rasterCounter;
     uint16_t _rasterIrqLine;
-    int _borderHSize;
-    int _borderVSize;
     int _scrollX;
     int _scrollY;
-    int _displayH;
-    int _displayW;
-
+    uint8_t _regBackgroundColors[3];
+    uint8_t _regBorderColor;
+    uint8_t _regCr1;
+    uint8_t _regCr2;
+    uint8_t _regInterrupt;
+    uint8_t _regInterruptEnabled;
     void setSdlCtx(SDLDisplayCtx* ctx, uint32_t* frameBuffer);
 
     /**
@@ -112,14 +117,14 @@ private:
     SDLDisplayCtx* _sdlCtx;
     CCIA2* _cia2;
     void updateRasterCounter();
-    void updateScreen();
     uint16_t checkShadowAddress(uint16_t address);
     bool checkUnusedAddress(int type, uint16_t address, uint8_t *bt);
-    void updateScreenCharacterMode(uint32_t *frameBuffer);
     void getTextModeScreenAddress(uint16_t* screenCharacterRamAddress, uint16_t* charsetAddress);
     void getBitmapModeScreenAddress(uint16_t* colorInfoAddress, uint16_t* bitmapAddress);
-    void drawBorderRow(int row);
-};
+    void drawBorder(int rasterLine);
+    void drawCharacterMode(int rasterLine);
+
+    };
 
 
 #endif //VC64_EMU_CVICII_H
