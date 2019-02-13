@@ -66,12 +66,14 @@ CVICII::~CVICII() {
   * @param y y coordinate
   * @param rgb rgb color
   */
-void CVICII::blit(int x, int y, CVICII::rgbStruct *rgb) {
-    int pos = (((y + _scrollY)*VIC_PAL_SCREEN_W) + (x + _scrollX));
+ void CVICII::blit(int x, int y, CVICII::rgbStruct *rgb) {
     if (y >= VIC_PAL_SCREEN_H) {
         // not visible, vblank
         return;
     }
+
+    // set the pixel
+     int pos = (y  * VIC_PAL_SCREEN_W) + x;
     _fb[pos]=SDL_MapRGB(_sdlCtx->pxFormat, rgb->r, rgb->g, rgb->b);
 }
 
@@ -133,8 +135,8 @@ void CVICII::drawCharacterMode(int rasterLine) {
     // draw characters
     int columns = VIC_CHAR_MODE_COLUMNS;
     for (int c = 0; c < columns; c++) {
-        // check 38 columns
         if (!(IS_BIT_SET(_regCr2, 3))) {
+            // 38 columns, skip drawing column 0 and 39
             if (c == 0 || c == VIC_CHAR_MODE_COLUMNS - 1) {
                 continue;
             }
@@ -197,6 +199,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
             }
         }
         else {
+            data = (data >> _scrollX);
             for (int i=0; i < 8; i++) {
                 int pixelX = x + 8 - i;
                 if (IS_BIT_SET(data, i)) {
@@ -290,6 +293,20 @@ void CVICII::read(uint16_t address, uint8_t* bt) {
         return;
     }
 
+    switch(addr) {
+        case VIC_REG_CR2:
+            // bit 7 and 8 are always set
+            _cpu->memory()->readByte(addr,bt);
+            *bt |= 0xc0;
+            return;
+        case VIC_REG_INTERRUPT_LATCH:
+        case VIC_REG_IRQ_ENABLED:
+            // bit 4,5,6 are always set
+            _cpu->memory()->readByte(addr,bt);
+            *bt |= 0x70;
+            return;
+    }
+
     // finally read
     _cpu->memory()->readByte(addr,bt);
 }
@@ -358,7 +375,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
             break;
 
         case VIC_REG_CR2:
-            _regCr2 = bt;
+            _regCr2 = bt | 0xc0;
 
             // CSEL
             if (IS_BIT_SET(bt,3)) {

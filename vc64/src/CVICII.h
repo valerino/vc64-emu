@@ -135,7 +135,7 @@ private:
     void drawBorder(int rasterLine);
     void drawCharacterMode(int rasterLine);
     bool isCharacterMode();
-    void blit(int x, int y, rgbStruct* rgb);
+    void blit(int x, int y, CVICII::rgbStruct *rgb);
 };
 
 
