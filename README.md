@@ -3,7 +3,8 @@ my attempt at a portable Commodore64 emulator.
 
 ## current status
 ### v65xx (cpu emulator)
-working and tested with Klaus tests
+[README](./v65xx/README.md)
+
 #### TODO
 test invalid opcodes (implemented but not tested)
 
@@ -18,6 +19,9 @@ finish :)
 
 ### emushared (helper library)
 just generic helpers, if i plan to write other emulators
+
+## global TODO
+* split in different repos
 
 ## references
 * https://www.c64-wiki.com
