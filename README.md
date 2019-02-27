@@ -1,11 +1,23 @@
 # vc64-emu
 my attempt at a portable Commodore64 emulator.
 
-* just started!
-* later in development may be splitted into 3 different repos: 
-    * _v65xx_ (6502/6510 emulator)
-    * _vc64_ (the c64 emulator itself)
-    * _emushared_ (the shared utilities)
+## current status
+### v65xx (cpu emulator)
+working and tested with Klaus tests
+#### TODO
+test invalid opcodes (implemented but not tested)
+
+### vc64 (the actual emulator)
+* needs BIOS files ([bios/README.md](not included)
+* targets PAL c64
+* the emulator boots and BASIC works :)
+* CIA1 and CIA2 partially implemented
+* VIC-II partially implemented (character and multicolor mode only) 
+#### TODO
+finish :)
+
+### emushared (helper library)
+just generic helpers, if i plan to write other emulators
 
 ## references
 * https://www.c64-wiki.com
