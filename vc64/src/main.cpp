@@ -229,6 +229,7 @@ int main (int argc, char** argv) {
         int cyclesPerSecond = abs (cpu_hz / VIC_PAL_HZ);
         int cycleCount = cyclesPerSecond;
         int lastTime = SDL_GetTicks();
+        bool checkKQueue = false;
         while (running) {
             // step the cpu
             int cycles = cpu->step(debugger, debugger ? mustBreak : false);
@@ -264,6 +265,12 @@ int main (int argc, char** argv) {
 
                 // process input
                 CSDLUtils::pollEvents(sdlEventCallback);
+
+                // check the clipboard queue, and process one event if not empty
+                if (checkKQueue) {
+                    input->checkClipboardQueue();
+                }
+                checkKQueue = !checkKQueue;
 
                 // vsync
                 while (lastTime - SDL_GetTicks() < (1000 / VIC_PAL_HZ)) {

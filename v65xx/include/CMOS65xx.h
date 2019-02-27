@@ -5,9 +5,6 @@
 #ifndef CMOS65XX_H
 #define CMOS65XX_H
 
-/**
- * implement MOS 6502/6510 CPU emulator
- */
 #include <IMemory.h>
 
 // addressing modes
@@ -38,6 +35,9 @@ typedef void (*CpuCallbackWrite)(uint16_t address, uint8_t val);
  */
 typedef void (*CpuCallbackRead)(uint16_t address, uint8_t* val);
 
+/**
+ * implement MOS 6502/6510 CPU emulator
+ */
 class CMOS65xx {
 private:
     // each opcode handler takes the addressing mode and number of cycles for that addressing mode in input,

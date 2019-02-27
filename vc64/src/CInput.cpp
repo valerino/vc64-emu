@@ -7,9 +7,8 @@
 
 #ifndef NDEBUG
 // debug-only flag
-//#define DEBUG_INPUT
+#define DEBUG_INPUT
 #endif
-
 
 CInput::CInput(CCIA1* cia1) {
     _cia1 = cia1;
@@ -17,6 +16,73 @@ CInput::CInput(CCIA1* cia1) {
 
 CInput::~CInput() {
 
+}
+
+/**
+ * populates a queue with events from string on clipboard, when pasting text into the emulator
+ */
+void CInput::handleClipboard() {
+    char* txt = SDL_GetClipboardText();
+    if (!txt) {
+        // clipboard empty
+        return;
+    }
+
+    // push a keydown/keyup event for each key in the string
+    int l = strlen(txt);
+    for (int i=0; i < l; i++) {
+        // allocate
+        SDL_Event* evDown = (SDL_Event*)calloc(1,sizeof(SDL_Event));
+        SDL_Event* evUp = (SDL_Event*)calloc(1,sizeof(SDL_Event));
+
+        // build the events
+        SDL_Keycode c = tolower(txt[i]);
+        if (isalnum(c)) {
+            SDL_Scancode s = SDL_GetScancodeFromKey(c);
+            evDown->key.keysym.scancode = s;
+            evDown->type = SDL_KEYDOWN;
+            evUp->key.keysym.scancode = s;
+            evUp->type = SDL_KEYUP;
+
+            // push to the queue
+            _kqueue.push(evDown);
+            _kqueue.push(evUp);
+        }
+    }
+    SDL_free(txt);
+
+}
+
+void CInput::checkClipboardQueue() {
+    int l = _kqueue.size();
+    if (l > 0) {
+        // pop an event
+        SDL_Event* ev = _kqueue.front();
+        _kqueue.pop();
+
+        // process event
+        processEvent(ev);
+        free(ev);
+    }
+}
+
+
+/**
+ * process an event, used also to process injected keyboard events from clipboard
+ * @param ev the event
+ */
+void CInput::processEvent(SDL_Event *ev) {
+#ifdef DEBUG_INPUT
+    CLog::print("scancode: %d, type=%s",  ev->key.keysym.scancode, ev->type == SDL_KEYDOWN ? "keydown" : "keyup");
+#endif
+
+    // convert to c64 scancode
+    SDL_Scancode sds = ev->key.keysym.scancode;
+    uint8_t scancode = sdlScancodeToc64Scancode(sds);
+    if (scancode != 0xff) {
+        // update internal keyboard state
+        _cia1->setKeyState(scancode, ev->type == SDL_KEYDOWN ? true : false);
+    }
 }
 
 int CInput::update(SDL_Event *ev, uint32_t *hotkeys) {
@@ -33,14 +99,14 @@ int CInput::update(SDL_Event *ev, uint32_t *hotkeys) {
         return 0;
     }
 
-    // update internal keyboard state
-#ifdef DEBUG_INPUT
-    CLog::print("scancode: %d",  event->key.keysym.scancode);
-#endif
-    uint8_t scancode = sdlScancodeToc64Scancode(ev->key.keysym.scancode);
-    if (scancode != 0xff) {
-        _cia1->setKeyState(scancode, ev->type == SDL_KEYDOWN ? true : false);
+    if (keys[SDL_SCANCODE_LCTRL] && keys[SDL_SCANCODE_V]) {
+        // handle clipboard copying keystrokes to the input queue
+        handleClipboard();
+        return 0;
     }
+
+    // process event
+    processEvent(ev);
     return 0;
 }
 
@@ -48,8 +114,8 @@ int CInput::update(SDL_Event *ev, uint32_t *hotkeys) {
  * maps sdl keycode to c64 scancode
  * https://www.c64-wiki.com/wiki/Keyboard_code
  * https://sites.google.com/site/h2obsession/CBM/C128/keyboard-scan
- * @param sdlScanCode
- * @return
+ * @param sdlScanCode the sdl scancode
+ * @return the c64 scancode
  */
 uint8_t CInput::sdlScancodeToc64Scancode(uint32_t sdlScanCode){
     /**
@@ -211,3 +277,4 @@ uint8_t CInput::sdlScancodeToc64Scancode(uint32_t sdlScanCode){
     // invalid
     return 0xff;
 }
+
