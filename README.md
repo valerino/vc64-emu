@@ -8,7 +8,7 @@ working and tested with Klaus tests
 test invalid opcodes (implemented but not tested)
 
 ### vc64 (the actual emulator)
-* needs [bios/README.md](BIOS files)
+* needs [BIOS files](./bios/README.md)
 * targets PAL c64
 * the emulator boots and BASIC works :)
 * CIA1 and CIA2 partially implemented
