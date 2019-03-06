@@ -21,7 +21,7 @@ CInput::~CInput() {
 /**
  * populates a queue with events from string on clipboard, when pasting text into the emulator
  */
-void CInput::handleClipboard() {
+void CInput::fillClipboardQueue(){
     char* txt = SDL_GetClipboardText();
     if (!txt) {
         // clipboard empty
@@ -30,42 +30,57 @@ void CInput::handleClipboard() {
 
     // push a keydown/keyup event for each key in the string
     int l = strlen(txt);
-    for (int i=0; i < l; i++) {
+#ifdef DEBUG_INPUT
+    CLog::print("pushing to queue: %s", txt);
+#endif
+
+    for (int i = 0; i < l; i++) {
         // allocate
-        SDL_Event* evDown = (SDL_Event*)calloc(1,sizeof(SDL_Event));
-        SDL_Event* evUp = (SDL_Event*)calloc(1,sizeof(SDL_Event));
+        SDL_Event *evDown = (SDL_Event *)calloc(1, sizeof(SDL_Event));
+        SDL_Event *evUp = (SDL_Event *)calloc(1, sizeof(SDL_Event));
 
         // build the events
         SDL_Keycode c = tolower(txt[i]);
-        if (isalnum(c)) {
-            SDL_Scancode s = SDL_GetScancodeFromKey(c);
-            evDown->key.keysym.scancode = s;
-            evDown->type = SDL_KEYDOWN;
-            evUp->key.keysym.scancode = s;
-            evUp->type = SDL_KEYUP;
+        SDL_Scancode s = SDL_GetScancodeFromKey(c);
+#ifdef DEBUG_INPUT
+        CLog::print("pushed char: %c", txt[i]);
+#endif
+        evDown->key.keysym.scancode = s;
+        evDown->key.keysym.sym = c;
+        evDown->type = SDL_KEYDOWN;
+        evUp->key.keysym.scancode = s;
+        evUp->key.keysym.sym = c;
+        evUp->type = SDL_KEYUP;
 
-            // push to the queue
-            _kqueue.push(evDown);
-            _kqueue.push(evUp);
-        }
+        // push to the queue
+        _kqueue.push(evDown);
+        _kqueue.push(evUp);
     }
     SDL_free(txt);
-
 }
 
-void CInput::checkClipboardQueue() {
+void CInput::processClipboardQueue() {
+    // pop an event
+    SDL_Event* ev = _kqueue.front();
+    _kqueue.pop();
+
+    // process event
+    processEvent(ev);
+    free(ev);
+}
+
+
+bool CInput::hasClipboardEvents() {
     int l = _kqueue.size();
-    if (l > 0) {
-        // pop an event
-        SDL_Event* ev = _kqueue.front();
-        _kqueue.pop();
-
-        // process event
-        processEvent(ev);
-        free(ev);
+#ifdef DEBUG_INPUT
+    //CLog::print("queue size: %d", l);
+#endif
+    if (l != 0) {
+        // has events!
+        return true;
     }
+    return false;
 }
-
 
 /**
  * process an event, used also to process injected keyboard events from clipboard
@@ -73,7 +88,7 @@ void CInput::checkClipboardQueue() {
  */
 void CInput::processEvent(SDL_Event *ev) {
 #ifdef DEBUG_INPUT
-    CLog::print("scancode: %d, type=%s",  ev->key.keysym.scancode, ev->type == SDL_KEYDOWN ? "keydown" : "keyup");
+    CLog::print("scancode: %d, key: %s, type=%s",  ev->key.keysym.scancode, SDL_GetKeyName(ev->key.keysym.sym), ev->type == SDL_KEYDOWN ? "keydown" : "keyup");
 #endif
 
     // convert to c64 scancode
@@ -101,7 +116,7 @@ int CInput::update(SDL_Event *ev, uint32_t *hotkeys) {
 
     if (keys[SDL_SCANCODE_LCTRL] && keys[SDL_SCANCODE_V]) {
         // handle clipboard copying keystrokes to the input queue
-        handleClipboard();
+        *hotkeys = HOTKEY_PASTE_TEXT;
         return 0;
     }
 

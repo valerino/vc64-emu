@@ -34,6 +34,17 @@ bool running = true;
 bool mustBreak = false;
 
 /**
+ * @brief when there's clipboard events to process, wait some frames or the SDL queue may still have ctrl-v to process. probably this is not the
+ *  right way to do it (SDL_PumpEvents ?)
+ */
+#define CLIPBOARD_WAIT_FRAMES 120
+
+/**
+ * @brief when there's clipboard events to process, process one event and skip these many frames, until the queue is empty
+ */
+#define CLIPBOARD_SKIP_FRAMES 60
+
+/**
  * shows banner
  */
 void banner() {
@@ -108,8 +119,12 @@ void sdlEventCallback(SDL_Event* event) {
                 CLog::print("DEBUGBREAK requested (works only in debugger mode!)");
                 mustBreak = true;
             }
-        }
+            else if (hotkeys & HOTKEY_PASTE_TEXT) {
+                // fill the clipboard queue with fake events
+                input->fillClipboardQueue();
+            }
             break;
+        }
         default:
             break;
     }
@@ -229,7 +244,8 @@ int main (int argc, char** argv) {
         int cyclesPerSecond = abs (cpu_hz / VIC_PAL_HZ);
         int cycleCount = cyclesPerSecond;
         int lastTime = SDL_GetTicks();
-        bool checkKQueue = false;
+        int clipboardFrameCount=CLIPBOARD_SKIP_FRAMES;
+        int clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
         while (running) {
             // step the cpu
             int cycles = cpu->step(debugger, debugger ? mustBreak : false);
@@ -251,7 +267,7 @@ int main (int argc, char** argv) {
                 sid->update(cycleCount);
             }
 
-            // after cycles x seconds elapsed, update the display, process input and play sound
+            // after cyclesXseconds elapsed (1 frame), update the display, process input and play sound
             if (cycleCount <= 0) {
                 if (!cpu->isTestMode()) {
                     // update display
@@ -267,10 +283,26 @@ int main (int argc, char** argv) {
                 CSDLUtils::pollEvents(sdlEventCallback);
 
                 // check the clipboard queue, and process one event if not empty
-                if (checkKQueue) {
-                    input->checkClipboardQueue();
+                if (input->hasClipboardEvents()) {
+                    // we must wait some frames, or ctrl-V may still be in the SDL internal queue
+                    if (clipboardWaitFrames > 0) {
+                        clipboardWaitFrames--;
+                    }
+                    else {
+                        // process clipboard
+                        if (clipboardFrameCount == 0) {
+                            input->processClipboardQueue();
+                            clipboardFrameCount = CLIPBOARD_SKIP_FRAMES;
+                        }
+                        else {
+                            clipboardFrameCount--;
+                        }
+                    }
                 }
-                checkKQueue = !checkKQueue;
+                else {
+                    // reset
+                    clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
+                }
 
                 // vsync
                 while (lastTime - SDL_GetTicks() < (1000 / VIC_PAL_HZ)) {

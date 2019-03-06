@@ -10,9 +10,14 @@
 #include <queue>
 
 /**
- * pressing ctrl-d enters the debugger !
+ * @brief pressing ctrl-d enters the debugger, softice style :)
  */
 #define HOTKEY_DEBUGGER 1
+
+/**
+ * @brief pressing ctrl-v pastes text into the emulator
+ */
+#define HOTKEY_PASTE_TEXT 2
 
 /**
  * handles emulator input
@@ -32,15 +37,24 @@ public:
     int update(SDL_Event *ev, uint32_t *hotkeys);
 
     /**
-     * check the queue holding clipboard events, and if not empty processes it (injects fake keyboard events)
+     * processes the clipboard queue by injecting the events into the emulated keyboard (useful to type listings!)
      */
-    void checkClipboardQueue();
+    void processClipboardQueue();
+
+    /*
+     * returns wether the clipboard queue has events to be injected
+     */
+    bool hasClipboardEvents();
+
+    /**
+     * fills the clipboard queue with fake keyboard events, in response to HOTKEY_PASTE_TEXT
+     */
+    void fillClipboardQueue();
 
 private:
     CCIA1* _cia1;
     std::queue<SDL_Event*> _kqueue;
     uint8_t sdlScancodeToc64Scancode(uint32_t sdlScanCode);
-    void handleClipboard();
     void processEvent(SDL_Event* ev);
 
 };
