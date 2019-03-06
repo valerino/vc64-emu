@@ -42,7 +42,7 @@ bool mustBreak = false;
 /**
  * @brief when there's clipboard events to process, process one event and skip these many frames, until the queue is empty
  */
-#define CLIPBOARD_SKIP_FRAMES 60
+#define CLIPBOARD_SKIP_FRAMES 20
 
 /**
  * shows banner

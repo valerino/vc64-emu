@@ -7,7 +7,7 @@
 
 #ifndef NDEBUG
 // debug-only flag
-#define DEBUG_INPUT
+//#define DEBUG_INPUT
 #endif
 
 CInput::CInput(CCIA1* cia1) {
@@ -20,6 +20,9 @@ CInput::~CInput() {
 
 /**
  * populates a queue with events from string on clipboard, when pasting text into the emulator
+ * @todo rework the mapping!
+ * @todo support tags like {CLR/HOME}, etc....
+ * @see @ref sdlScancodeToC64Scancode for information about the mapping
  */
 void CInput::fillClipboardQueue(){
     char* txt = SDL_GetClipboardText();
@@ -33,18 +36,71 @@ void CInput::fillClipboardQueue(){
 #ifdef DEBUG_INPUT
     CLog::print("pushing to queue: %s", txt);
 #endif
-
     for (int i = 0; i < l; i++) {
+        bool addShift = false;
         // allocate
         SDL_Event *evDown = (SDL_Event *)calloc(1, sizeof(SDL_Event));
         SDL_Event *evUp = (SDL_Event *)calloc(1, sizeof(SDL_Event));
 
         // build the events
         SDL_Keycode c = tolower(txt[i]);
-        SDL_Scancode s = SDL_GetScancodeFromKey(c);
+        SDL_Scancode s;
+        switch (c) {
+            case SDLK_EQUALS:
+                s = SDL_SCANCODE_EQUALS;
+                break;
+
+                // return is both 0x0d and 0x0a
+            case SDLK_RETURN:
+            case 0x0a:
+                s = SDL_SCANCODE_RETURN;
+                break;
+
+            case SDLK_COLON:
+                s = SDL_SCANCODE_SEMICOLON;
+                break;
+
+            case SDLK_PLUS:
+                s = SDL_SCANCODE_BACKSLASH;
+                break;
+
+            case SDLK_DOLLAR:
+                s = SDL_SCANCODE_4;
+                addShift = true;
+                break;
+
+            case SDLK_LEFTPAREN:
+                s = SDL_SCANCODE_8;
+                addShift = true;
+                break;
+
+            case SDLK_RIGHTPAREN:
+                s = SDL_SCANCODE_9;
+                addShift = true;
+                break;
+
+            case SDLK_SEMICOLON:
+                s = SDL_SCANCODE_APOSTROPHE;
+
+                break;
+
+            default:
+                s = SDL_GetScancodeFromKey(c);
+                break;
+        }
 #ifdef DEBUG_INPUT
         CLog::print("pushed char: %c", txt[i]);
 #endif
+        if (addShift) {
+            // key is shifted
+            SDL_Event* evShiftDown = (SDL_Event *)calloc(1, sizeof(SDL_Event));
+            evShiftDown->key.keysym.scancode = SDL_SCANCODE_LSHIFT;
+            evShiftDown->key.keysym.sym = SDLK_LSHIFT;
+            evShiftDown->type = SDL_KEYDOWN;
+
+            // push shift down to the queue
+            _kqueue.push(evShiftDown);
+        }
         evDown->key.keysym.scancode = s;
         evDown->key.keysym.sym = c;
         evDown->type = SDL_KEYDOWN;
@@ -55,6 +111,18 @@ void CInput::fillClipboardQueue(){
         // push to the queue
         _kqueue.push(evDown);
         _kqueue.push(evUp);
+
+        if (addShift) {
+            // key is shifted
+            SDL_Event* evShiftUp = (SDL_Event *)calloc(1, sizeof(SDL_Event));
+            evShiftUp->key.keysym.scancode = SDL_SCANCODE_LSHIFT;
+            evShiftUp->key.keysym.sym = SDLK_LSHIFT;
+            evShiftUp->type = SDL_KEYUP;
+
+            // push shift down to the queue
+            _kqueue.push(evShiftUp);
+        }
+
     }
     SDL_free(txt);
 }
@@ -93,7 +161,7 @@ void CInput::processEvent(SDL_Event *ev) {
 
     // convert to c64 scancode
     SDL_Scancode sds = ev->key.keysym.scancode;
-    uint8_t scancode = sdlScancodeToc64Scancode(sds);
+    uint8_t scancode = sdlScancodeToC64Scancode(sds);
     if (scancode != 0xff) {
         // update internal keyboard state
         _cia1->setKeyState(scancode, ev->type == SDL_KEYDOWN ? true : false);
@@ -127,12 +195,14 @@ int CInput::update(SDL_Event *ev, uint32_t *hotkeys) {
 
 /**
  * maps sdl keycode to c64 scancode
- * https://www.c64-wiki.com/wiki/Keyboard_code
- * https://sites.google.com/site/h2obsession/CBM/C128/keyboard-scan
+ * @note https://www.c64-wiki.com/wiki/Keyboard_code\n
+ *  https://sites.google.com/site/h2obsession/CBM/C128/keyboard-scan
  * @param sdlScanCode the sdl scancode
+ * @todo this should be reworked using the system layout, actually maps the C64 keyboard roughly to the italian keyboard\n
+ *  also, shifted keys like cursors should be handled internally
  * @return the c64 scancode
  */
-uint8_t CInput::sdlScancodeToc64Scancode(uint32_t sdlScanCode){
+uint8_t CInput::sdlScancodeToC64Scancode(uint32_t sdlScanCode){
     /**
      * custom mapping
      * TODO: support customizing
@@ -234,44 +304,42 @@ uint8_t CInput::sdlScancodeToc64Scancode(uint32_t sdlScanCode){
             return 0x26;
         case SDL_SCANCODE_N:
             return 0x27;
-        case SDL_SCANCODE_BACKSLASH:
-            // 'ù' on IT keyboard, returns '+'
+        case SDL_SCANCODE_BACKSLASH: /**< italian keyboard: ù -> + */
             return 0x28;
         case SDL_SCANCODE_P:
             return 0x29;
         case SDL_SCANCODE_L:
             return 0x2a;
-        case SDL_SCANCODE_MINUS:
+        case SDL_SCANCODE_MINUS: /**< italian keyboard: ' -> - */
             return 0x2b;
-        case SDL_SCANCODE_PERIOD:
+        case SDL_SCANCODE_PERIOD: /**< italian keyboard: - -> / */
             return 0x2c;
-        case SDL_SCANCODE_SEMICOLON:
+        case SDL_SCANCODE_SEMICOLON: /**< italian keyboard: ò -> : */
             return 0x2d;
-        case SDL_SCANCODE_NONUSBACKSLASH:
-            // '<' on IT keyboard, returns '@'
+        case SDL_SCANCODE_NONUSBACKSLASH: /**< italian keyboard: < ->  @ */
             return 0x2e;
         case SDL_SCANCODE_COMMA:
             return 0x2f;
         case SDL_SCANCODE_GRAVE:
-            return 0x30;
-        case SDL_SCANCODE_LEFTBRACKET:
+            return 0x30;  /**< italian keyboard: \ -> £ */
+        case SDL_SCANCODE_LEFTBRACKET: /**< italian keyboard: è -> * */
             return 0x31;
-        case SDL_SCANCODE_APOSTROPHE:
+        case SDL_SCANCODE_APOSTROPHE: /**< italian keyboard: à -> ; */
             return 0x32;
         case SDL_SCANCODE_HOME:
             return 0x33;
         case SDL_SCANCODE_RSHIFT:
             return 0x34;
-        case SDL_SCANCODE_EQUALS:
+        case SDL_SCANCODE_EQUALS: /**< italian keyboard: ì -> = */
             return 0x35;
-        case SDL_SCANCODE_RIGHTBRACKET:
+        case SDL_SCANCODE_RIGHTBRACKET: /**< italian keyboard: + -> (graphical up arrow) */
             return 0x36;
         case SDL_SCANCODE_SLASH:
             return 0x37;
         case SDL_SCANCODE_1:
             return 0x38;
         case SDL_SCANCODE_ESCAPE:
-            return 0x39;
+            return 0x39; /**< italian keyboard: esc -> (graphical left arrow) */
         case SDL_SCANCODE_LCTRL:
         case SDL_SCANCODE_RCTRL:
             return 0x3a;

@@ -54,7 +54,7 @@ public:
 private:
     CCIA1* _cia1;
     std::queue<SDL_Event*> _kqueue;
-    uint8_t sdlScancodeToc64Scancode(uint32_t sdlScanCode);
+    uint8_t sdlScancodeToC64Scancode(uint32_t sdlScanCode);
     void processEvent(SDL_Event* ev);
 
 };
