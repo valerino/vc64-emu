@@ -52,7 +52,8 @@ int CCIA2::getVicBank(uint16_t* address) {
     if (IS_BIT_SET(dataReg, 1) && IS_BIT_SET(dataReg, 0)) {
         // xxxxxx10
         bank = 0;
-        *address = 0;
+        // TODO: this is a hack!!!!!!!! correct value here is 0
+        *address = 0xc000;
     }
     else if (IS_BIT_SET(dataReg, 1) && !(IS_BIT_SET(dataReg, 0))) {
         // xxxxxx11
