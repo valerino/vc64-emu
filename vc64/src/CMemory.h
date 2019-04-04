@@ -64,6 +64,13 @@ public:
     int init() override;
 
     /**
+     * load a .PRG in memory
+     * @param path path to the prg
+     * @return 0 on success
+     */
+    int loadPrg(const char* path);
+
+    /**
      * get pointer to ram memory
      * @return
      */

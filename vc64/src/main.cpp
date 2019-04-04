@@ -136,7 +136,7 @@ void sdlEventCallback(SDL_Event* event) {
  */
 void usage(char** argv) {
     CLog::error("usage: %s -f <file> [-dsh]\n" \
-    "\t-f: file to be update (TAP/PRG/CRT)\n" \
+    "\t-f: file to be loaded (PRG only is supported as now)\n" \
     "\t-d: debugger\n" \
     "\t-s: fullscreen\n" \
     "\t-h: this help\n",
@@ -195,11 +195,6 @@ int main (int argc, char** argv) {
         mem = new CMemory();
         CLog::print("Memory initialized OK!");
 
-        if (path != nullptr) {
-            CLog::print("Loading file: %s", path);
-            // TODO: load PRG/CRT into memory
-        }
-
         // create cpu
         cpu = new CMOS65xx(mem, cpuCallbackRead, cpuCallbackWrite);
         if (cpu->reset() != 0) {
@@ -210,6 +205,15 @@ int main (int argc, char** argv) {
         CLog::print("CPU initialized OK!");
         if (debugger) {
             CLog::print("debugging mode ACTIVE!");
+        }
+
+        // load program, if any
+        if (path != nullptr) {
+            // TODO: determine if it's a prg, either fail....
+            res = mem->loadPrg(path);
+            if (res != 0) {
+                break;
+            }
         }
 
         // create additional chips

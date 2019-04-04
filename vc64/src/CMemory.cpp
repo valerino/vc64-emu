@@ -165,14 +165,6 @@ int CMemory::loadBios() {
         return res;
     }
 
-    /*
-    uint32_t crtSize;
-    uint8_t* gridrunner;
-    snprintf(path,sizeof(path),"%s/grid.prg", bios);
-    CBuffer::fromFile(path, &gridrunner, &crtSize);
-    CLog::print("Loaded gridrunner, size=0x%0x", path, crtSize);
-    memcpy(_mem + 0x8000, gridrunner, crtSize);
-     */
     return 0;
 }
 
@@ -206,4 +198,30 @@ uint8_t* CMemory::raw(uint32_t *size) {
 
 uint8_t *CMemory::charset() {
     return _charRom;
+}
+
+int CMemory::loadPrg(const char *path) {
+    if (!path) {
+        return EINVAL;
+    }
+
+    // load file
+    uint8_t* buf;
+    uint32_t size;
+    int res = CBuffer::fromFile(path,&buf,&size);
+    if (res != 0) {
+        CLog::error("Failed to load PRG: %s (%d)", path, res);
+        return res;
+    }
+
+    // first 2 bytes is the load address
+    uint8_t* p = (uint8_t*)buf;
+    uint16_t address= *((uint16_t*)p);
+
+    CLog::print("loading %s in ram at $%0x", path, address);
+    size-=sizeof(uint16_t);
+    p+=sizeof(uint16_t);
+    res = writeBytes(address,p,size);
+    free(buf);
+    return res;
 }
