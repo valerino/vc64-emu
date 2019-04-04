@@ -160,8 +160,8 @@ void CMOS65xx::logExecution(const char *name, uint8_t opcodeByte, uint16_t opera
 #else
     bool doPrint = false;
 #endif
-    if (_isDebugging) {
-        // always show log on debugging
+    if (_isDebugging && !_isG) {
+        // always show log on debugging, unless we're on 'go'
         doPrint = true;
     }
     else {
@@ -602,7 +602,7 @@ CMOS65xx::CMOS65xx(IMemory *mem, CpuCallbackRead callbackRead, CpuCallbackWrite 
     _callbackR = callbackRead;
     _callbackW = callbackWrite;
 
-    _ignoreDebugging = false;
+    _isG = false;
     _isDebugging = false;
     _forceBreak = false;
     _bpAddress = 0;
@@ -1668,11 +1668,15 @@ IMemory *CMOS65xx::memory() {
 void CMOS65xx::debugger(int addressingMode, int* size) {
     // check if we need to break
     bool doBreak = false;
-    if ((_forceBreak || _isDebugging) &&  !_ignoreDebugging) {
-        // requested break
-        doBreak = true;
+    if ((_forceBreak || _isDebugging)) {
+        // requested break, but not during 'go' !
+        if (!_isG) {
+            doBreak = true;
+        }
         if (_forceBreak) {
-            _ignoreDebugging = false;
+            // reset 'go' status too
+            _isG = !_isG;
+            _forceBreak = false;
         }
     }
     if (_bpSet) {
@@ -1713,7 +1717,6 @@ void CMOS65xx::debugger(int addressingMode, int* size) {
         switch (line[0]) {
             case 'p':
                 // step
-                _ignoreDebugging = false;
                 _silenceLog = false;
                 break;
 
@@ -1731,7 +1734,7 @@ void CMOS65xx::debugger(int addressingMode, int* size) {
             case 'g':
                 // go
                 _silenceLog = false;
-                _ignoreDebugging = true;
+                _isG = true;
                 break;
 
             case 'c':
@@ -1742,7 +1745,6 @@ void CMOS65xx::debugger(int addressingMode, int* size) {
                 _bpCycles = 0;
                 _breakIrq = false;
                 _breakNmi = false;
-                _ignoreDebugging = false;
                 CLog::printRaw("\tbreakpoint clear!\n");
 
                 // do not advance
@@ -1862,6 +1864,7 @@ void CMOS65xx::debugger(int addressingMode, int* size) {
                 CLog::printRaw("built-in 65xx debugger\n");
                 CLog::printRaw("\tavailable commands:\n");
                 CLog::printRaw("\tp:\t\t\t\tstep instruction\n");
+                CLog::printRaw("\tg:\t\t\t\tgo (resume execution)\n");
                 CLog::printRaw("\tr:\t\t\t\tdisplay registers\n");
                 CLog::printRaw("\td <$address> <num_bytes>:\tdisplay num_bytes at address\n");
                 CLog::printRaw("\te <$address> <1a,2b,...>:\twrite given hex bytes at address\n");

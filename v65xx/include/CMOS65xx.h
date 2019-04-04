@@ -486,8 +486,8 @@ private:
     /*
      * for the builtin debugger
      */
-    bool _ignoreDebugging;
     bool _isDebugging;
+    bool _isG;
     bool _forceBreak;
     uint32_t _bpAddress;
     int64_t _bpCycles;

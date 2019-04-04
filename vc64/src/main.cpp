@@ -207,15 +207,6 @@ int main (int argc, char** argv) {
             CLog::print("debugging mode ACTIVE!");
         }
 
-        // load program, if any
-        if (path != nullptr) {
-            // TODO: determine if it's a prg, either fail....
-            res = mem->loadPrg(path);
-            if (res != 0) {
-                break;
-            }
-        }
-
         // create additional chips
         cia1 = new CCIA1(cpu);
         cia2 = new CCIA2(cpu);
@@ -242,6 +233,15 @@ int main (int argc, char** argv) {
             break;
         }
         CLog::print("Display initialized OK!");
+
+        // load program, if any
+        if (path != nullptr) {
+            // TODO: determine if it's a prg, either fail....
+            res = mem->loadPrg(path);
+            if (res != 0) {
+                break;
+            }
+        }
 
         // pal c64 runs at 0,985mhz, 50hz, 19656 cycles per second
         int cpu_hz = CPU_HZ;

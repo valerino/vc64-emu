@@ -91,10 +91,10 @@ uint16_t CMemory::readWord(uint32_t address, uint16_t *w) {
 }
 
 int CMemory::writeWord(uint32_t address, uint16_t w) {
-    uint8_t hi = (uint8_t)(w >> 8);
     uint8_t lo = (w & 0xff);
-    writeByte(address, hi);
-    writeByte(address +1, lo);
+    uint8_t hi = (uint8_t)(w >> 8);
+    writeByte(address, lo);
+    writeByte(address +1, hi);
     return 0;
 }
 
@@ -223,5 +223,12 @@ int CMemory::loadPrg(const char *path) {
     p+=sizeof(uint16_t);
     res = writeBytes(address,p,size);
     free(buf);
+    if (res != 0) {
+        return res;
+    }
+    writeWord(0x002b, address);
+    writeWord(0x002d, address + size +1 );
+    writeWord(0x002f, address + size +1 );
+    writeWord(0x0031, address + size +1);
     return res;
 }
