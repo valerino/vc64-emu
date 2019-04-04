@@ -234,15 +234,6 @@ int main (int argc, char** argv) {
         }
         CLog::print("Display initialized OK!");
 
-        // load program, if any
-        if (path != nullptr) {
-            // TODO: determine if it's a prg, either fail....
-            res = mem->loadPrg(path);
-            if (res != 0) {
-                break;
-            }
-        }
-
         // pal c64 runs at 0,985mhz, 50hz, 19656 cycles per second
         int cpu_hz = CPU_HZ;
         int cyclesPerSecond = abs (cpu_hz / VIC_PAL_HZ);
@@ -259,16 +250,28 @@ int main (int argc, char** argv) {
                 continue;
             }
             cycleCount -= cycles;
+            totalCycles+=cycles;
 
             // reset break status if any
             mustBreak = false;
 
             // after each cycle, update internal chips state
             if (!cpu->isTestMode()) {
-                cycleCount -= vic->update(cycleCount);
-                cia1->update(cycleCount);
-                cia2->update(cycleCount);
-                sid->update(cycleCount);
+                int c = vic->update(cycleCount);
+                cycleCount -= c;
+                totalCycles+=c;
+
+                c = cia1->update(cycleCount);
+                cycleCount -= c;
+                totalCycles+=c;
+
+                c = cia2->update(cycleCount);
+                cycleCount -= c;
+                totalCycles+=c;
+
+                c = sid->update(cycleCount);
+                cycleCount -= c;
+                totalCycles+=c;
             }
 
             // after cyclesXseconds elapsed (1 frame), update the display, process input and play sound
@@ -316,7 +319,16 @@ int main (int argc, char** argv) {
 
                 // next iteration
                 cycleCount = cyclesPerSecond;
-                totalCycles += cycleCount;
+
+                // this basically waits enough cycles for BASIC to be initialized, then
+                // load a prg if it's set
+                if (totalCycles > 14570000) {
+                    if (path) {
+                        // TODO: determine if it's a prg, either fail....
+                        mem->loadPrg(path);
+                        path=nullptr;
+                    }
+                }
             }
         }
     } while(0);

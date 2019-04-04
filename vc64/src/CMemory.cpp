@@ -217,18 +217,25 @@ int CMemory::loadPrg(const char *path) {
     // first 2 bytes is the load address
     uint8_t* p = (uint8_t*)buf;
     uint16_t address= *((uint16_t*)p);
-
-    CLog::print("loading %s in ram at $%0x", path, address);
     size-=sizeof(uint16_t);
     p+=sizeof(uint16_t);
+    uint16_t end = address + size;
+    CLog::print("Loading %s in RAM, start=$%08x, end=$%08x, size=%d", path, address, end, size);
+
+    // copy in ram
     res = writeBytes(address,p,size);
     free(buf);
     if (res != 0) {
         return res;
     }
-    writeWord(0x002b, address);
-    writeWord(0x002d, address + size +1 );
-    writeWord(0x002f, address + size +1 );
-    writeWord(0x0031, address + size +1);
+
+    if (address == BASIC_PRG_START_ADDRESS) {
+        // set basic informations in the zeropage
+        uint16_t end = address + size;
+        writeWord(ZEROPAGE_BASIC_PROGRAM_START, address);
+        writeWord(ZEROPAGE_BASIC_VARTAB, end);
+        writeWord(ZEROPAGE_BASIC_ARYTAB, end);
+        writeWord(ZEROPAGE_BASIC_STREND, end);
+    }
     return res;
 }

@@ -23,10 +23,16 @@
 #define MEMORY_COLOR_ADDRESS    0xd800
 #define MEMORY_COLOR_SIZE       0x400
 
+// start address of a basic program
+#define BASIC_PRG_START_ADDRESS 0x801
+
 // zeropage
 #define ZEROPAGE_REG_DATA_DIRECTION 0
 #define ZEROPAGE_REG_IO_PORT 1
-
+#define ZEROPAGE_BASIC_PROGRAM_START    0x2b // 0x2b-0x2c, this contains the address of the basic program, usually BASIC_PRG_START_ADDRESS
+#define ZEROPAGE_BASIC_VARTAB           0x2d // 0x2d-0x2e, address of the normal variables, right after the basic program end
+#define ZEROPAGE_BASIC_ARYTAB           0x2f // 0x2f-0x30, address of array variables, right after the basic program end
+#define ZEROPAGE_BASIC_STREND           0x31 // 0x31-0x32, end address +1 of array variables, right after the basic program end
 
 /**
  * implements the emulated memory
