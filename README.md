@@ -5,22 +5,40 @@ my attempt at a portable Commodore64 emulator.
 ### v65xx (cpu emulator)
 [README](./v65xx/README.md)
 
-#### TODO
-test invalid opcodes (implemented but not tested)
-
 ### vc64 (the actual emulator)
 * needs [BIOS files](./bios/README.md)
 * targets PAL c64
-* the emulator boots and BASIC works :)
 * CIA1 and CIA2 partially implemented
 * VIC-II partially implemented (character and multicolor mode only)
 
-#### STATUS
-here's the emulator attempting to run ROX64 (llamasoft):
-https://twitter.com/valerino/status/1113904347157553152?s=20
+#### usage
+~~~
+vc64 - a c64 emulator
+(c)opyleft, valerino, y2k19
 
-and here attempting to run AMC/Matrix (llamasoft):
-https://twitter.com/valerino/status/1114051388542205952?s=20
+[x] usage: ./vc64 -f <file> [-dsh]
+        -f: file to be loaded (PRG only is supported as now)
+        -d: debugger
+        -s: fullscreen
+        -h: this help
+~~~
+
+#### STATUS
+* CIA1 and CIA2 partially implemented
+* VIC-II partially implemented (character and multicolor mode only)
+  * basic and multicolor mode works
+  
+    https://twitter.com/valerino/status/1092400004080328704?s=20
+  
+    https://twitter.com/valerino/status/1094047231068516352?s=20
+
+* here's the emulator attempting to run ROX64 (llamasoft):
+  
+  https://twitter.com/valerino/status/1113904347157553152?s=20
+
+* and here attempting to run AMC/Matrix (llamasoft):
+  
+  https://twitter.com/valerino/status/1114051388542205952?s=20
 
 (yep ... it started as a Llamasoft tribute!)
 
