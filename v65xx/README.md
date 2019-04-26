@@ -1,22 +1,25 @@
 # v65xx
 my MOS 6502/6510/65xxx emulator/interpreter!
 
-# features
+## features
 * clean code
     * since i myself am a newbie in writing emulators, i've explicitly choosen to prefer clean to performant code!
 
 * passes the Klaus's functional tests from 6502.org!
     * https://github.com/Klaus2m5/6502_65C02_functional_tests
-    * latest version as 1/2019 included in this repo
+      * latest version as 1/2019 included in this repo
     * to test, enable *DEBUG_RUN_FUNCTIONAL_TESTS* in *include/CMOS65xx.cpp*
-* emulates all undocumented instructions
-    * TODO: implemented, but still to be tested!
-    
+* emulates all undocumented opcodes    
 * cycle accurate
-
 * built-in debugger
-    * call step() with debugging=true (and possibly with forceDebugging=true to interrupt while running, i.e. with an hotkey)
-    * while in debugging mode use 'h' for help on commands
+    * call _step()_ with _debugging=true_ (and possibly with _forceDebugging=true_ to interrupt while running, i.e. with an hotkey)
+    * while in debugging mode use _'h'_ for help on commands
+    * debugger in action (during development of http://github.com/valerino/vc64-emu)
+    
+      https://twitter.com/valerino/status/1090800442378985478?s=20
+
+## TODO
+test undocumented opcodes!
 
 ## references
 * http://archive.6502.org/datasheets/mos_6510_mpu.pdf
