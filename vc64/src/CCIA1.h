@@ -6,6 +6,7 @@
 #define VC64_EMU_CCIA1_H
 
 #include <CMOS65xx.h>
+#include "CIACommon.h"
 
 /**
  * registers
@@ -13,15 +14,6 @@
  */
 #define CIA1_REGISTERS_START 0xdc00
 #define CIA1_REGISTERS_END   0xdcff
-
-#define CIA1_REG_DATAPORT_A 0xdc00
-#define CIA1_REG_DATAPORT_B 0xdc01
-#define CIA1_REG_TIMER_A_LO 0xdc04
-#define CIA1_REG_TIMER_A_HI 0xdc05
-#define CIA1_REG_TIMER_B_LO 0xdc06
-#define CIA1_REG_TIMER_B_HI 0xdc07
-#define CIA1_REG_CONTROL_TIMER_A 0xdc0e
-#define CIA1_REG_CONTROL_TIMER_B 0xdc0f
 
 /**
  * implements the 1st CIA 6526, which controls keyboard, joystick, paddles, datassette and IRQ
@@ -62,16 +54,25 @@ public:
     void setKeyState(uint8_t scancode, bool pressed);
 
 private:
-    void processDc01Read(uint8_t* bt);
+    void readKeyboardMatrixColumn(uint8_t *bt, uint8_t pra);
     uint16_t checkShadowAddress(uint16_t address);
 
-    uint8_t _keyboard[0x40];
+    bool _kbMatrix[0x40] = {false};
 
-    uint16_t _timerA;
-    uint16_t _timerB;
-    bool _timerARunning;
-    bool _timerBRunning;
-    CMOS65xx* _cpu;
+    uint16_t _timerALatch = 0;
+    uint16_t _timerBLatch = 0;
+    uint16_t _timerA = 0;
+    uint16_t _timerB = 0;
+    int _timerAMode = 0;
+    int _timerBMode = 0;
+    bool _timerARunning = false;
+    bool _timerBRunning = false;
+    bool _timerAIrqEnabled = false;
+    bool _timerBIrqEnabled = false;
+    bool _timerAIrqTriggered = false;
+    bool _timerBIrqTriggered = false;
+    int _prevCycleCount = 0;
+    CMOS65xx* _cpu = nullptr;
 };
 
 

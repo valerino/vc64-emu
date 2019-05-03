@@ -234,9 +234,9 @@ int main (int argc, char** argv) {
         }
         CLog::print("Display initialized OK!");
 
-        // pal c64 runs at 0,985mhz (~1mhz=1000000hz), video at 50hz (50fps)
-        int cyclesPerFrame = 1*1000000 / 50;
+        // pal c64 runs at 0,985mhz (~=1mhz=1000000hz), video at 50hz (50fps)
         int cyclesPerSecond = 1*1000000;
+        int cyclesPerFrame =  cyclesPerSecond / 50;
         int cyclesPerLine = cyclesPerFrame / 312;
         int vblankCycles = (312 - 284) * cyclesPerLine;
         int cycleCount = cyclesPerFrame;
@@ -258,13 +258,13 @@ int main (int argc, char** argv) {
 
             // after each instruction, update internal chips state
             if (!cpu->isTestMode()) {
+                cia1->update(totalCycles);
+                cia2->update(totalCycles);
+                sid->update(cycleCount);
+
                 int c = vic->update(cycleCount);
                 cycleCount -= c;
                 totalCycles+=c;
-
-                cia1->update(cycleCount);
-                cia2->update(cycleCount);
-                sid->update(cycleCount);
             }
 
             // after cycles per frame elapsed, update the display, process input and play sound
@@ -272,9 +272,7 @@ int main (int argc, char** argv) {
                 if (!cpu->isTestMode()) {
                     // update display
                     display->update();
-                }
 
-                if (!cpu->isTestMode()) {
                     // play audio
                     audio->update();
                 }
@@ -305,6 +303,7 @@ int main (int argc, char** argv) {
                 }
 
                 // do nothing per vsync cycles
+                SDL_Delay(vblankCycles / 1000);
                 cycleCount += vblankCycles;
 
                 // go on...

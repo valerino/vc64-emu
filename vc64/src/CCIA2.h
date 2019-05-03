@@ -6,6 +6,7 @@
 #define VC64_EMU_CCIA2_H
 
 #include <CMOS65xx.h>
+#include "CIACommon.h"
 
 /**
  * registers
@@ -61,10 +62,19 @@ public:
 
 private:
     CMOS65xx* _cpu;
-    uint16_t _timerA;
-    uint16_t _timerB;
-    bool _timerARunning;
-    bool _timerBRunning;
+    uint16_t _timerALatch = 0;
+    uint16_t _timerBLatch = 0;
+    uint16_t _timerA = 0;
+    uint16_t _timerB = 0;
+    int _timerAMode = 0;
+    int _timerBMode = 0;
+    bool _timerARunning = false;
+    bool _timerBRunning = false;
+    bool _timerANmiEnabled = false;
+    bool _timerBNmiEnabled = false;
+    bool _timerANmiTriggered = false;
+    bool _timerBNmiTriggered = false;
+    int _prevCycleCount = 0;
 };
 
 #endif //VC64_EMU_CCIA2_H

@@ -15,7 +15,7 @@
 //#define DEBUG_CIA2
 #endif
 
-CCIA2::CCIA2(CMOS65xx* cpu) {
+CCIA2::CCIA2(CMOS65xx *cpu) {
     _cpu = cpu;
     _timerA = 0;
     _timerB = 0;
@@ -23,29 +23,48 @@ CCIA2::CCIA2(CMOS65xx* cpu) {
     _timerBRunning = false;
 }
 
-CCIA2::~CCIA2() {
-
-}
+CCIA2::~CCIA2() {}
 
 int CCIA2::update(int cycleCount) {
     if (_timerARunning) {
-        _timerA--;
-        if (_timerA == 0) {
-            // timer A expired
-            _cpu->irq();
+        // check timerA mode
+        if (_timerAMode == CIA_TIMER_COUNT_CPU_CYCLES) {
+            _timerA = _timerA - (cycleCount - _prevCycleCount);
+            if (_timerA <= 0) {
+                if (_timerANmiEnabled) {
+                    // trigger irq
+                    _cpu->irq();
+                    _timerANmiTriggered = true;
+                }
+                _timerA = _timerALatch;
+            }
+        } else {
+            // TODO: mode is count slopes at CNT pin
         }
     }
     if (_timerBRunning) {
-        _timerB--;
-        if (_timerB == 0) {
-            // timer B expired
-            _cpu->irq();
+        switch (_timerBMode) {
+        case CIA_TIMER_COUNT_CPU_CYCLES:
+            _timerB = _timerB - (cycleCount - _prevCycleCount);
+            if (_timerB <= 0) {
+                if (_timerBNmiEnabled) {
+                    // trigger nmi
+                    _cpu->nmi();
+                    _timerBNmiTriggered = true;
+                }
+                _timerB = _timerBLatch;
+            }
+            break;
+            // TODO: handle other modes
+        default:
+            break;
         }
     }
+    _prevCycleCount = cycleCount;
     return 0;
 }
 
-int CCIA2::getVicBank(uint16_t* address) {
+int CCIA2::getVicBank(uint16_t *address) {
     int bank = 0;
     uint8_t dataReg;
     _cpu->memory()->readByte(CIA2_REG_DATAPORT_A, &dataReg);
@@ -53,19 +72,16 @@ int CCIA2::getVicBank(uint16_t* address) {
         // xxxxxx10
         bank = 0;
         // TODO: this is a hack!!!!!!!! correct value here is 0
-        *address = 0;//0xc000;
-    }
-    else if (IS_BIT_SET(dataReg, 1) && !(IS_BIT_SET(dataReg, 0))) {
+        *address = 0; // 0xc000;
+    } else if (IS_BIT_SET(dataReg, 1) && !(IS_BIT_SET(dataReg, 0))) {
         // xxxxxx11
         bank = 1;
         *address = 0x4000;
-    }
-    else if (!(IS_BIT_SET(dataReg, 1)) && IS_BIT_SET(dataReg, 0)) {
+    } else if (!(IS_BIT_SET(dataReg, 1)) && IS_BIT_SET(dataReg, 0)) {
         // xxxxxx01
         bank = 2;
         *address = 0x8000;
-    }
-    else if (!(IS_BIT_SET(dataReg, 1)) && !(IS_BIT_SET(dataReg, 0))) {
+    } else if (!(IS_BIT_SET(dataReg, 1)) && !(IS_BIT_SET(dataReg, 0))) {
         // xxxxxx00
         bank = 3;
         *address = 0xc000;
@@ -78,70 +94,151 @@ int CCIA2::getVicBank(uint16_t* address) {
 }
 
 void CCIA2::read(uint16_t address, uint8_t *bt) {
+    switch (address) {
+        // TA LO: timer A lowbyte
+        case 0xdd04:
+            *bt = _timerA & 0xff;
+            return;
+
+        // TA HI: timer A hibyte
+        case 0xdd05:
+            *bt = (_timerA & 0xff00) >> 8;
+            return;
+
+        // TB LO: timer B lobyte
+        case 0xdd06:
+            *bt = _timerB & 0xff;
+        return;
+
+        // TB HI: timer B hibyte
+        case 0xdd07:
+            *bt = (_timerB & 0xff00) >> 8;
+        return;
+
+    default:
+        break;
+    }
+
     // finally read
-    _cpu->memory()->readByte(address,bt);
+    _cpu->memory()->readByte(address, bt);
 }
 
 void CCIA2::write(uint16_t address, uint8_t bt) {
     switch (address) {
-        case CIA2_REG_DATAPORT_A: {
+        // PRA : data port A
+        case 0xdd00: {
             uint16_t base;
             int bank = getVicBank(&base);
-            CMemory *ram = (CMemory *) _cpu->memory();
+            CMemory *ram = (CMemory *)_cpu->memory();
             if (bank == 0) {
                 // shadow character rom at $1000
                 memcpy(ram->raw() + 0x1000, ram->charset(), MEMORY_CHARSET_SIZE);
-#ifdef DEBUG_CIA2
+    #ifdef DEBUG_CIA2
                 CLog::printRaw("\tmirroring charset ROM in RAM at $1000\n");
-#endif
+    #endif
             } else if (bank == 1) {
                 // shadow character rom at $9000
                 memcpy(ram->raw() + 0x9000, ram->charset(), MEMORY_CHARSET_SIZE);
-#ifdef DEBUG_CIA2
+    #ifdef DEBUG_CIA2
                 CLog::printRaw("\tmirroring charset ROM in RAM at $9000\n");
-#endif
+    #endif
             }
         }
+        break;
+
+        // TA LO: timer A lowbyte (set latch LO)
+        case 0xdd04:
+            _timerALatch = (_timerALatch & 0xff00) | bt;
             break;
 
-        case CIA2_REG_TIMER_A_LO:
-            _timerA = (_timerA & 0xff00) | bt;
+        // TA HI: timer A hibyte (set latch HI)
+        case 0xdd05:
+            _timerALatch = (_timerALatch & 0xff) | (bt << 8);
             break;
 
-        case CIA2_REG_TIMER_A_HI:
-            _timerA = (_timerA & 0xff) | ( bt << 8);
+        // TB LO: timer B lobyte (set latch LO)
+        case 0xdd06:
+            _timerBLatch = (_timerBLatch & 0xff00) | bt;
             break;
 
-        case CIA2_REG_TIMER_B_LO:
-            _timerB = (_timerB & 0xff00) | bt;
+        // TB HI: timer B hibyte (set latch HI)
+        case 0xdd07:
+            _timerBLatch = (_timerBLatch & 0xff) | (bt << 8);
             break;
 
-        case CIA2_REG_TIMER_B_HI:
-            _timerB = (_timerB & 0xff) | ( bt << 8);
+        // ICR: interrupt control and status
+        case 0xdd0d:
+            if (IS_BIT_SET(bt, 7)) {
+                // INT MASK is being set
+                // bit 0: timer A underflow
+                // bit 1: timer B underflow
+                // TODO others....
+                // bit 7: bits 0..4 are being set(1) or being clearing(0). if set, check if irq is enabled
+                _timerANmiEnabled = IS_BIT_SET(bt, 0);
+                _timerBNmiEnabled = IS_BIT_SET(bt, 1);
+            }
             break;
 
-        case CIA2_REG_CONTROL_TIMER_A:
+        // CRA: control timer A
+        case 0xdd0e:
             if (IS_BIT_SET(bt, 0)) {
                 _timerARunning = true;
-            }
-            else {
+            } else {
                 _timerARunning = false;
+
+                // reset hi latch
+                _timerALatch &= 0xff;
+            }
+
+            if (IS_BIT_SET(bt, 4)) {
+                // load latch into the timer
+                _timerA = _timerALatch;
+            }
+
+            // set timer mode
+            if (IS_BIT_SET(bt, 5)) {
+                _timerAMode = CIA_TIMER_COUNT_POSITIVE_CNT_SLOPES;
+            } else {
+                _timerAMode = CIA_TIMER_COUNT_CPU_CYCLES;
             }
             break;
 
-        case CIA2_REG_CONTROL_TIMER_B:
+        // CRB: control timer B
+        case 0xdd0f:
             if (IS_BIT_SET(bt, 0)) {
                 _timerBRunning = true;
-            }
-            else {
+            } else {
                 _timerBRunning = false;
+
+                // reset hi latch
+                _timerBLatch &= 0xff;
+            }
+
+            if (IS_BIT_SET(bt, 4)) {
+                // load latch into the timer
+                _timerB = _timerBLatch;
+            }
+
+            // set timer mode
+            if (!IS_BIT_SET(bt, 5) && !IS_BIT_SET(bt, 6)) {
+                // 00
+                _timerBMode = CIA_TIMER_COUNT_CPU_CYCLES;
+            } else if (!IS_BIT_SET(bt, 5) && IS_BIT_SET(bt, 6)) {
+                // 01
+                _timerBMode = CIA_TIMER_COUNT_POSITIVE_CNT_SLOPES;
+            } else if (IS_BIT_SET(bt, 5) && !IS_BIT_SET(bt, 6)) {
+                // 10
+                _timerBMode = CIA_TIMER_COUNT_TIMERA_UNDERFLOW;
+            } else if (IS_BIT_SET(bt, 5) && IS_BIT_SET(bt, 6)) {
+                // 11
+                _timerBMode = CIA_TIMER_COUNT_TIMERA_UNDERFLOW_IF_CNT_HI;
             }
             break;
+
         default:
             break;
-    }
+        }
 
     // finally write
-    _cpu->memory()->writeByte(address,bt);
+    _cpu->memory()->writeByte(address, bt);
 }
-

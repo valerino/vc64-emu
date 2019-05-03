@@ -10,7 +10,7 @@ add_executable(${PROJECT_NAME}
         src/CCIA2.cpp
         src/CVICII.cpp
         src/CSID.cpp
-        )
+        src/CIACommon.h)
 
 # needs sdsl2
 find_package(SDL2 REQUIRED)
