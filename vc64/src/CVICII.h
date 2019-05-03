@@ -16,9 +16,12 @@
 #define VIC_PAL_HZ  50.124
 
 // sizes comprensive of vblank and hblank
+// from http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
 #define VIC_PAL_SCREEN_W 403
 #define VIC_PAL_SCREEN_H 284
-#define VIC_PAL_SCANLINES_PER_VBLANK 312
+#define VIC_PAL_SCANLINES 312
+#define VIC_PAL_VISIBLE_LINES 284
+#define VIC_PAL_CYCLES_PER_LINE 63
 #define VIC_PAL_FIRST_VISIBLE_LINE 14
 #define VIC_PAL_LAST_VISIBLE_LINE 298
 
@@ -28,9 +31,6 @@
 #define VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN 42
 #define VIC_PAL_FIRST_DISPLAYWINDOW_LINE 56
 #define VIC_PAL_LAST_DISPLAYWINDOW_LINE 256
-
-// 63 cycles per line (19656 / 312)
-#define VIC_PAL_CYCLES_PER_LINE 63
 
 // 23 cycles per badline
 #define VIC_PAL_CYCLES_PER_BADLINE 23
@@ -107,7 +107,7 @@ private:
     int _lastX;
     int _scrollX;
     int _scrollY;
-    uint8_t _regBackgroundColors[3];
+    uint8_t _regBackgroundColors[4];
     uint8_t _regBorderColor;
     uint8_t _regCr1;
     uint8_t _regCr2;

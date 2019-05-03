@@ -277,7 +277,7 @@ int CVICII::update(int cycleCount) {
 
     // increment the raster counter
     _rasterCounter++;
-    if (_rasterCounter >= VIC_PAL_SCANLINES_PER_VBLANK) {
+    if (_rasterCounter >= VIC_PAL_SCANLINES) {
         // reset raster counter
         _rasterCounter = 0;
     }

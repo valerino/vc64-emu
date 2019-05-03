@@ -234,11 +234,12 @@ int main (int argc, char** argv) {
         }
         CLog::print("Display initialized OK!");
 
-        // pal c64 runs at 0,985mhz, 50hz, 19656 cycles per second
-        int cpu_hz = CPU_HZ;
-        int cyclesPerSecond = abs (cpu_hz / VIC_PAL_HZ);
-        int cycleCount = cyclesPerSecond;
-        int lastTime = SDL_GetTicks();
+        // pal c64 runs at 0,985mhz (~1mhz=1000000hz), video at 50hz (50fps)
+        int cyclesPerFrame = 1*1000000 / 50;
+        int cyclesPerSecond = 1*1000000;
+        int cyclesPerLine = cyclesPerFrame / 312;
+        int vblankCycles = (312 - 284) * cyclesPerLine;
+        int cycleCount = cyclesPerFrame;
         int clipboardFrameCount=CLIPBOARD_SKIP_FRAMES;
         int clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
         while (running) {
@@ -255,26 +256,18 @@ int main (int argc, char** argv) {
             // reset break status if any
             mustBreak = false;
 
-            // after each cycle, update internal chips state
+            // after each instruction, update internal chips state
             if (!cpu->isTestMode()) {
                 int c = vic->update(cycleCount);
                 cycleCount -= c;
                 totalCycles+=c;
 
-                c = cia1->update(cycleCount);
-                cycleCount -= c;
-                totalCycles+=c;
-
-                c = cia2->update(cycleCount);
-                cycleCount -= c;
-                totalCycles+=c;
-
-                c = sid->update(cycleCount);
-                cycleCount -= c;
-                totalCycles+=c;
+                cia1->update(cycleCount);
+                cia2->update(cycleCount);
+                sid->update(cycleCount);
             }
 
-            // after cyclesXseconds elapsed (1 frame), update the display, process input and play sound
+            // after cycles per frame elapsed, update the display, process input and play sound
             if (cycleCount <= 0) {
                 if (!cpu->isTestMode()) {
                     // update display
@@ -311,14 +304,11 @@ int main (int argc, char** argv) {
                     clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
                 }
 
-                // vsync
-                while (lastTime - SDL_GetTicks() < (1000 / VIC_PAL_HZ)) {
-                    SDL_Delay(1);
-                }
-                lastTime = SDL_GetTicks();
+                // do nothing per vsync cycles
+                cycleCount += vblankCycles;
 
-                // next iteration
-                cycleCount = cyclesPerSecond;
+                // go on...
+                cycleCount += cyclesPerFrame;
 
                 // this basically waits enough cycles for BASIC to be initialized, then
                 // load a prg if it's set
