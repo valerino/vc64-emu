@@ -15,14 +15,6 @@
 #define CIA2_REGISTERS_START 0xdd00
 #define CIA2_REGISTERS_END   0xddff
 
-#define CIA2_REG_DATAPORT_A     0xdd00
-#define CIA2_REG_TIMER_A_LO 0xdd04
-#define CIA2_REG_TIMER_A_HI 0xdd05
-#define CIA2_REG_TIMER_B_LO 0xdd06
-#define CIA2_REG_TIMER_B_HI 0xdd07
-#define CIA2_REG_CONTROL_TIMER_A 0xdd0e
-#define CIA2_REG_CONTROL_TIMER_B 0xdd0f
-
 /**
  * implements the 2nd CIA 6526, which controls the serial bus, rs232, vic memory and NMI
  */

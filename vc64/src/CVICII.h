@@ -42,21 +42,6 @@
 #define VIC_REGISTERS_START 0xd000
 #define VIC_REGISTERS_END   0xd3ff
 
-#define VIC_REG_CR1 0xd011
-#define VIC_REG_RASTERCOUNTER 0xd012
-#define VIC_REG_CR2 0xd016
-
-// https://www.c64-wiki.com/wiki/53272
-#define VIC_REG_BASE_ADDR  0xd018
-
-#define VIC_REG_INTERRUPT_LATCH  0xd019
-#define VIC_REG_IRQ_ENABLED 0xd01a
-#define VIC_REG_BORDER_COLOR 0xd020
-#define VIC_REG_BG_COLOR_0 0xd021
-#define VIC_REG_BG_COLOR_1 0xd022
-#define VIC_REG_BG_COLOR_2 0xd023
-#define VIC_REG_BG_COLOR_3 0xd024
-
 /**
  * emulates the vic-ii 6569 chip
  */
