@@ -24,7 +24,6 @@ int CCIA1::update(int cycleCount) {
                 if (_timerAIrqEnabled) {
                     // trigger irq
                     _cpu->irq();
-                    _timerAIrqTriggered = true;
                 }
                 _timerA = _timerALatch;
             }
@@ -40,15 +39,14 @@ int CCIA1::update(int cycleCount) {
                     if (_timerBIrqEnabled) {
                         // trigger irq
                         _cpu->irq();
-                        _timerBIrqTriggered = true;
                     }
                     _timerB = _timerBLatch;
                 }
                 break;
-            // TODO: handle other modes
+                // TODO: handle other modes
             default:
                 break;
-            }
+        }
     }
     _prevCycleCount = cycleCount;
     return 0;
@@ -62,7 +60,8 @@ int CCIA1::update(int cycleCount) {
  * @param pra value of PRA ($dc00)
  */
 void CCIA1::readKeyboardMatrixColumn(uint8_t *bt, uint8_t pra) {
-    // c64 scancode is the index in the keyboard array (see CInput.cpp sdlKeycodeToc64Scancode(), scancodes goes from 0 to 0x3f)
+    // c64 scancode is the index in the keyboard array (see CInput.cpp
+    // sdlKeycodeToc64Scancode(), scancodes goes from 0 to 0x3f)
     // https://www.lemon64.com/forum/viewtopic.php?t=32474
     uint8_t row[8] = {0};
     uint8_t rowByte = ~pra;
@@ -95,38 +94,35 @@ void CCIA1::read(uint16_t address, uint8_t *bt) {
         case 0xdc01:
             // read keyboard matrix row in data port A (PRA=$dc00)
             uint8_t pra;
-            read(0xdc00, &pra);
+            _cpu->memory()->readByte(0xdc00, &pra);
 
             // read column
             readKeyboardMatrixColumn(bt, pra);
-            return;
+            break;
 
-        // TA LO: timer A lowbyte
+            // TA LO: timer A lowbyte
         case 0xdc04:
             *bt = _timerA & 0xff;
-            return;
+            break;
 
-        // TA HI: timer A hibyte
+            // TA HI: timer A hibyte
         case 0xdc05:
             *bt = (_timerA & 0xff00) >> 8;
-            return;
-
-        // TB LO: timer B lobyte
+            break;
+            // TB LO: timer B lobyte
         case 0xdc06:
             *bt = _timerB & 0xff;
-            return;
+            break;
 
-        // TB HI: timer B hibyte
+            // TB HI: timer B hibyte
         case 0xdc07:
             *bt = (_timerB & 0xff00) >> 8;
-            return;
+            break;
 
         default:
-            break;
+            // read memory
+            _cpu->memory()->readByte(addr, bt);
     }
-
-    // finally read
-    _cpu->memory()->readByte(addr, bt);
 }
 
 void CCIA1::write(uint16_t address, uint8_t bt) {
@@ -139,36 +135,38 @@ void CCIA1::write(uint16_t address, uint8_t bt) {
             _timerALatch = (_timerALatch & 0xff00) | bt;
             break;
 
-        // TA HI: timer A hibyte (set latch HI)
+            // TA HI: timer A hibyte (set latch HI)
         case 0xdc05:
             _timerALatch = (_timerALatch & 0xff) | (bt << 8);
             break;
 
-        // TB LO: timer B lobyte (set latch LO)
+            // TB LO: timer B lobyte (set latch LO)
         case 0xdc06:
             _timerBLatch = (_timerBLatch & 0xff00) | bt;
             break;
 
-        // TB HI: timer B hibyte (set latch HI)
+            // TB HI: timer B hibyte (set latch HI)
         case 0xdc07:
             _timerBLatch = (_timerBLatch & 0xff) | (bt << 8);
             break;
 
-        // ICR: interrupt control and status
+            // ICR: interrupt control and status
         case 0xdc0d:
             if (IS_BIT_SET(bt, 7)) {
                 // INT MASK is being set
                 // bit 0: timer A underflow
                 // bit 1: timer B underflow
                 // TODO others....
-                // bit 7: bits 0..4 are being set(1) or being clearing(0). if set, check if irq is enabled
+                // bit 7: bits 0..4 are being set(1) or being clearing(0). if set, check
+                // if irq is enabled
                 _timerAIrqEnabled = IS_BIT_SET(bt, 0);
                 _timerBIrqEnabled = IS_BIT_SET(bt, 1);
                 // TODO: handle other irq sources for bit 2..4
             }
+            _cpu->memory()->writeByte(addr, bt);
             break;
 
-        // CRA: control timer A
+            // CRA: control timer A
         case 0xdc0e:
             if (IS_BIT_SET(bt, 0)) {
                 _timerARunning = true;
@@ -190,9 +188,10 @@ void CCIA1::write(uint16_t address, uint8_t bt) {
             } else {
                 _timerAMode = CIA_TIMER_COUNT_CPU_CYCLES;
             }
+            _cpu->memory()->writeByte(addr, bt);
             break;
 
-        // CRB: control timer B
+            // CRB: control timer B
         case 0xdc0f:
             if (IS_BIT_SET(bt, 0)) {
                 _timerBRunning = true;
@@ -222,14 +221,13 @@ void CCIA1::write(uint16_t address, uint8_t bt) {
                 // 11
                 _timerBMode = CIA_TIMER_COUNT_TIMERA_UNDERFLOW_IF_CNT_HI;
             }
+            _cpu->memory()->writeByte(addr, bt);
             break;
 
         default:
-            break;
-        }
-
-    // finally write
-    _cpu->memory()->writeByte(addr, bt);
+            // write memory
+            _cpu->memory()->writeByte(addr, bt);
+    }
 }
 
 void CCIA1::setKeyState(uint8_t scancode, bool pressed) { _kbMatrix[scancode] = pressed; }

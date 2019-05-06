@@ -34,7 +34,6 @@ int CCIA2::update(int cycleCount) {
                 if (_timerANmiEnabled) {
                     // trigger irq
                     _cpu->irq();
-                    _timerANmiTriggered = true;
                 }
                 _timerA = _timerALatch;
             }
@@ -44,20 +43,19 @@ int CCIA2::update(int cycleCount) {
     }
     if (_timerBRunning) {
         switch (_timerBMode) {
-        case CIA_TIMER_COUNT_CPU_CYCLES:
-            _timerB = _timerB - (cycleCount - _prevCycleCount);
-            if (_timerB <= 0) {
-                if (_timerBNmiEnabled) {
-                    // trigger nmi
-                    _cpu->nmi();
-                    _timerBNmiTriggered = true;
+            case CIA_TIMER_COUNT_CPU_CYCLES:
+                _timerB = _timerB - (cycleCount - _prevCycleCount);
+                if (_timerB <= 0) {
+                    if (_timerBNmiEnabled) {
+                        // trigger nmi
+                        _cpu->nmi();
+                    }
+                    _timerB = _timerBLatch;
                 }
-                _timerB = _timerBLatch;
-            }
-            break;
-            // TODO: handle other modes
-        default:
-            break;
+                break;
+                // TODO: handle other modes
+            default:
+                break;
         }
     }
     _prevCycleCount = cycleCount;
@@ -72,7 +70,7 @@ int CCIA2::getVicBank(uint16_t *address) {
         // xxxxxx10
         bank = 0;
         // TODO: this is a hack!!!!!!!! correct value here is 0
-        *address = 0; // 0xc000;
+        *address = 0xc000;
     } else if (IS_BIT_SET(dataReg, 1) && !(IS_BIT_SET(dataReg, 0))) {
         // xxxxxx11
         bank = 1;
@@ -98,29 +96,28 @@ void CCIA2::read(uint16_t address, uint8_t *bt) {
         // TA LO: timer A lowbyte
         case 0xdd04:
             *bt = _timerA & 0xff;
-            return;
+            break;
 
-        // TA HI: timer A hibyte
+            // TA HI: timer A hibyte
         case 0xdd05:
             *bt = (_timerA & 0xff00) >> 8;
-            return;
+            break;
 
-        // TB LO: timer B lobyte
+            // TB LO: timer B lobyte
         case 0xdd06:
             *bt = _timerB & 0xff;
-        return;
+            break;
 
-        // TB HI: timer B hibyte
+            // TB HI: timer B hibyte
         case 0xdd07:
             *bt = (_timerB & 0xff00) >> 8;
-        return;
+            break;
 
-    default:
-        break;
+        default:
+            // read memory
+            _cpu->memory()->readByte(address, bt);
+            break;
     }
-
-    // finally read
-    _cpu->memory()->readByte(address, bt);
 }
 
 void CCIA2::write(uint16_t address, uint8_t bt) {
@@ -129,44 +126,43 @@ void CCIA2::write(uint16_t address, uint8_t bt) {
         case 0xdd00: {
             uint16_t base;
             int bank = getVicBank(&base);
-            CMemory *ram = (CMemory *)_cpu->memory();
+            CMemory *ram = (CMemory *) _cpu->memory();
             if (bank == 0) {
                 // shadow character rom at $1000
                 memcpy(ram->raw() + 0x1000, ram->charset(), MEMORY_CHARSET_SIZE);
-    #ifdef DEBUG_CIA2
+#ifdef DEBUG_CIA2
                 CLog::printRaw("\tmirroring charset ROM in RAM at $1000\n");
-    #endif
+#endif
             } else if (bank == 1) {
                 // shadow character rom at $9000
-                memcpy(ram->raw() + 0x9000, ram->charset(), MEMORY_CHARSET_SIZE);
-    #ifdef DEBUG_CIA2
+#ifdef DEBUG_CIA2
                 CLog::printRaw("\tmirroring charset ROM in RAM at $9000\n");
-    #endif
+#endif
             }
         }
-        break;
+            break;
 
-        // TA LO: timer A lowbyte (set latch LO)
+            // TA LO: timer A lowbyte (set latch LO)
         case 0xdd04:
             _timerALatch = (_timerALatch & 0xff00) | bt;
             break;
 
-        // TA HI: timer A hibyte (set latch HI)
+            // TA HI: timer A hibyte (set latch HI)
         case 0xdd05:
             _timerALatch = (_timerALatch & 0xff) | (bt << 8);
             break;
 
-        // TB LO: timer B lobyte (set latch LO)
+            // TB LO: timer B lobyte (set latch LO)
         case 0xdd06:
             _timerBLatch = (_timerBLatch & 0xff00) | bt;
             break;
 
-        // TB HI: timer B hibyte (set latch HI)
+            // TB HI: timer B hibyte (set latch HI)
         case 0xdd07:
             _timerBLatch = (_timerBLatch & 0xff) | (bt << 8);
             break;
 
-        // ICR: interrupt control and status
+            // ICR: interrupt control and status
         case 0xdd0d:
             if (IS_BIT_SET(bt, 7)) {
                 // INT MASK is being set
@@ -177,9 +173,10 @@ void CCIA2::write(uint16_t address, uint8_t bt) {
                 _timerANmiEnabled = IS_BIT_SET(bt, 0);
                 _timerBNmiEnabled = IS_BIT_SET(bt, 1);
             }
+            _cpu->memory()->writeByte(address, bt);
             break;
 
-        // CRA: control timer A
+            // CRA: control timer A
         case 0xdd0e:
             if (IS_BIT_SET(bt, 0)) {
                 _timerARunning = true;
@@ -201,9 +198,10 @@ void CCIA2::write(uint16_t address, uint8_t bt) {
             } else {
                 _timerAMode = CIA_TIMER_COUNT_CPU_CYCLES;
             }
+            _cpu->memory()->writeByte(address, bt);
             break;
 
-        // CRB: control timer B
+            // CRB: control timer B
         case 0xdd0f:
             if (IS_BIT_SET(bt, 0)) {
                 _timerBRunning = true;
@@ -233,12 +231,11 @@ void CCIA2::write(uint16_t address, uint8_t bt) {
                 // 11
                 _timerBMode = CIA_TIMER_COUNT_TIMERA_UNDERFLOW_IF_CNT_HI;
             }
+            _cpu->memory()->writeByte(address, bt);
             break;
 
         default:
-            break;
-        }
-
-    // finally write
-    _cpu->memory()->writeByte(address, bt);
+            // write memory
+            _cpu->memory()->writeByte(address, bt);
+    }
 }

@@ -240,7 +240,7 @@ int main (int argc, char** argv) {
         int cyclesPerLine = cyclesPerFrame / 312;
         int vblankCycles = (312 - 284) * cyclesPerLine;
         int cycleCount = cyclesPerFrame;
-        int clipboardFrameCount=CLIPBOARD_SKIP_FRAMES;
+        int clipboardFrameCount = CLIPBOARD_SKIP_FRAMES;
         int clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
         while (running) {
             // step the cpu

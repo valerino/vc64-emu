@@ -12,14 +12,13 @@
 //#define DEBUG_DISPLAY
 #endif
 
-CDisplay::CDisplay(CVICII* vic) {
+CDisplay::CDisplay(CVICII *vic) {
     // allocate the texture memory for the framebuffer
-    _fb = (uint32_t*)calloc(1, VIC_PAL_SCREEN_W * VIC_PAL_SCREEN_H * sizeof(uint32_t));
+    _fb = (uint32_t *)calloc(1, VIC_PAL_SCREEN_W * VIC_PAL_SCREEN_H * sizeof(uint32_t));
     _vic = vic;
-
 }
 
-int CDisplay::init(SDLDisplayCreateOptions* options, char** errorString) {
+int CDisplay::init(SDLDisplayCreateOptions *options, char **errorString) {
 
     // init display
     int res = CSDLUtils::initializeDisplayContext(&_ctx, options, errorString);
@@ -29,7 +28,7 @@ int CDisplay::init(SDLDisplayCreateOptions* options, char** errorString) {
     _vic->setSdlCtx(&_ctx, _fb);
 
     // show!
-    CSDLUtils::update(&_ctx, (void*)_fb, VIC_PAL_SCREEN_W);
+    CSDLUtils::update(&_ctx, (void *)_fb, VIC_PAL_SCREEN_W);
     return 0;
 }
 
@@ -40,5 +39,5 @@ CDisplay::~CDisplay() {
 
 void CDisplay::update() {
     // update the framebuffer
-    CSDLUtils::update(&_ctx,_fb,VIC_PAL_SCREEN_W);
+    CSDLUtils::update(&_ctx, _fb, VIC_PAL_SCREEN_W);
 }

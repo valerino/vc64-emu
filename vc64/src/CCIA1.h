@@ -69,11 +69,11 @@ private:
     bool _timerBRunning = false;
     bool _timerAIrqEnabled = false;
     bool _timerBIrqEnabled = false;
-    bool _timerAIrqTriggered = false;
-    bool _timerBIrqTriggered = false;
     int _prevCycleCount = 0;
     CMOS65xx* _cpu = nullptr;
 };
 
 
 #endif //VC64_EMU_CCIA1_H
+
+

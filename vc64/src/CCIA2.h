@@ -72,8 +72,6 @@ private:
     bool _timerBRunning = false;
     bool _timerANmiEnabled = false;
     bool _timerBNmiEnabled = false;
-    bool _timerANmiTriggered = false;
-    bool _timerBNmiTriggered = false;
     int _prevCycleCount = 0;
 };
 
