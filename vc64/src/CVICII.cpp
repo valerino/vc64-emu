@@ -125,10 +125,16 @@ void CVICII::drawCharacterMode(int rasterLine) {
     uint16_t charsetAddress;
     uint16_t screenAddress;
     uint8_t *colorMem = _cpu->memory()->raw() + MEMORY_COLOR_ADDRESS;
-    getTextModeScreenAddress(&screenAddress, &charsetAddress);
+    int bank;
+    getTextModeScreenAddress(&screenAddress, &charsetAddress,&bank);
     uint8_t *charset = _cpu->memory()->raw() + charsetAddress;
-    if (charsetAddress == VIC_REGISTERS_START) {
-        // bank3 is used, use the ROM charset
+
+    // handle character shadows
+    // https://www.c64-wiki.com/wiki/VIC_bank
+    if (bank == 0 && charsetAddress == 0x1000) {
+        charset = ((CMemory *) _cpu->memory())->charset();
+    }
+    else if (bank == 2 && charsetAddress == 0x9000) {
         charset = ((CMemory *) _cpu->memory())->charset();
     }
 
@@ -433,14 +439,14 @@ bool CVICII::checkUnusedAddress(int type, uint16_t address, uint8_t *bt) {
     return false;
 }
 
-void CVICII::getTextModeScreenAddress(uint16_t *screenCharacterRamAddress, uint16_t *charsetAddress) {
+void CVICII::getTextModeScreenAddress(uint16_t *screenCharacterRamAddress, uint16_t *charsetAddress, int* bank) {
     // read base register
     uint8_t d018;
-    _cpu->memory()->readByte(VIC_REG_BASE_ADDR, &d018);
+    _cpu->memory()->readByte(0xd018, &d018);
 
     // get addresses
     uint16_t base;
-    int bank = _cia2->getVicBank(&base);
+    *bank = _cia2->getVicBank(&base);
     *screenCharacterRamAddress = ((d018 >> 4) & 0xf) * 1024;
     *charsetAddress = ((((d018 & 0xf) >> 1) & 0x7) * 2048) + base;
 }

@@ -9,6 +9,7 @@
 #include <CLog.h>
 #include <string.h>
 #include <bitutils.h>
+#include <SDL_clipboard.h>
 
 CMemory::CMemory() {
     // allocate main memory and the shadows

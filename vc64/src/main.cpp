@@ -181,9 +181,10 @@ int main (int argc, char** argv) {
     bool sdlInitialized = false;
     int64_t totalCycles = 0;
     uint32_t startTime = SDL_GetTicks();
+    int res = 0;
     do {
         // initialize sdl
-        int res = SDL_Init(SDL_INIT_EVERYTHING);
+        res = SDL_Init(SDL_INIT_EVERYTHING);
         if (res != 0) {
             CLog::error("SDL_Init(): %s", SDL_GetError());
             break;
@@ -303,7 +304,7 @@ int main (int argc, char** argv) {
                 }
 
                 // do nothing per vsync cycles
-                SDL_Delay(vblankCycles / 1000);
+                SDL_Delay((vblankCycles / 1000)+1);
                 cycleCount += vblankCycles;
 
                 // go on...
@@ -314,7 +315,12 @@ int main (int argc, char** argv) {
                 if (totalCycles > 14570000) {
                     if (path) {
                         // TODO: determine if it's a prg, either fail....
-                        mem->loadPrg(path);
+                        res = mem->loadPrg(path);
+                        if (res == 0) {
+                            // inject run!
+                            SDL_SetClipboardText("RUN\n");
+                            input->fillClipboardQueue();
+                        }
                         path=nullptr;
                     }
                 }

@@ -130,7 +130,7 @@ private:
     void updateRasterCounter();
     uint16_t checkShadowAddress(uint16_t address);
     bool checkUnusedAddress(int type, uint16_t address, uint8_t *bt);
-    void getTextModeScreenAddress(uint16_t* screenCharacterRamAddress, uint16_t* charsetAddress);
+    void getTextModeScreenAddress(uint16_t* screenCharacterRamAddress, uint16_t* charsetAddress, int* bank);
     void getBitmapModeScreenAddress(uint16_t* colorInfoAddress, uint16_t* bitmapAddress);
     void drawBorder(int rasterLine);
     void drawCharacterMode(int rasterLine);
