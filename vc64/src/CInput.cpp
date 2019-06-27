@@ -216,9 +216,11 @@ uint8_t CInput::sdlScancodeToC64Scancode(uint32_t sdlScanCode){
         case SDL_SCANCODE_RETURN:
             return 0x1;
         case SDL_SCANCODE_LEFT:
-            return 0x2;
+            return 0x3a; /* joy 1 left = ctrl */
+            // return 0x2;
         case SDL_SCANCODE_RIGHT:
-            return 0x2;
+            return 0x3b; /* joy 1 right = 2 */
+            // return 0x2;
         case SDL_SCANCODE_F7:
             return 0x3;
         case SDL_SCANCODE_F8:
@@ -236,9 +238,11 @@ uint8_t CInput::sdlScancodeToC64Scancode(uint32_t sdlScanCode){
         case SDL_SCANCODE_F6:
             return 0x6;
         case SDL_SCANCODE_UP:
-            return 0x7;
+            return 0x38; /* joy 1 up = 1 */
+            //return 0x7;
         case SDL_SCANCODE_DOWN:
-            return 0x7;
+            return 0x39; /* joy 1 down = esc */
+            //return 0x7;
         case SDL_SCANCODE_3:
             return 0x8;
         case SDL_SCANCODE_W:
