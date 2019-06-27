@@ -16,6 +16,10 @@ CCIA1::CCIA1(CMOS65xx *cpu) { _cpu = cpu; }
 CCIA1::~CCIA1() {}
 
 int CCIA1::update(int cycleCount) {
+/*    int cc = cycleCount - _prevCycleCount;
+    if (cc < 16421) {
+        return 0;
+    }*/
     if (_timerARunning) {
         // check timerA mode
         if (_timerAMode == CIA_TIMER_COUNT_CPU_CYCLES) {
@@ -174,7 +178,7 @@ void CCIA1::write(uint16_t address, uint8_t bt) {
                 _timerARunning = false;
 
                 // reset hi latch
-                _timerALatch &= 0xff;
+                //_timerALatch &= 0xff;
             }
 
             if (IS_BIT_SET(bt, 4)) {
@@ -199,7 +203,7 @@ void CCIA1::write(uint16_t address, uint8_t bt) {
                 _timerBRunning = false;
 
                 // reset hi latch
-                _timerBLatch &= 0xff;
+                //_timerBLatch &= 0xff;
             }
 
             if (IS_BIT_SET(bt, 4)) {

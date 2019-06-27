@@ -9,18 +9,11 @@
 #include "CCIA2.h"
 #include <CSDLUtils.h>
 
-#define VIC_RES_W 320
-#define VIC_RES_H 200
-
-// refresh rate
-#define VIC_PAL_HZ  50.124
-
 // sizes comprensive of vblank and hblank
 // from http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
 #define VIC_PAL_SCREEN_W 403
 #define VIC_PAL_SCREEN_H 284
 #define VIC_PAL_SCANLINES 312
-#define VIC_PAL_VISIBLE_LINES 284
 #define VIC_PAL_CYCLES_PER_LINE 63
 #define VIC_PAL_FIRST_VISIBLE_LINE 14
 #define VIC_PAL_LAST_VISIBLE_LINE 298
@@ -98,21 +91,17 @@ public:
      void write(uint16_t address, uint8_t bt);
 
 private:
-    CMOS65xx* _cpu;
-    uint16_t _rasterCounter;
-    uint16_t _rasterIrqLine;
-    int _firstY;
-    int _lastY;
-    int _firstX;
-    int _lastX;
-    int _scrollX;
-    int _scrollY;
-    uint8_t _regBackgroundColors[4];
-    uint8_t _regBorderColor;
-    uint8_t _regCr1;
-    uint8_t _regCr2;
-    uint8_t _regInterruptLatch;
-    uint8_t _regInterruptEnabled;
+    CMOS65xx* _cpu = nullptr;
+    uint16_t _rasterCounter = 0;
+    uint16_t _rasterIrqLine = 0;
+    int _scrollX = 0;
+    int _scrollY= 0;
+    uint8_t _regBackgroundColors[4] = {0};
+    uint8_t _regBorderColor = 0;
+    uint8_t _regCr1 = 0;
+    uint8_t _regCr2 = 0;
+    uint8_t _regInterruptLatch = 0;
+    uint8_t _regInterruptEnabled = 0;
     void setSdlCtx(SDLDisplayCtx* ctx, uint32_t* frameBuffer);
 
     /**

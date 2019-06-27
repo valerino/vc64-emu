@@ -236,13 +236,9 @@ int main (int argc, char** argv) {
         CLog::print("Display initialized OK!");
 
         // pal c64 runs at 0,985mhz (~=1mhz=1000000hz), video at 50hz (50fps)
-        int cyclesPerSecond = 1*1000000;
-        int cyclesPerFrame =  cyclesPerSecond / 50;
-        int cyclesPerLine = cyclesPerFrame / 312;
-        int vblankCycles = (312 - 284) * cyclesPerLine;
-        int cycleCount = cyclesPerFrame;
         int clipboardFrameCount = CLIPBOARD_SKIP_FRAMES;
         int clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
+        int timeNow = SDL_GetTicks();
         while (running) {
             // step the cpu
             int cycles = cpu->step(debugger, debugger ? mustBreak : false);
@@ -251,7 +247,6 @@ int main (int argc, char** argv) {
                 running = false;
                 continue;
             }
-            cycleCount -= cycles;
             totalCycles+=cycles;
 
             // reset break status if any
@@ -261,69 +256,59 @@ int main (int argc, char** argv) {
             if (!cpu->isTestMode()) {
                 cia1->update(totalCycles);
                 cia2->update(totalCycles);
-                sid->update(cycleCount);
+                sid->update(totalCycles);
+                audio->update();
 
-                int c = vic->update(cycleCount);
-                cycleCount -= c;
+                int c = vic->update(totalCycles);
                 totalCycles+=c;
             }
 
             // after cycles per frame elapsed, update the display, process input and play sound
-            if (cycleCount <= 0) {
-                if (!cpu->isTestMode()) {
-                    // update display
+            int timeThen = SDL_GetTicks();
+            if (!cpu->isTestMode()) {
+                // update display
+                int diff = timeThen - timeNow;
+                int msecSleep = 1000 / 50;
+                if (diff > msecSleep) {
                     display->update();
-
-                    // play audio
-                    audio->update();
+                    timeNow = timeThen;
                 }
+            }
 
-                // process input
-                CSDLUtils::pollEvents(sdlEventCallback);
-
-                // check the clipboard queue, and process one event if not empty
-                if (input->hasClipboardEvents()) {
-                    // we must wait some frames, or ctrl-V may still be in the SDL internal queue
-                    if (clipboardWaitFrames > 0) {
-                        clipboardWaitFrames--;
-                    }
-                    else {
-                        // process clipboard
-                        if (clipboardFrameCount == 0) {
-                            input->processClipboardQueue();
-                            clipboardFrameCount = CLIPBOARD_SKIP_FRAMES;
-                        }
-                        else {
-                            clipboardFrameCount--;
-                        }
-                    }
+            // check the clipboard queue, and process one event if not empty
+            CSDLUtils::pollEvents(sdlEventCallback);
+            if (input->hasClipboardEvents()) {
+                // we must wait some frames, or ctrl-V may still be in the SDL internal queue
+                if (clipboardWaitFrames > 0) {
+                    clipboardWaitFrames--;
                 }
                 else {
-                    // reset
-                    clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
-                }
-
-                // do nothing per vsync cycles
-                SDL_Delay((vblankCycles / 1000)+1);
-                cycleCount += vblankCycles;
-
-                // go on...
-                cycleCount += cyclesPerFrame;
-
-                // this basically waits enough cycles for BASIC to be initialized, then
-                // load a prg if it's set
-                if (totalCycles > 14570000) {
-                    if (path) {
-                        // TODO: determine if it's a prg, either fail....
-                        res = mem->loadPrg(path);
-                        if (res == 0) {
-                            // inject run!
-                            SDL_SetClipboardText("RUN\n");
-                            input->fillClipboardQueue();
-                        }
-                        path=nullptr;
+                    // process clipboard
+                    if (clipboardFrameCount == 0) {
+                        input->processClipboardQueue();
+                        clipboardFrameCount = CLIPBOARD_SKIP_FRAMES;
+                    }
+                    else {
+                        clipboardFrameCount--;
                     }
                 }
+            }
+            else {
+                // reset
+                clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
+            }
+
+            // this basically waits enough cycles for BASIC to be initialized, then
+            // load a prg if it's set
+            if (totalCycles > 14570000 && path) {
+                // TODO: determine if it's a prg, either fail....
+                res = mem->loadPrg(path);
+                if (res == 0) {
+                    // inject run!
+                    SDL_SetClipboardText("RUN\n");
+                    input->fillClipboardQueue();
+                }
+                path=nullptr;
             }
         }
     } while(0);
