@@ -213,7 +213,6 @@ int CVICII::update(int cycleCount) {
     if ((cycleCount % VIC_PAL_CYCLES_PER_LINE) != 0) {
         return occupiedCycles;
     }
-
     // interrupt enabled, generate a raster interrupt if needed
     if (IS_BIT_SET(_regInterruptEnabled, 0)) {
         if (_rasterCounter == _rasterIrqLine) {

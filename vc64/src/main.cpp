@@ -245,8 +245,7 @@ int main(int argc, char **argv) {
         // create the subsystems (display, input, audio)
         try {
             display = new CDisplay(vic, "vc64-emu", fullScreen);
-        }
-        catch (std::exception ex) {
+        } catch (std::exception ex) {
             CLog::error("display->init(): %s", ex.what());
             break;
         }
@@ -263,7 +262,10 @@ int main(int argc, char **argv) {
             break;
         }
 
-        // pal c64 runs at 0,985mhz (~=1mhz=1000000hz), video at 50hz (50fps)
+        // pal c64 runs at ~=1mhz=1000000hz, exactly 985248hz, video at 50hz
+        // (50fps)
+        int cyclesPerFrame = VIC_PAL_HZ / 50;
+        int cycleCounter = cyclesPerFrame;
         int clipboardFrameCount = CLIPBOARD_SKIP_FRAMES;
         int clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
         while (running) {
@@ -274,19 +276,29 @@ int main(int argc, char **argv) {
                 running = false;
                 continue;
             }
-            totalCycles += cycles;
-
-            // reset break status if any
+            // reset break status if any (for the debugger)
             mustBreak = false;
 
-            // after each instruction, update internal chips state
+            // draw a line if needed
             cia1->update(totalCycles);
             cia2->update(totalCycles);
-            sid->update(totalCycles);
-            audio->update();
             int c = vic->update(totalCycles);
-            totalCycles += c;
+            cycles += c;
 
+            // update cyclecounter
+            totalCycles += cycles;
+            cycleCounter -= cycles;
+
+            if (cycleCounter <= 0) {
+                sid->update(totalCycles);
+                audio->update();
+                display->update();
+                SDL_Delay(6);
+                CSDLUtils::pollEvents(sdlEventCallback);
+                cycleCounter += cyclesPerFrame;
+            }
+
+            /*
             // after cycles per frame elapsed, update the display, process input
             // and play sound
             int timeThen = SDL_GetTicks();
@@ -301,6 +313,7 @@ int main(int argc, char **argv) {
             }
 
             //timeNow = SDL_GetTicks();//timeThen;//SDL_GetTicks();//timeThen;
+            */
             // check the clipboard queue, and process one event if not empty
             if (input->hasClipboardEvents()) {
                 // we must wait some frames, or ctrl-V may still be in the SDL

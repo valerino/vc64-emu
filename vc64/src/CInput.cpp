@@ -141,7 +141,9 @@ void CInput::processClipboardQueue() {
 bool CInput::hasClipboardEvents() {
     int l = _kqueue.size();
 #ifdef DEBUG_INPUT
-    //CLog::print("queue size: %d", l);
+    if (l > 0) {
+        CLog::print("queue size: %d", l);
+    }
 #endif
     if (l != 0) {
         // has events!
