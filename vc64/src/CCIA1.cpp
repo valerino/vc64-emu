@@ -16,7 +16,7 @@ CCIA1::CCIA1(CMOS65xx *cpu) { _cpu = cpu; }
 CCIA1::~CCIA1() {}
 
 int CCIA1::update(int cycleCount) {
-/*    int cc = cycleCount - _prevCycleCount;
+    /*int cc = cycleCount - _prevCycleCount;
     if (cc < 16421) {
         return 0;
     }*/

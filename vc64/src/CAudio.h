@@ -13,7 +13,7 @@ public:
     ~CAudio();
     int update();
 private:
-    CSID* _sid;
+    CSID* _sid = nullptr;
 };
 
 

@@ -21,26 +21,28 @@
 /**
  * globals
  */
-CMOS65xx* cpu = nullptr;
-CMemory* mem = nullptr;
-CDisplay* display = nullptr;
-CInput* input = nullptr;
-CAudio* audio = nullptr;
-CVICII* vic = nullptr;
-CCIA1* cia1 = nullptr;
-CCIA2* cia2 = nullptr;
-CSID* sid = nullptr;
+CMOS65xx *cpu = nullptr;
+CMemory *mem = nullptr;
+CDisplay *display = nullptr;
+CInput *input = nullptr;
+CAudio *audio = nullptr;
+CVICII *vic = nullptr;
+CCIA1 *cia1 = nullptr;
+CCIA2 *cia2 = nullptr;
+CSID *sid = nullptr;
 bool running = true;
 bool mustBreak = false;
 
 /**
- * @brief when there's clipboard events to process, wait some frames or the SDL queue may still have ctrl-v to process. probably this is not the
- *  right way to do it (SDL_PumpEvents ?)
+ * @brief when there's clipboard events to process, wait some frames or the SDL
+ * queue may still have ctrl-v to process. probably this is not the right way to
+ * do it (SDL_PumpEvents ?)
  */
 #define CLIPBOARD_WAIT_FRAMES 120
 
 /**
- * @brief when there's clipboard events to process, process one event and skip these many frames, until the queue is empty
+ * @brief when there's clipboard events to process, process one event and skip
+ * these many frames, until the queue is empty
  */
 #define CLIPBOARD_SKIP_FRAMES 20
 
@@ -59,16 +61,15 @@ void cpuCallbackWrite(uint16_t address, uint8_t val) {
     if (address >= VIC_REGISTERS_START && address <= VIC_REGISTERS_END) {
         // accessing vic registers
         vic->write(address, val);
-    }
-    else if (address >= CIA2_REGISTERS_START && address <= CIA2_REGISTERS_END) {
+    } else if (address >= CIA2_REGISTERS_START &&
+               address <= CIA2_REGISTERS_END) {
         // accessing cia-2 registers
         cia2->write(address, val);
-    }
-    else if (address >= CIA1_REGISTERS_START && address <= CIA1_REGISTERS_END) {
+    } else if (address >= CIA1_REGISTERS_START &&
+               address <= CIA1_REGISTERS_END) {
         // accessing cia-1 registers
         cia1->write(address, val);
-    }
-    else {
+    } else {
         // default
         cpu->memory()->writeByte(address, val);
     }
@@ -77,20 +78,19 @@ void cpuCallbackWrite(uint16_t address, uint8_t val) {
 /**
  * a callback for memory reads
  */
-void cpuCallbackRead(uint16_t address, uint8_t* val) {
+void cpuCallbackRead(uint16_t address, uint8_t *val) {
     if (address >= VIC_REGISTERS_START && address <= VIC_REGISTERS_END) {
         // accessing vic registers
         vic->read(address, val);
-    }
-    else if (address >= CIA2_REGISTERS_START && address <= CIA2_REGISTERS_END) {
+    } else if (address >= CIA2_REGISTERS_START &&
+               address <= CIA2_REGISTERS_END) {
         // accessing cia-2 registers
         cia2->read(address, val);
-    }
-    else if (address >= CIA1_REGISTERS_START && address <= CIA1_REGISTERS_END) {
+    } else if (address >= CIA1_REGISTERS_START &&
+               address <= CIA1_REGISTERS_END) {
         // accessing cia-1 registers
         cia1->read(address, val);
-    }
-    else {
+    } else {
         // default
         cpu->memory()->readByte(address, val);
     }
@@ -100,7 +100,7 @@ void cpuCallbackRead(uint16_t address, uint8_t* val) {
  * callback for sdl events
  * @param event
  */
-void sdlEventCallback(SDL_Event* event) {
+void sdlEventCallback(SDL_Event *event) {
     if (event->type == SDL_QUIT) {
         // SDL window closed, application must quit asap
         CLog::print("QUIT requested!");
@@ -109,24 +109,23 @@ void sdlEventCallback(SDL_Event* event) {
     }
 
     switch (event->type) {
-        case SDL_KEYUP:
-        case SDL_KEYDOWN: {
-            // process input
-            uint32_t hotkeys = 0;
-            input->update(event, &hotkeys);
-            if (hotkeys & HOTKEY_DEBUGGER) {
-                // we must break!
-                CLog::print("DEBUGBREAK requested (works only in debugger mode!)");
-                mustBreak = true;
-            }
-            else if (hotkeys & HOTKEY_PASTE_TEXT) {
-                // fill the clipboard queue with fake events
-                input->fillClipboardQueue();
-            }
-            break;
+    case SDL_KEYUP:
+    case SDL_KEYDOWN: {
+        // process input
+        uint32_t hotkeys = 0;
+        input->update(event, &hotkeys);
+        if (hotkeys & HOTKEY_DEBUGGER) {
+            // we must break!
+            CLog::print("DEBUGBREAK requested (works only in debugger mode!)");
+            mustBreak = true;
+        } else if (hotkeys & HOTKEY_PASTE_TEXT) {
+            // fill the clipboard queue with fake events
+            input->fillClipboardQueue();
         }
-        default:
-            break;
+        break;
+    }
+    default:
+        break;
     }
 }
 
@@ -134,27 +133,48 @@ void sdlEventCallback(SDL_Event* event) {
  * prints usage
  * @param argv
  */
-void usage(char** argv) {
-    CLog::error("usage: %s -f <file> [-dsh]\n" \
-    "\t-f: file to be loaded (PRG only is supported as now)\n" \
-    "\t-d: debugger\n" \
-    "\t-s: fullscreen\n" \
-    "\t-h: this help\n",
-    argv[0]);
+void usage(char **argv) {
+    CLog::error("usage: %s -f <file> [-dsh]\n"
+                "\t-f: file to be loaded (PRG only is supported as now)\n"
+                "\t-t: run cpu test in test/6502_functional_test.bin\n"
+                "\t-d: debugger\n"
+                "\t-s: fullscreen\n"
+                "\t-h: this help\n",
+                argv[0]);
 }
 
-int main (int argc, char** argv) {
+/**
+ * just test the cpu
+ */
+void testCpuMain(bool debugger) {
+    long totalCycles = 0;
+    while (running) {
+        // step the cpu
+        int cycles = cpu->step(debugger, debugger ? mustBreak : false);
+        if (cycles == -1) {
+            // exit loop
+            running = false;
+            continue;
+        }
+        totalCycles += cycles;
+
+        // reset break status if any
+        mustBreak = false;
+    }
+}
+
+int main(int argc, char **argv) {
     CLog::enableLog(true);
 
     // prints title
     banner();
     bool debugger = false;
     bool fullScreen = false;
-
+    bool isTestCpu = false;
     // get commandline
-    char* path = nullptr;
+    char *path = nullptr;
     while (1) {
-        int option = getopt(argc, argv, "dshf:");
+        int option = getopt(argc, argv, "dshtf:");
         if (option == -1) {
             break;
         }
@@ -163,8 +183,12 @@ int main (int argc, char** argv) {
         case 'h':
             usage(argv);
             return 1;
+        case 't':
+            isTestCpu = true;
+            break;
         case 'f':
             path = optarg;
+            CLog::print("path=%s", path);
             break;
         case 'd':
             debugger = true;
@@ -198,7 +222,7 @@ int main (int argc, char** argv) {
 
         // create cpu
         cpu = new CMOS65xx(mem, cpuCallbackRead, cpuCallbackWrite);
-        if (cpu->reset() != 0) {
+        if (cpu->reset(isTestCpu) != 0) {
             // failed to load bios
             CLog::error("Failed to load bios files!");
             break;
@@ -212,7 +236,7 @@ int main (int argc, char** argv) {
         cia1 = new CCIA1(cpu);
         cia2 = new CCIA2(cpu);
         sid = new CSID(cpu);
-        vic = new CVICII(cpu,cia2);
+        vic = new CVICII(cpu, cia2);
 
         // create the subsystems (display, input, audio)
         display = new CDisplay(vic);
@@ -225,9 +249,9 @@ int main (int argc, char** argv) {
         displayOpts.w = VIC_PAL_SCREEN_W;
         displayOpts.h = VIC_PAL_SCREEN_H;
         displayOpts.windowName = "vc64-emu";
-        displayOpts.windowFlags = fullScreen ? SDL_WINDOW_FULLSCREEN : 0;
+        displayOpts.windowFlags = fullScreen ? SDL_WINDOW_FULLSCREEN : SDL_WINDOW_RESIZABLE;
         displayOpts.rendererFlags = SDL_RENDERER_ACCELERATED;
-        char* sdlError;
+        char *sdlError;
         res = display->init(&displayOpts, &sdlError);
         if (res != 0) {
             CLog::error("display->init(): %s", sdlError);
@@ -235,10 +259,18 @@ int main (int argc, char** argv) {
         }
         CLog::print("Display initialized OK!");
 
+        int timeNow = SDL_GetTicks();
+        if (isTestCpu) {
+            // running test
+            CLog::print("running cpu test mode!");
+            testCpuMain(debugger);
+            res = 0;
+            break;
+        }
+
         // pal c64 runs at 0,985mhz (~=1mhz=1000000hz), video at 50hz (50fps)
         int clipboardFrameCount = CLIPBOARD_SKIP_FRAMES;
         int clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
-        int timeNow = SDL_GetTicks();
         while (running) {
             // step the cpu
             int cycles = cpu->step(debugger, debugger ? mustBreak : false);
@@ -247,60 +279,57 @@ int main (int argc, char** argv) {
                 running = false;
                 continue;
             }
-            totalCycles+=cycles;
+            totalCycles += cycles;
 
             // reset break status if any
             mustBreak = false;
 
             // after each instruction, update internal chips state
-            if (!cpu->isTestMode()) {
-                cia1->update(totalCycles);
-                cia2->update(totalCycles);
-                sid->update(totalCycles);
-                audio->update();
+            cia1->update(totalCycles);
+            cia2->update(totalCycles);
+            sid->update(totalCycles);
+            audio->update();
+            int c = vic->update(totalCycles);
+            totalCycles += c;
 
-                int c = vic->update(totalCycles);
-                totalCycles+=c;
-            }
-
-            // after cycles per frame elapsed, update the display, process input and play sound
+            // after cycles per frame elapsed, update the display, process input
+            // and play sound
             int timeThen = SDL_GetTicks();
-            if (!cpu->isTestMode()) {
-                // update display
-                int diff = timeThen - timeNow;
-                int msecSleep = 1000 / 50;
-                if (diff > msecSleep) {
-                    display->update();
-                    timeNow = timeThen;
-                }
+            // update display
+            int diff = timeThen - timeNow;
+            int msecSleep = 1000 / 50;
+            if (diff >= msecSleep) {
+                display->update();
+                CSDLUtils::pollEvents(sdlEventCallback);
+                //CLog::print("diff=%d, msecsleep=%d",diff, msecSleep);
+                timeNow = SDL_GetTicks();//timeThen;
             }
 
+            //timeNow = SDL_GetTicks();//timeThen;//SDL_GetTicks();//timeThen;
             // check the clipboard queue, and process one event if not empty
-            CSDLUtils::pollEvents(sdlEventCallback);
             if (input->hasClipboardEvents()) {
-                // we must wait some frames, or ctrl-V may still be in the SDL internal queue
+                // we must wait some frames, or ctrl-V may still be in the SDL
+                // internal queue
                 if (clipboardWaitFrames > 0) {
                     clipboardWaitFrames--;
-                }
-                else {
+                } else {
                     // process clipboard
                     if (clipboardFrameCount == 0) {
                         input->processClipboardQueue();
                         clipboardFrameCount = CLIPBOARD_SKIP_FRAMES;
-                    }
-                    else {
+                    } else {
                         clipboardFrameCount--;
                     }
                 }
-            }
-            else {
+            } else {
                 // reset
                 clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
             }
 
-            // this basically waits enough cycles for BASIC to be initialized, then
-            // load a prg if it's set
+            // this basically waits enough cycles for BASIC to be initialized,
+            // then load a prg if it's set
             if (totalCycles > 14570000 && path) {
+                CLog::print("cycle=%ld", totalCycles);
                 // TODO: determine if it's a prg, either fail....
                 res = mem->loadPrg(path);
                 if (res == 0) {
@@ -308,12 +337,14 @@ int main (int argc, char** argv) {
                     SDL_SetClipboardText("RUN\n");
                     input->fillClipboardQueue();
                 }
-                path=nullptr;
+                path = nullptr;
             }
         }
-    } while(0);
+    } while (0);
     uint32_t endTime = SDL_GetTicks() - startTime;
-    CLog::print("done, step for %02d:%02d:%02d, total CPU cycles=%" PRId64, endTime / 1000 / 60 / 60, endTime / 1000 / 60, (endTime / 1000) % 60, totalCycles);
+    CLog::print("done, step for %02d:%02d:%02d, total CPU cycles=%" PRId64,
+                endTime / 1000 / 60 / 60, endTime / 1000 / 60,
+                (endTime / 1000) % 60, totalCycles);
 
     // done
     SAFE_DELETE(cia1)

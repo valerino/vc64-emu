@@ -512,9 +512,10 @@ public:
 
     /**
      * resets the cpu and initializes for a new run
+     * @param loadTests if true, test mode is activated and <currentdir>/tests/6502_functional_test.bin is loaded
      * @return 0 on success, or errno
      */
-    int reset();
+    int reset(bool loadTests=false);
 
     /**
      * constructor
@@ -539,6 +540,7 @@ public:
      * @return
      */
     bool isTestMode();
+
 
     /**
      * return the memory interface

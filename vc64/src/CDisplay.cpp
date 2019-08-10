@@ -14,7 +14,7 @@
 
 CDisplay::CDisplay(CVICII *vic) {
     // allocate the texture memory for the framebuffer
-    _fb = (uint32_t *)calloc(1, VIC_PAL_SCREEN_W * VIC_PAL_SCREEN_H * sizeof(uint32_t));
+    _fb = (uint32_t *)calloc(1, (VIC_PAL_SCREEN_W * VIC_PAL_SCREEN_H) * sizeof(uint32_t));
     _vic = vic;
 }
 

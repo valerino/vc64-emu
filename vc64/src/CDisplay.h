@@ -14,9 +14,9 @@
 class CDisplay {
 
 private:
-    SDLDisplayCtx _ctx;
-    uint32_t* _fb;
-    CVICII* _vic;
+    SDLDisplayCtx _ctx = {0};
+    uint32_t* _fb = nullptr;
+    CVICII* _vic = nullptr;
 public:
     /**
      * to be called first to initialize display

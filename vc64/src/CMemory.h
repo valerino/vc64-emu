@@ -41,12 +41,12 @@
 class CMemory: public IMemory {
 private:
     // global/writable memory
-    uint8_t* _mem;
+    uint8_t* _mem = nullptr;
 
     // for commodity, we keep the ROMS aliased there in separate buffers (which shadows the respective address in the global memory)
-    uint8_t* _charRom;
-    uint8_t* _kernalRom;
-    uint8_t* _basicRom;
+    uint8_t* _charRom = nullptr;
+    uint8_t* _kernalRom = nullptr;
+    uint8_t* _basicRom = nullptr;
 
     /**
      * load bios files

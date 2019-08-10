@@ -1,4 +1,4 @@
-project(vc64)
+project(vc64-emu)
 
 add_executable(${PROJECT_NAME}
         src/main.cpp
@@ -14,7 +14,7 @@ add_executable(${PROJECT_NAME}
 
 # needs sdsl2
 find_package(SDL2 REQUIRED)
-include_directories(.
+include_directories(
         ${SDL2_INCLUDE_DIRS})
 
 target_link_libraries(${PROJECT_NAME}

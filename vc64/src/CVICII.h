@@ -112,10 +112,10 @@ private:
         uint8_t g;
         uint8_t b;
     } rgbStruct;
-    rgbStruct _palette[16];
-    uint32_t* _fb;
-    SDLDisplayCtx* _sdlCtx;
-    CCIA2* _cia2;
+    rgbStruct _palette[16] = {0};
+    uint32_t* _fb=nullptr;
+    SDLDisplayCtx* _sdlCtx = nullptr;
+    CCIA2* _cia2 = nullptr;
     void updateRasterCounter();
     uint16_t checkShadowAddress(uint16_t address);
     bool checkUnusedAddress(int type, uint16_t address, uint8_t *bt);

@@ -26,12 +26,10 @@ CCIA2::CCIA2(CMOS65xx *cpu) {
 CCIA2::~CCIA2() {}
 
 int CCIA2::update(int cycleCount) {
-    /*
-    int cc = cycleCount - _prevCycleCount;
+    /*int cc = cycleCount - _prevCycleCount;
     if (cc < 16421) {
         return 0;
-    }
-     */
+    }*/
     if (_timerARunning) {
         // check timerA mode
         if (_timerAMode == CIA_TIMER_COUNT_CPU_CYCLES) {
