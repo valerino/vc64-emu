@@ -114,13 +114,17 @@ void sdlEventCallback(SDL_Event *event) {
         // process input
         uint32_t hotkeys = 0;
         input->update(event, &hotkeys);
-        if (hotkeys & HOTKEY_DEBUGGER) {
+        if (hotkeys == HOTKEY_DEBUGGER) {
             // we must break!
             CLog::print("DEBUGBREAK requested (works only in debugger mode!)");
             mustBreak = true;
-        } else if (hotkeys & HOTKEY_PASTE_TEXT) {
+        } else if (hotkeys == HOTKEY_PASTE_TEXT) {
             // fill the clipboard queue with fake events
             input->fillClipboardQueue();
+        } else if (hotkeys == HOTKEY_FORCE_EXIT) {
+            // force exit
+            CLog::print("FORCE exit!");
+            running = false;
         }
         break;
     }
@@ -239,24 +243,15 @@ int main(int argc, char **argv) {
         vic = new CVICII(cpu, cia2);
 
         // create the subsystems (display, input, audio)
-        display = new CDisplay(vic);
-        input = new CInput(cia1);
-        audio = new CAudio(sid);
-        SDLDisplayCreateOptions displayOpts = {};
-        displayOpts.posX = SDL_WINDOWPOS_CENTERED;
-        displayOpts.posY = SDL_WINDOWPOS_CENTERED;
-        displayOpts.scaleFactor = 2;
-        displayOpts.w = VIC_PAL_SCREEN_W;
-        displayOpts.h = VIC_PAL_SCREEN_H;
-        displayOpts.windowName = "vc64-emu";
-        displayOpts.windowFlags = fullScreen ? SDL_WINDOW_FULLSCREEN : SDL_WINDOW_RESIZABLE;
-        displayOpts.rendererFlags = SDL_RENDERER_ACCELERATED;
-        char *sdlError;
-        res = display->init(&displayOpts, &sdlError);
-        if (res != 0) {
-            CLog::error("display->init(): %s", sdlError);
+        try {
+            display = new CDisplay(vic, "vc64-emu", fullScreen);
+        }
+        catch (std::exception ex) {
+            CLog::error("display->init(): %s", ex.what());
             break;
         }
+        input = new CInput(cia1);
+        audio = new CAudio(sid);
         CLog::print("Display initialized OK!");
 
         int timeNow = SDL_GetTicks();

@@ -20,6 +20,11 @@
 #define HOTKEY_PASTE_TEXT 2
 
 /**
+ * @brief pressing ctrl-esc (force) exit the emulator
+ */
+#define HOTKEY_FORCE_EXIT 3
+
+/**
  * handles emulator input
  */
 class CInput {

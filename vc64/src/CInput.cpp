@@ -171,20 +171,26 @@ void CInput::processEvent(SDL_Event *ev) {
 int CInput::update(SDL_Event *ev, uint32_t *hotkeys) {
     // we have a keyup or keydown
     const uint8_t* keys = SDL_GetKeyboardState(nullptr);
+
+    // check hotkeys
     if (keys[SDL_SCANCODE_LCTRL] && keys[SDL_SCANCODE_D]) {
         // break requested!
         *hotkeys = HOTKEY_DEBUGGER;
         return 0;
     }
-    if (keys[SDL_SCANCODE_TAB] && keys[SDL_SCANCODE_PAGEUP]) {
+    else if (keys[SDL_SCANCODE_TAB] && keys[SDL_SCANCODE_PAGEUP]) {
         // runstop + restore causes a nonmaskable interrupt
         _cia1->_cpu->nmi();
         return 0;
     }
-
-    if (keys[SDL_SCANCODE_LCTRL] && keys[SDL_SCANCODE_V]) {
+    else if (keys[SDL_SCANCODE_LCTRL] && keys[SDL_SCANCODE_V]) {
         // handle clipboard copying keystrokes to the input queue
         *hotkeys = HOTKEY_PASTE_TEXT;
+        return 0;
+    }
+    else if (keys[SDL_SCANCODE_LCTRL] && keys[SDL_SCANCODE_ESCAPE]) {
+        // force exit
+        *hotkeys = HOTKEY_FORCE_EXIT;
         return 0;
     }
 
