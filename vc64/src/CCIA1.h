@@ -8,6 +8,11 @@
 #include <CMOS65xx.h>
 #include "CIACommon.h"
 
+#ifndef NDEBUG
+// debug-only flag
+//#define DEBUG_CIA1
+#endif
+
 /**
  * registers
  * https://www.c64-wiki.com/wiki/CIA

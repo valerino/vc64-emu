@@ -9,6 +9,11 @@
 #include "CCIA2.h"
 #include <CSDLUtils.h>
 
+#ifndef NDEBUG
+// debug-only flag
+//#define DEBUG_VIC
+#endif
+
 // sizes comprensive of vblank and hblank
 // from http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
 #define VIC_PAL_SCREEN_W 403

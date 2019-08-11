@@ -6,7 +6,12 @@
 #define VC64_EMU_CCIA2_H
 
 #include <CMOS65xx.h>
+
 #include "CIACommon.h"
+#ifndef NDEBUG
+// debug-only flag
+//#define DEBUG_CIA2
+#endif
 
 /**
  * registers

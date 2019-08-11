@@ -5,11 +5,6 @@
 #include "CInput.h"
 #include <CLog.h>
 
-#ifndef NDEBUG
-// debug-only flag
-//#define DEBUG_INPUT
-#endif
-
 CInput::CInput(CCIA1* cia1) {
     _cia1 = cia1;
 }

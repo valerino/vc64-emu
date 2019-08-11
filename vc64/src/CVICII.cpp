@@ -8,11 +8,6 @@
 #include <CLog.h>
 #include "globals.h"
 
-#ifndef NDEBUG
-// debug-only flag
-//#define DEBUG_VIC
-#endif
-
 CVICII::CVICII(CMOS65xx *cpu, CCIA2 *cia2) {
     _cpu = cpu;
     _cia2 = cia2;

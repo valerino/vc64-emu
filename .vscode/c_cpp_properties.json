@@ -1,9 +1,11 @@
 {
     "configurations": [
         {
-            "name": "Mac",
+            "name": "Default",
             "includePath": [
-                "${workspaceFolder}/**",
+                "${workspaceFolder}/emushared/**",
+                "${workspaceFolder}/v65xx/**",
+                "${workspaceFolder}/vc64/**",
                 "/usr/local/include/SDL2"
             ],
             "defines": [],

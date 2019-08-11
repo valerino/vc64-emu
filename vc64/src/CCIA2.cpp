@@ -10,11 +10,6 @@
 #include <CLog.h>
 #include "CMemory.h"
 
-#ifndef NDEBUG
-// debug-only flag
-//#define DEBUG_CIA2
-#endif
-
 CCIA2::CCIA2(CMOS65xx *cpu) {
     _cpu = cpu;
     _timerA = 0;
