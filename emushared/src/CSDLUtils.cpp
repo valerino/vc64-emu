@@ -89,29 +89,8 @@ int CSDLUtils::update(SDLDisplayCtx *ctx, void *texture, int w) {
         return EINVAL;
     }
     SDL_UpdateTexture(ctx->texture, NULL, texture, w * sizeof(uint32_t));
-    /*void* pixels = nullptr;
-    int size = 0;
-    SDL_LockTexture(ctx->texture, NULL, &pixels, &size);//w*sizeof(uint32_t));
-    CLog::print("size: %d, pixels=%p", size, pixels);
-    memcpy(pixels,texture,size*w);
-    */
-    /*
-    SDL_Rect renderRect;
-    int windowX;
-    int windowY;
-    SDL_RenderGetViewport(ctx->renderer, &renderRect);
-    SDL_GetWindowSize(ctx->window, &windowX, &windowY);
-    if (renderRect.w != windowX || renderRect.h != windowY)
-    {
-        renderRect.w = windowX;
-        renderRect.h = windowY;
-        SDL_RenderSetViewport(ctx->renderer, &renderRect);
-    }
-    */
     SDL_RenderClear(ctx->renderer);
-
     SDL_RenderCopy(ctx->renderer, ctx->texture, NULL, NULL);
-    // SDL_UnlockTexture(ctx->texture);
     SDL_RenderPresent(ctx->renderer);
     return 0;
 }

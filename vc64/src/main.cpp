@@ -41,7 +41,7 @@ bool mustBreak = false;
 #define CLIPBOARD_WAIT_FRAMES 120
 
 /**
- * @brief when there's clipboard events to process, process one event and skip
+ * @brief when there's clipboard events to process, probcess one event and skip
  * these many frames, until the queue is empty
  */
 #define CLIPBOARD_SKIP_FRAMES 20
