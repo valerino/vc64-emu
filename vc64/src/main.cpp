@@ -262,9 +262,14 @@ int main(int argc, char **argv) {
             break;
         }
 
-        // pal c64 runs at ~=1mhz=1000000hz, exactly 985248hz, video at 50hz
-        // (50fps)
-        int cyclesPerFrame = VIC_PAL_HZ / 50;
+        /*
+        The PAL C64 has 312 scanlines giving 63*312 = 19656 cycles. If the
+        display is activated (without sprites), the VIC will steal 40 cycles for
+        each badline which gives us 63*312 - (25*40) = 18656 cycles. Add some
+        sprites and the free cycles will decrease even more.
+        */
+        int cyclesPerFrame = 18656;
+        int msecPerFrame = cyclesPerFrame / 1000;
         int cycleCounter = cyclesPerFrame;
         int clipboardFrameCount = CLIPBOARD_SKIP_FRAMES;
         int clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
@@ -276,44 +281,35 @@ int main(int argc, char **argv) {
                 running = false;
                 continue;
             }
+            totalCycles += cycles;
+
             // reset break status if any (for the debugger)
             mustBreak = false;
 
-            // draw a line if needed
+            // update chips
             cia1->update(totalCycles);
             cia2->update(totalCycles);
+            sid->update(totalCycles);
             int c = vic->update(totalCycles);
             cycles += c;
+            totalCycles += c;
 
             // update cyclecounter
-            totalCycles += cycles;
             cycleCounter -= cycles;
-
             if (cycleCounter <= 0) {
-                sid->update(totalCycles);
-                audio->update();
                 display->update();
-                SDL_Delay(6);
                 CSDLUtils::pollEvents(sdlEventCallback);
                 cycleCounter += cyclesPerFrame;
+
+                // sleep for the remaining time, if any
+                int timeThen = SDL_GetTicks();
+                int diff = timeThen - timeNow;
+                if (diff < msecPerFrame) {
+                    SDL_Delay(msecPerFrame - diff);
+                }
+                timeNow = timeThen;
             }
 
-            /*
-            // after cycles per frame elapsed, update the display, process input
-            // and play sound
-            int timeThen = SDL_GetTicks();
-            // update display
-            int diff = timeThen - timeNow;
-            int msecSleep = 1000 / 50;
-            if (diff >= msecSleep) {
-                display->update();
-                CSDLUtils::pollEvents(sdlEventCallback);
-                //CLog::print("diff=%d, msecsleep=%d",diff, msecSleep);
-                timeNow = SDL_GetTicks();//timeThen;
-            }
-
-            //timeNow = SDL_GetTicks();//timeThen;//SDL_GetTicks();//timeThen;
-            */
             // check the clipboard queue, and process one event if not empty
             if (input->hasClipboardEvents()) {
                 // we must wait some frames, or ctrl-V may still be in the SDL

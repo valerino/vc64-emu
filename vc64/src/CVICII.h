@@ -21,34 +21,33 @@
 #define VIC_PAL_SCANLINES 312
 #define VIC_PAL_HZ 985248
 #define VIC_PAL_CYCLES_PER_LINE 63
+#define VIC_PAL_CYCLES_PER_BADLINE 40
 #define VIC_PAL_FIRST_VISIBLE_LINE 14
 #define VIC_PAL_LAST_VISIBLE_LINE 298
 
 #define VIC_CHAR_MODE_COLUMNS 40
 
-// display window is intended the 'blue' window surrounded by the border, when c64 boots :)
+// display window is intended the 'blue' window surrounded by the border, when
+// c64 boots :)
 #define VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN 42
 #define VIC_PAL_FIRST_DISPLAYWINDOW_LINE 56
 #define VIC_PAL_LAST_DISPLAYWINDOW_LINE 256
-
-// 23 cycles per badline
-#define VIC_PAL_CYCLES_PER_BADLINE 23
 
 /**
  * registers
  * https://www.c64-wiki.com/wiki/Page_208-211
  */
 #define VIC_REGISTERS_START 0xd000
-#define VIC_REGISTERS_END   0xd3ff
+#define VIC_REGISTERS_END 0xd3ff
 
 #define VIC_REG_CR1 0xd011
 #define VIC_REG_RASTERCOUNTER 0xd012
 #define VIC_REG_CR2 0xd016
 
 // https://www.c64-wiki.com/wiki/53272
-#define VIC_REG_BASE_ADDR  0xd018
+#define VIC_REG_BASE_ADDR 0xd018
 
-#define VIC_REG_INTERRUPT_LATCH  0xd019
+#define VIC_REG_INTERRUPT_LATCH 0xd019
 #define VIC_REG_IRQ_ENABLED 0xd01a
 #define VIC_REG_BORDER_COLOR 0xd020
 #define VIC_REG_BG_COLOR_0 0xd021
@@ -65,13 +64,13 @@ class CVICII {
      */
     friend class CDisplay;
 
-public:
+  public:
     /**
      * constructor
      * @param cpu the cpu
      * @param cia2 the CIA-2 chip
      */
-    CVICII(CMOS65xx* cpu, CCIA2* cia2);
+    CVICII(CMOS65xx *cpu, CCIA2 *cia2);
 
     ~CVICII();
 
@@ -87,28 +86,28 @@ public:
      * @param address
      * @param bt
      */
-    void read(uint16_t address, uint8_t* bt);
+    void read(uint16_t address, uint8_t *bt);
 
     /**
      * write to chip memory
      * @param address
      * @param bt
      */
-     void write(uint16_t address, uint8_t bt);
+    void write(uint16_t address, uint8_t bt);
 
-private:
-    CMOS65xx* _cpu = nullptr;
+  private:
+    CMOS65xx *_cpu = nullptr;
     uint16_t _rasterCounter = 0;
     uint16_t _rasterIrqLine = 0;
     int _scrollX = 0;
-    int _scrollY= 0;
+    int _scrollY = 0;
     uint8_t _regBackgroundColors[4] = {0};
     uint8_t _regBorderColor = 0;
     uint8_t _regCr1 = 0;
     uint8_t _regCr2 = 0;
     uint8_t _regInterruptLatch = 0;
     uint8_t _regInterruptEnabled = 0;
-    void setSdlCtx(SDLDisplayCtx* ctx, uint32_t* frameBuffer);
+    void setSdlCtx(SDLDisplayCtx *ctx, uint32_t *frameBuffer);
 
     /**
      * for the c64 palettte
@@ -119,19 +118,20 @@ private:
         uint8_t b;
     } rgbStruct;
     rgbStruct _palette[16] = {0};
-    uint32_t* _fb=nullptr;
-    SDLDisplayCtx* _sdlCtx = nullptr;
-    CCIA2* _cia2 = nullptr;
+    uint32_t *_fb = nullptr;
+    SDLDisplayCtx *_sdlCtx = nullptr;
+    CCIA2 *_cia2 = nullptr;
     void updateRasterCounter();
     uint16_t checkShadowAddress(uint16_t address);
     bool checkUnusedAddress(int type, uint16_t address, uint8_t *bt);
-    void getTextModeScreenAddress(uint16_t* screenCharacterRamAddress, uint16_t* charsetAddress, int* bank);
-    void getBitmapModeScreenAddress(uint16_t* colorInfoAddress, uint16_t* bitmapAddress);
+    void getTextModeScreenAddress(uint16_t *screenCharacterRamAddress,
+                                  uint16_t *charsetAddress, int *bank);
+    void getBitmapModeScreenAddress(uint16_t *colorInfoAddress,
+                                    uint16_t *bitmapAddress);
     void drawBorder(int rasterLine);
     void drawCharacterMode(int rasterLine);
     bool isCharacterMode();
     void blit(int x, int y, CVICII::rgbStruct *rgb);
 };
 
-
-#endif //VC64_EMU_CVICII_H
+#endif // VC64_EMU_CVICII_H

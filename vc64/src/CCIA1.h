@@ -18,16 +18,17 @@
  * https://www.c64-wiki.com/wiki/CIA
  */
 #define CIA1_REGISTERS_START 0xdc00
-#define CIA1_REGISTERS_END   0xdcff
+#define CIA1_REGISTERS_END 0xdcff
 
 /**
- * implements the 1st CIA 6526, which controls keyboard, joystick, paddles, datassette and IRQ
+ * implements the 1st CIA 6526, which controls keyboard, joystick, paddles,
+ * datassette and IRQ
  */
 class CCIA1 {
     friend class CInput;
 
-public:
-    CCIA1(CMOS65xx* cpu);
+  public:
+    CCIA1(CMOS65xx *cpu);
     ~CCIA1();
 
     /**
@@ -42,7 +43,7 @@ public:
      * @param address
      * @param bt
      */
-    void read(uint16_t address, uint8_t* bt);
+    void read(uint16_t address, uint8_t *bt);
 
     /**
      * write to chip memory
@@ -58,7 +59,7 @@ public:
      */
     void setKeyState(uint8_t scancode, bool pressed);
 
-private:
+  private:
     void readKeyboardMatrixColumn(uint8_t *bt, uint8_t pra);
     uint16_t checkShadowAddress(uint16_t address);
 
@@ -74,11 +75,10 @@ private:
     bool _timerBRunning = false;
     bool _timerAIrqEnabled = false;
     bool _timerBIrqEnabled = false;
+    bool _irqTriggeredA = false;
+    bool _irqTriggeredB = false;
     int _prevCycleCount = 0;
-    CMOS65xx* _cpu = nullptr;
+    CMOS65xx *_cpu = nullptr;
 };
 
-
-#endif //VC64_EMU_CCIA1_H
-
-
+#endif // VC64_EMU_CCIA1_H
