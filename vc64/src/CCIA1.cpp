@@ -122,23 +122,21 @@ void CCIA1::read(uint16_t address, uint8_t *bt) {
         break;
 
     case 0xdc0d:
-        /*
-            if (_irqTriggeredA || _irqTriggeredB) {
-                uint8_t res = 0;
-                BIT_SET(res, 7);
-                if (_irqTriggeredA) {
-                    BIT_SET(res, 0);
-                }
-                if (_irqTriggeredB) {
-                    BIT_SET(res, 1);
-                }
-                *bt = res;
-                _irqTriggeredA = false;
-                _irqTriggeredB = false;
-            } else {
-                *bt = 0;
+        if (_irqTriggeredA || _irqTriggeredB) {
+            uint8_t res = 0;
+            BIT_SET(res, 7);
+            if (_irqTriggeredA) {
+                BIT_SET(res, 0);
             }
-            */
+            if (_irqTriggeredB) {
+                BIT_SET(res, 1);
+            }
+            *bt = res;
+            _irqTriggeredA = false;
+            _irqTriggeredB = false;
+        } else {
+            *bt = 0;
+        }
         break;
 
     default:
