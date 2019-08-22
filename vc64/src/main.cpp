@@ -273,6 +273,7 @@ int main(int argc, char **argv) {
         int cycleCounter = cyclesPerFrame;
         int clipboardFrameCount = CLIPBOARD_SKIP_FRAMES;
         int clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
+        timeNow = SDL_GetTicks();
         while (running) {
             // step the cpu
             int cycles = cpu->step(debugger, debugger ? mustBreak : false);
@@ -287,19 +288,18 @@ int main(int argc, char **argv) {
             mustBreak = false;
 
             // update chips
-            cia1->update(totalCycles);
-            cia2->update(totalCycles);
             sid->update(totalCycles);
             int c = vic->update(totalCycles);
             cycles += c;
-            totalCycles += c;
+            cia1->update(totalCycles);
+            cia2->update(totalCycles);
 
             // update cyclecounter
             cycleCounter -= cycles;
             if (cycleCounter <= 0) {
                 display->update();
-                CSDLUtils::pollEvents(sdlEventCallback);
                 cycleCounter += cyclesPerFrame;
+                CSDLUtils::pollEvents(sdlEventCallback);
 
                 // sleep for the remaining time, if any
                 int timeThen = SDL_GetTicks();
@@ -307,7 +307,7 @@ int main(int argc, char **argv) {
                 if (diff < msecPerFrame) {
                     SDL_Delay(msecPerFrame - diff);
                 }
-                timeNow = timeThen;
+                timeNow = timeThen; //();
             }
 
             // check the clipboard queue, and process one event if not empty

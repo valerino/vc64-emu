@@ -21,7 +21,7 @@
 #define VIC_PAL_SCANLINES 312
 #define VIC_PAL_HZ 985248
 #define VIC_PAL_CYCLES_PER_LINE 63
-#define VIC_PAL_CYCLES_PER_BADLINE 40
+#define VIC_PAL_CYCLES_PER_BADLINE 23
 #define VIC_PAL_FIRST_VISIBLE_LINE 14
 #define VIC_PAL_LAST_VISIBLE_LINE 298
 
@@ -79,7 +79,7 @@ class CVICII {
      * @param current cycle count
      * @return additional cycles used
      */
-    int update(int cycleCount);
+    int update(long cycleCount);
 
     /**
      * read from chip memory
@@ -97,6 +97,7 @@ class CVICII {
 
   private:
     CMOS65xx *_cpu = nullptr;
+    int _prevCycles = 0;
     uint16_t _rasterCounter = 0;
     uint16_t _rasterIrqLine = 0;
     int _scrollX = 0;

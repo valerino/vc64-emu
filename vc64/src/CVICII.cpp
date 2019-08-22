@@ -196,18 +196,34 @@ void CVICII::drawCharacterMode(int rasterLine) {
     }
 }
 
-int CVICII::update(int cycleCount) {
-    int occupiedCycles = 0;
-
+int CVICII::update(long cycleCount) {
     if (IS_BIT_SET(_regInterruptLatch, 7)) {
         // IRQ is set
         _cpu->irq();
     }
 
-    // need to draw a line ?
-    if ((cycleCount % VIC_PAL_CYCLES_PER_LINE) != 0) {
-        return occupiedCycles;
+    long elapsed = cycleCount - _prevCycles;
+
+    // check for bad line (http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt)
+    /*
+         A Bad Line Condition is given at any arbitrary clock cycle, if at the
+         negative edge of ø0 at the beginning of the cycle RASTER >= $30 and
+       RASTER
+         <= $f7 and the lower three bits of RASTER are equal to YSCROLL and if
+       the DEN bit was set during an arbitrary cycle of raster line $30.
+     */
+    int occupiedCycles = 0;
+    bool isBadLine = ((_rasterCounter >= 0x30) && (_rasterCounter <= 0xf7)) &&
+                     ((_rasterCounter & 7) == (_scrollY & 7));
+    if (_rasterCounter == 0x30 && _scrollY == 0 && IS_BIT_SET(_regCr1, 4)) {
+        isBadLine = true;
     }
+    if (isBadLine) {
+        occupiedCycles = VIC_PAL_CYCLES_PER_BADLINE;
+    } else {
+        occupiedCycles = VIC_PAL_CYCLES_PER_LINE;
+    }
+
     // interrupt enabled, generate a raster interrupt if needed
     if (IS_BIT_SET(_regInterruptEnabled, 0)) {
         if (_rasterCounter == _rasterIrqLine) {
@@ -227,6 +243,14 @@ int CVICII::update(int cycleCount) {
         }
     }
 
+    if (elapsed >= occupiedCycles) {
+        int diff = elapsed - occupiedCycles;
+        occupiedCycles += diff;
+        _prevCycles = cycleCount;
+    } else {
+        return 0;
+    }
+
     if (_rasterCounter >= VIC_PAL_FIRST_VISIBLE_LINE &&
         _rasterCounter <= VIC_PAL_LAST_VISIBLE_LINE) {
         // draw border line
@@ -239,31 +263,13 @@ int CVICII::update(int cycleCount) {
         }
     }
 
-    // check for bad line (http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt)
-    /*
-         A Bad Line Condition is given at any arbitrary clock cycle, if at the
-         negative edge of ø0 at the beginning of the cycle RASTER >= $30 and
-       RASTER
-         <= $f7 and the lower three bits of RASTER are equal to YSCROLL and if
-       the DEN bit was set during an arbitrary cycle of raster line $30.
-     */
-    bool isBadLine = ((_rasterCounter >= 0x30) && (_rasterCounter <= 0xf7)) &&
-                     ((_rasterCounter & 7) == (_scrollY & 7));
-    if (_rasterCounter == 0x30 && _scrollY == 0 && IS_BIT_SET(_regCr1, 4)) {
-        isBadLine = true;
-    }
-    if (isBadLine) {
-        occupiedCycles = VIC_PAL_CYCLES_PER_BADLINE;
-    } else {
-        occupiedCycles = VIC_PAL_CYCLES_PER_LINE;
-    }
-
     // increment the raster counter
     _rasterCounter++;
     if (_rasterCounter >= VIC_PAL_SCANLINES) {
         // reset raster counter
         _rasterCounter = 0;
     }
+
     updateRasterCounter();
     return occupiedCycles;
 }
