@@ -38,13 +38,13 @@ bool mustBreak = false;
  * queue may still have ctrl-v to process. probably this is not the right way to
  * do it (SDL_PumpEvents ?)
  */
-#define CLIPBOARD_WAIT_FRAMES 120
+#define CLIPBOARD_WAIT_FRAMES 100
 
 /**
  * @brief when there's clipboard events to process, probcess one event and skip
  * these many frames, until the queue is empty
  */
-#define CLIPBOARD_SKIP_FRAMES 20
+#define CLIPBOARD_SKIP_FRAMES 50
 
 /**
  * shows banner
@@ -308,26 +308,26 @@ int main(int argc, char **argv) {
                     SDL_Delay(msecPerFrame - diff);
                 }
                 timeNow = timeThen;
-            }
 
-            // check the clipboard queue, and process one event if not empty
-            if (input->hasClipboardEvents()) {
-                // we must wait some frames, or ctrl-V may still be in the SDL
-                // internal queue
-                if (clipboardWaitFrames > 0) {
-                    clipboardWaitFrames--;
-                } else {
-                    // process clipboard
-                    if (clipboardFrameCount == 0) {
-                        input->processClipboardQueue();
-                        clipboardFrameCount = CLIPBOARD_SKIP_FRAMES;
+                // check the clipboard queue, and process one event if not empty
+                if (input->hasClipboardEvents()) {
+                    // we must wait some frames, or ctrl-V may still be in the
+                    // SDL internal queue
+                    if (clipboardWaitFrames > 0) {
+                        clipboardWaitFrames--;
                     } else {
-                        clipboardFrameCount--;
+                        // process clipboard
+                        if (clipboardFrameCount == 0) {
+                            input->processClipboardQueue();
+                            clipboardFrameCount = CLIPBOARD_SKIP_FRAMES;
+                        } else {
+                            clipboardFrameCount--;
+                        }
                     }
+                } else {
+                    // reset
+                    clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
                 }
-            } else {
-                // reset
-                clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
             }
 
             // this basically waits enough cycles for BASIC to be initialized,
