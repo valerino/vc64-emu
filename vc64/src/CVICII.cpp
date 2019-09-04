@@ -223,6 +223,13 @@ int CVICII::update(long cycleCount) {
     } else {
         occupiedCycles = VIC_PAL_CYCLES_PER_LINE;
     }
+    if (elapsed >= occupiedCycles) {
+        int diff = elapsed - occupiedCycles;
+        occupiedCycles += diff;
+        _prevCycles = cycleCount;
+    } else {
+        return 0;
+    }
 
     // interrupt enabled, generate a raster interrupt if needed
     if (IS_BIT_SET(_regInterruptEnabled, 0)) {
@@ -241,14 +248,6 @@ int CVICII::update(long cycleCount) {
             _regInterruptLatch |= 1;
             _cpu->memory()->writeByte(0xd019, _regInterruptLatch);
         }
-    }
-
-    if (elapsed >= occupiedCycles) {
-        int diff = elapsed - occupiedCycles;
-        occupiedCycles += diff;
-        _prevCycles = cycleCount;
-    } else {
-        return 0;
     }
 
     if (_rasterCounter >= VIC_PAL_FIRST_VISIBLE_LINE &&
