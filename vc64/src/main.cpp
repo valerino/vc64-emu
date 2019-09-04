@@ -32,6 +32,8 @@ CCIA2 *cia2 = nullptr;
 CSID *sid = nullptr;
 bool running = true;
 bool mustBreak = false;
+int64_t totalCycles = 0;
+char *path = nullptr;
 
 /**
  * @brief when there's clipboard events to process, wait some frames or the SDL
@@ -39,12 +41,14 @@ bool mustBreak = false;
  * do it (SDL_PumpEvents ?)
  */
 #define CLIPBOARD_WAIT_FRAMES 100
+int clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
 
 /**
- * @brief when there's clipboard events to process, probcess one event and skip
+ * @brief when there's clipboard events to process, process one event and skip
  * these many frames, until the queue is empty
  */
 #define CLIPBOARD_SKIP_FRAMES 50
+int clipboardFrameCount = CLIPBOARD_SKIP_FRAMES;
 
 /**
  * shows banner
@@ -167,6 +171,54 @@ void testCpuMain(bool debugger) {
     }
 }
 
+/**
+ * handle keys in the clipboard, one per time. this is called at every frame
+ * drawn.
+ */
+void handleClipboard() {
+    // check the clipboard queue, and process one event if not empty
+    if (input->hasClipboardEvents()) {
+        // we must wait some frames, or ctrl-V may still be in the
+        // SDL internal queue
+        if (clipboardWaitFrames > 0) {
+            clipboardWaitFrames--;
+        } else {
+            // process clipboard one key at time, then wait some
+            // frames
+            if (clipboardFrameCount == 0) {
+                input->processClipboardQueue();
+                clipboardFrameCount = CLIPBOARD_SKIP_FRAMES;
+            } else {
+                clipboardFrameCount--;
+            }
+        }
+    } else {
+        // reset
+        clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
+    }
+}
+
+/**
+ * once the cpu has reached enough cycles to have loaded the BASIC interpreter,
+ * issue a load of our prg. this trigger only once!
+ */
+void handlePrgLoading() {
+    if (totalCycles > 14570000 && path) {
+        // enough cycles passed....
+        CLog::print("cycle=%ld", totalCycles);
+        // TODO: determine if it's a prg, either fail....
+        int res = mem->loadPrg(path);
+        if (res == 0) {
+            // inject run!
+            SDL_SetClipboardText("RUN\n");
+            input->fillClipboardQueue();
+        }
+
+        // we don't need this to trigger anymore
+        path = nullptr;
+    }
+}
+
 int main(int argc, char **argv) {
     CLog::enableLog(true);
 
@@ -175,8 +227,8 @@ int main(int argc, char **argv) {
     bool debugger = false;
     bool fullScreen = false;
     bool isTestCpu = false;
-    // get commandline
-    char *path = nullptr;
+
+    // parse commandline
     while (1) {
         int option = getopt(argc, argv, "dshtf:");
         if (option == -1) {
@@ -207,7 +259,6 @@ int main(int argc, char **argv) {
     }
 
     bool sdlInitialized = false;
-    int64_t totalCycles = 0;
     uint32_t startTime = SDL_GetTicks();
     int res = 0;
     do {
@@ -271,8 +322,6 @@ int main(int argc, char **argv) {
         int cyclesPerFrame = 18656;
         int msecPerFrame = 20; // (50 : 1 = 1: x) * 1000
         int cycleCounter = cyclesPerFrame;
-        int clipboardFrameCount = CLIPBOARD_SKIP_FRAMES;
-        int clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
         timeNow = SDL_GetTicks();
         while (running) {
             // step the cpu
@@ -309,40 +358,13 @@ int main(int argc, char **argv) {
                 }
                 timeNow = timeThen;
 
-                // check the clipboard queue, and process one event if not empty
-                if (input->hasClipboardEvents()) {
-                    // we must wait some frames, or ctrl-V may still be in the
-                    // SDL internal queue
-                    if (clipboardWaitFrames > 0) {
-                        clipboardWaitFrames--;
-                    } else {
-                        // process clipboard
-                        if (clipboardFrameCount == 0) {
-                            input->processClipboardQueue();
-                            clipboardFrameCount = CLIPBOARD_SKIP_FRAMES;
-                        } else {
-                            clipboardFrameCount--;
-                        }
-                    }
-                } else {
-                    // reset
-                    clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
-                }
+                // handle clipboard, if any
+                handleClipboard();
             }
 
-            // this basically waits enough cycles for BASIC to be initialized,
-            // then load a prg if it's set
-            if (totalCycles > 14570000 && path) {
-                CLog::print("cycle=%ld", totalCycles);
-                // TODO: determine if it's a prg, either fail....
-                res = mem->loadPrg(path);
-                if (res == 0) {
-                    // inject run!
-                    SDL_SetClipboardText("RUN\n");
-                    input->fillClipboardQueue();
-                }
-                path = nullptr;
-            }
+            // handle prg loading, if any and if enough cycles has passed, only
+            // once
+            handlePrgLoading();
         }
     } while (0);
     uint32_t endTime = SDL_GetTicks() - startTime;
