@@ -232,22 +232,24 @@ int CVICII::update(long cycleCount) {
     }
 
     // interrupt enabled, generate a raster interrupt if needed
-    if (IS_BIT_SET(_regInterruptEnabled, 0)) {
-        if (_rasterCounter == _rasterIrqLine) {
-            _cpu->irq();
-            // reset the interrupt latch register by hand
-            // (http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt)
-            /*
-             * There are four interrupt sources in the VIC. Every source has a
-                corresponding bit in the interrupt latch (register $d019) and a
-             bit in the interrupt enable register ($d01a). When an interrupts
-             occurs, the corresponding bit in the latch is set. To clear it, the
-             processor has to write a "1" there "by hand". The VIC doesn't clear
-             the latch on its own.
-             */
-            _regInterruptLatch |= 1;
-            _cpu->memory()->writeByte(0xd019, _regInterruptLatch);
-        }
+    // FIXME: this is probably wrong, but removing the regInterruptEnabled check
+    // makes the cursor blink normally .... if (IS_BIT_SET(_regInterruptEnabled,
+    // 0)) {
+    if (_rasterCounter == _rasterIrqLine) {
+        _cpu->irq();
+        // reset the interrupt latch register by hand
+        // (http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt)
+        /*
+         * There are four interrupt sources in the VIC. Every source has a
+            corresponding bit in the interrupt latch (register $d019) and a
+         bit in the interrupt enable register ($d01a). When an interrupts
+         occurs, the corresponding bit in the latch is set. To clear it, the
+         processor has to write a "1" there "by hand". The VIC doesn't clear
+         the latch on its own.
+         */
+        _regInterruptLatch |= 1; // set bit 0, IRST
+        _cpu->memory()->writeByte(0xd019, _regInterruptLatch);
+        //}
     }
 
     if (_rasterCounter >= VIC_PAL_FIRST_VISIBLE_LINE &&
@@ -289,13 +291,17 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
         *bt |= 0xc0;
         break;
 
-        // interrupt register
+        // interrupt and interrupt enabled registers
     case 0xd019:
-        // interrupt enabled
-    case 0xd01a:
         // bit 4,5,6 are always set
+        // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
         _cpu->memory()->readByte(addr, bt);
         *bt |= 0x70;
+    case 0xd01a:
+        // bit 4,5,6,7 are always set
+        // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
+        _cpu->memory()->readByte(addr, bt);
+        *bt |= 0xf0;
         break;
 
     default:
@@ -334,7 +340,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         _scrollX = bt & 0x7;
         break;
 
-        // interrupt register
+    // interrupt register
     case 0xd019:
         _regInterruptLatch = bt;
         break;
@@ -346,8 +352,8 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
         // raster counter
     case 0xd012:
-        // sets the raster line at which the interrupt must happen, needs also
-        // bit 7 from cr1
+        // sets the raster line at which the interrupt must happen, needs
+        // also bit 7 from cr1
         _rasterIrqLine = bt | (_regCr1 >> 7);
         break;
 
