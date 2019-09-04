@@ -155,7 +155,6 @@ void usage(char **argv) {
  * just test the cpu
  */
 void testCpuMain(bool debugger) {
-    long totalCycles = 0;
     while (running) {
         // step the cpu
         int cycles = cpu->step(debugger, debugger ? mustBreak : false);
@@ -367,6 +366,8 @@ int main(int argc, char **argv) {
             handlePrgLoading();
         }
     } while (0);
+
+    // calculate some statistics
     uint32_t endTime = SDL_GetTicks() - startTime;
     CLog::print("done, step for %02d:%02d:%02d, total CPU cycles=%" PRId64,
                 endTime / 1000 / 60 / 60, endTime / 1000 / 60,
