@@ -269,7 +269,7 @@ int main(int argc, char **argv) {
         sprites and the free cycles will decrease even more.
         */
         int cyclesPerFrame = 18656;
-        int msecPerFrame = cyclesPerFrame / 1000;
+        int msecPerFrame = 20; // (50 : 1 = 1: x) * 1000
         int cycleCounter = cyclesPerFrame;
         int clipboardFrameCount = CLIPBOARD_SKIP_FRAMES;
         int clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
@@ -307,7 +307,7 @@ int main(int argc, char **argv) {
                 if (diff < msecPerFrame) {
                     SDL_Delay(msecPerFrame - diff);
                 }
-                timeNow = timeThen; //();
+                timeNow = timeThen;
             }
 
             // check the clipboard queue, and process one event if not empty
