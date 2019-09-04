@@ -9,6 +9,11 @@
 #include <SDL.h>
 #include <queue>
 
+#ifndef NDEBUG
+// debug-only flag
+//#define DEBUG_INPUT
+#endif
+
 /**
  * @brief pressing ctrl-d enters the debugger, softice style :)
  */
@@ -18,6 +23,11 @@
  * @brief pressing ctrl-v pastes text into the emulator
  */
 #define HOTKEY_PASTE_TEXT 2
+
+/**
+ * @brief pressing ctrl-esc (force) exit the emulator
+ */
+#define HOTKEY_FORCE_EXIT 3
 
 /**
  * handles emulator input
@@ -52,8 +62,8 @@ public:
     void fillClipboardQueue();
 
 private:
-    CCIA1* _cia1;
-    std::queue<SDL_Event*> _kqueue;
+    CCIA1* _cia1 = nullptr;
+    std::queue<SDL_Event*> _kqueue = {};
     uint8_t sdlScancodeToC64Scancode(uint32_t sdlScanCode);
     void processEvent(SDL_Event* ev);
 

@@ -6,18 +6,31 @@ my attempt at a portable Commodore64 emulator.
 [README](./v65xx/README.md)
 
 ### vc64 (the actual emulator)
-* needs [BIOS files](./bios/README.md)
+* needs [BIOS files](./bios/README_bios.md)
 * targets PAL c64
 * CIA1 and CIA2 partially implemented
 * VIC-II partially implemented (character and multicolor mode only)
+* timers completely wrong :)
+
+#### build
+~~~bash
+# outputs build/vc-64
+mkdir build
+cd build
+cmake ..
+make
+~~~
 
 #### usage
+to use the cpu test feature, read [README_test.md](./test/README_test.md).
+
 ~~~
 vc64 - a c64 emulator
 (c)opyleft, valerino, y2k19
 
 [x] usage: ./vc64 -f <file> [-dsh]
         -f: file to be loaded (PRG only is supported as now)
+        -t: just run the cpu test, everything else is ignored
         -d: debugger
         -s: fullscreen
         -h: this help

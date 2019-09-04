@@ -3,10 +3,9 @@
 //
 
 #include "CSDLUtils.h"
+#include "CLog.h"
 #include <SDL.h>
 #include <errno.h>
-#include <include/CSDLUtils.h>
-
 
 void CSDLUtils::pollEvents(SDLEventCallback cb) {
     // step an SDL poll cycle
@@ -16,27 +15,37 @@ void CSDLUtils::pollEvents(SDLEventCallback cb) {
     }
 }
 
-int CSDLUtils::initializeDisplayContext(SDLDisplayCtx *ctx, SDLDisplayCreateOptions *options, char **errorString) {
+int CSDLUtils::initializeDisplayContext(SDLDisplayCtx *ctx,
+                                        SDLDisplayCreateOptions *options,
+                                        char **errorString) {
     if (!options || !ctx || !errorString) {
         return EINVAL;
     }
-    memset(ctx,0,sizeof(SDLDisplayCtx));
+    memset(ctx, 0, sizeof(SDLDisplayCtx));
     *errorString = nullptr;
     bool ok = false;
     do {
         if (options->scaleFactor == 0) {
             options->scaleFactor = 1;
         }
-        ctx->window = SDL_CreateWindow(options->windowName, options->posX, options->posY, options->w*options->scaleFactor, options->h*options->scaleFactor,
-                             options->windowFlags);
+        ctx->window =
+            SDL_CreateWindow(options->windowName, options->posX, options->posY,
+                             options->w * options->scaleFactor, options->h * options->scaleFactor, options->windowFlags);
         if (!ctx->window) {
             break;
-        }
-        ctx->renderer = SDL_CreateRenderer(ctx->window, -1, options->rendererFlags);
+        }        
+        #ifdef __APPLE__
+            // set this, or scaling do not work!
+            SDL_SetHint(SDL_HINT_RENDER_DRIVER, "metal"); 
+        #endif
+        ctx->renderer =
+            SDL_CreateRenderer(ctx->window, -1, options->rendererFlags);
         if (!ctx->renderer) {
             break;
         }
-        ctx->texture = SDL_CreateTexture(ctx->renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, options->w, options->h);
+        ctx->texture = SDL_CreateTexture(
+            ctx->renderer, SDL_PIXELFORMAT_ARGB8888,
+            SDL_TEXTUREACCESS_STREAMING, options->w, options->h);
         if (!ctx->texture) {
             break;
         }
@@ -49,7 +58,7 @@ int CSDLUtils::initializeDisplayContext(SDLDisplayCtx *ctx, SDLDisplayCreateOpti
 
     if (!ok) {
         // some error happened
-        *errorString = (char *) SDL_GetError();
+        *errorString = (char *)SDL_GetError();
         CSDLUtils::finalizeDisplayContext(ctx);
         return ECANCELED;
     }
@@ -75,7 +84,7 @@ void CSDLUtils::finalizeDisplayContext(SDLDisplayCtx *ctx) {
     }
 }
 
-int CSDLUtils::update(SDLDisplayCtx* ctx, void* texture, int w) {
+int CSDLUtils::update(SDLDisplayCtx *ctx, void *texture, int w) {
     if (!ctx || !texture || !w) {
         return EINVAL;
     }

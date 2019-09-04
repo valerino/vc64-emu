@@ -19,4 +19,4 @@ add_subdirectory(vc64)
 file(COPY bios DESTINATION ${CMAKE_BINARY_DIR})
 
 # also the cpu test binaries
-file(COPY v65xx/tests DESTINATION ${CMAKE_BINARY_DIR})
+file(COPY test DESTINATION ${CMAKE_BINARY_DIR})

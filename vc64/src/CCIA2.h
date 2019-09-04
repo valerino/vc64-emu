@@ -6,21 +6,35 @@
 #define VC64_EMU_CCIA2_H
 
 #include <CMOS65xx.h>
+
 #include "CIACommon.h"
+#ifndef NDEBUG
+// debug-only flag
+//#define DEBUG_CIA2
+#endif
 
 /**
  * registers
  * https://www.c64-wiki.com/wiki/CIA
  */
 #define CIA2_REGISTERS_START 0xdd00
-#define CIA2_REGISTERS_END   0xddff
+#define CIA2_REGISTERS_END 0xddff
+
+#define CIA2_REG_DATAPORT_A 0xdd00
+#define CIA2_REG_TIMER_A_LO 0xdd04
+#define CIA2_REG_TIMER_A_HI 0xdd05
+#define CIA2_REG_TIMER_B_LO 0xdd06
+#define CIA2_REG_TIMER_B_HI 0xdd07
+#define CIA2_REG_CONTROL_TIMER_A 0xdd0e
+#define CIA2_REG_CONTROL_TIMER_B 0xdd0f
 
 /**
- * implements the 2nd CIA 6526, which controls the serial bus, rs232, vic memory and NMI
+ * implements the 2nd CIA 6526, which controls the serial bus, rs232, vic memory
+ * and NMI
  */
 class CCIA2 {
-public:
-    CCIA2(CMOS65xx* cpu);
+  public:
+    CCIA2(CMOS65xx *cpu);
     ~CCIA2();
 
     /**
@@ -36,14 +50,14 @@ public:
      * @param address on return, the vic base address
      * @return bank 0-3
      */
-    int getVicBank(uint16_t* address);
+    int getVicBank(uint16_t *address);
 
     /**
      * read from chip memory
      * @param address
      * @param bt
      */
-    void read(uint16_t address, uint8_t* bt);
+    void read(uint16_t address, uint8_t *bt);
 
     /**
      * write to chip memory
@@ -52,8 +66,8 @@ public:
      */
     void write(uint16_t address, uint8_t bt);
 
-private:
-    CMOS65xx* _cpu;
+  private:
+    CMOS65xx *_cpu;
     uint16_t _timerALatch = 0;
     uint16_t _timerBLatch = 0;
     uint16_t _timerA = 0;
@@ -64,7 +78,9 @@ private:
     bool _timerBRunning = false;
     bool _timerANmiEnabled = false;
     bool _timerBNmiEnabled = false;
+    bool _nmiTriggeredA = false;
+    bool _nmiTriggeredB = false;
     int _prevCycleCount = 0;
 };
 
-#endif //VC64_EMU_CCIA2_H
+#endif // VC64_EMU_CCIA2_H

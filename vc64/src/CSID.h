@@ -7,6 +7,11 @@
 
 #include <CMOS65xx.h>
 
+#ifndef NDEBUG
+// debug-only flag
+//#define DEBUG_SID
+#endif
+
 /**
  * implements the SID 6581 audio chip
  */

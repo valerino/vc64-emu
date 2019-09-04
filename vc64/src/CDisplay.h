@@ -14,18 +14,10 @@
 class CDisplay {
 
 private:
-    SDLDisplayCtx _ctx;
-    uint32_t* _fb;
-    CVICII* _vic;
+    SDLDisplayCtx _ctx = {0};
+    uint32_t* _fb = nullptr;
+    CVICII* _vic = nullptr;
 public:
-    /**
-     * to be called first to initialize display
-     * @param options window creation options
-     * @param errorString on error, this is filled with a pointer to the SDL error string
-     * @return 0 on success, or errno
-     */
-    int init(SDLDisplayCreateOptions* options, char** errorString);
-
     /**
      * update the display
      */
@@ -34,9 +26,13 @@ public:
     /**
      * constructor
      * @param vic the vic-ii chip
+     * @param wndName name of the window, for windowed mode
+     * @param fullScreen true for fullscreen (default is windowed)
+     * @throws std::runtime_error on error
      */
-    CDisplay(CVICII* vic);
+    CDisplay(CVICII* vic, const char* wndName, bool fullScreen = false);
     ~CDisplay();
+
 };
 
 #endif //VC64_EMU_DISPLAY_H

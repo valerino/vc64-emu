@@ -8,32 +8,9 @@
 #include <CLog.h>
 #include "globals.h"
 
-#ifndef NDEBUG
-// debug-only flag
-//#define DEBUG_VIC
-#endif
-
 CVICII::CVICII(CMOS65xx *cpu, CCIA2 *cia2) {
     _cpu = cpu;
     _cia2 = cia2;
-
-    // initialize to default values
-    _regBorderColor = 0;
-    _regCr1 = 0;
-    _regCr2 = 0;
-    _rasterCounter = 0;
-    _rasterIrqLine = 0;
-    _regInterruptEnabled = 0;
-    _regInterruptLatch = 0;
-    _scrollX = 0;
-    _scrollY = 0;
-    _firstX = 24;
-    _lastX = 343;
-    _firstY = 51;
-    _lastY = 250;
-    for (int i = 0; i < sizeof(_regBackgroundColors) / sizeof(uint8_t); i++) {
-        _regBackgroundColors[i] = 0;
-    }
 
     // initialize color palette
     // https://www.c64-wiki.com/wiki/Color
@@ -53,12 +30,9 @@ CVICII::CVICII(CMOS65xx *cpu, CCIA2 *cia2) {
     _palette[13] = {0xaa, 0xff, 0x66};
     _palette[14] = {0, 0x88, 0xff};
     _palette[15] = {0xbb, 0xbb, 0xbb};
-
 }
 
-CVICII::~CVICII() {
-
-}
+CVICII::~CVICII() {}
 
 /**
  * blit into the framebuffer
@@ -78,7 +52,8 @@ void CVICII::blit(int x, int y, CVICII::rgbStruct *rgb) {
 }
 
 /**
- * update the internal representation of the raster counter ($d012) and control register 1 ($d011)
+ * update the internal representation of the raster counter ($d012) and control
+ * register 1 ($d011)
  */
 void CVICII::updateRasterCounter() {
     if (_rasterCounter > 0xff) {
@@ -132,9 +107,9 @@ void CVICII::drawCharacterMode(int rasterLine) {
     // handle character shadows
     // https://www.c64-wiki.com/wiki/VIC_bank
     if (bank == 0 && charsetAddress == 0x1000) {
-        charset = ((CMemory *) _cpu->memory())->charset();
+        charset = ((CMemory *)_cpu->memory())->charset();
     } else if (bank == 2 && charsetAddress == 0x9000) {
-        charset = ((CMemory *) _cpu->memory())->charset();
+        charset = ((CMemory *)_cpu->memory())->charset();
     }
 
     // draw characters
@@ -157,7 +132,8 @@ void CVICII::drawCharacterMode(int rasterLine) {
 
         // read screenchode from screen memory
         uint8_t screenChar;
-        _cpu->memory()->readByte(screenAddress + (row * columns) + c, &screenChar);
+        _cpu->memory()->readByte(screenAddress + (row * columns) + c,
+                                 &screenChar);
 
         // read the character data and color
         uint8_t data = charset[(screenChar * 8) + charRow];
@@ -174,25 +150,26 @@ void CVICII::drawCharacterMode(int rasterLine) {
                 // only the last 3 bits count
                 uint8_t bits = data & 3;
                 switch (bits) {
-                    case 0:
-                        // 00
-                        charRgb = _palette[_regBackgroundColors[0]];
-                        break;
+                case 0:
+                    // 00
+                    charRgb = _palette[_regBackgroundColors[0]];
+                    break;
 
-                    case 1:
-                        // 01
-                        charRgb = _palette[_regBackgroundColors[1]];
-                        break;
+                case 1:
+                    // 01
+                    charRgb = _palette[_regBackgroundColors[1]];
+                    break;
 
-                    case 2:
-                        // 10
-                        charRgb = _palette[_regBackgroundColors[2]];
-                        break;
+                case 2:
+                    // 10
+                    charRgb = _palette[_regBackgroundColors[2]];
+                    break;
 
-                    case 3:
-                        // 11, default (use background color, doc says use character color ??)
-                        charRgb = _palette[_regBackgroundColors[0]];
-                        break;
+                case 3:
+                    // 11, default (use background color, doc says use character
+                    // color ??)
+                    charRgb = _palette[_regBackgroundColors[0]];
+                    break;
                 }
                 int pixelX = x + 8 - i;
                 blit(pixelX, rasterLine, &charRgb);
@@ -219,37 +196,63 @@ void CVICII::drawCharacterMode(int rasterLine) {
     }
 }
 
-int CVICII::update(int cycleCount) {
-    int occupiedCycles = 0;
-
+int CVICII::update(long cycleCount) {
     if (IS_BIT_SET(_regInterruptLatch, 7)) {
         // IRQ is set
         _cpu->irq();
     }
 
-    // need to draw a line ?
-    if ((cycleCount % VIC_PAL_CYCLES_PER_LINE) != 0) {
-        return occupiedCycles;
+    long elapsed = cycleCount - _prevCycles;
+
+    // check for bad line (http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt)
+    /*
+         A Bad Line Condition is given at any arbitrary clock cycle, if at the
+         negative edge of ø0 at the beginning of the cycle RASTER >= $30 and
+       RASTER
+         <= $f7 and the lower three bits of RASTER are equal to YSCROLL and if
+       the DEN bit was set during an arbitrary cycle of raster line $30.
+     */
+    int occupiedCycles = 0;
+    bool isBadLine = ((_rasterCounter >= 0x30) && (_rasterCounter <= 0xf7)) &&
+                     ((_rasterCounter & 7) == (_scrollY & 7));
+    if (_rasterCounter == 0x30 && _scrollY == 0 && IS_BIT_SET(_regCr1, 4)) {
+        isBadLine = true;
+    }
+    if (isBadLine) {
+        occupiedCycles = VIC_PAL_CYCLES_PER_BADLINE;
+    } else {
+        occupiedCycles = VIC_PAL_CYCLES_PER_LINE;
     }
 
     // interrupt enabled, generate a raster interrupt if needed
     if (IS_BIT_SET(_regInterruptEnabled, 0)) {
         if (_rasterCounter == _rasterIrqLine) {
             _cpu->irq();
-            // reset the interrupt latch register by hand (http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt)
+            // reset the interrupt latch register by hand
+            // (http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt)
             /*
              * There are four interrupt sources in the VIC. Every source has a
-                corresponding bit in the interrupt latch (register $d019) and a bit in the
-                interrupt enable register ($d01a). When an interrupts occurs, the
-                corresponding bit in the latch is set. To clear it, the processor has to
-                write a "1" there "by hand". The VIC doesn't clear the latch on its own.
+                corresponding bit in the interrupt latch (register $d019) and a
+             bit in the interrupt enable register ($d01a). When an interrupts
+             occurs, the corresponding bit in the latch is set. To clear it, the
+             processor has to write a "1" there "by hand". The VIC doesn't clear
+             the latch on its own.
              */
             _regInterruptLatch |= 1;
             _cpu->memory()->writeByte(0xd019, _regInterruptLatch);
         }
     }
 
-    if (_rasterCounter >= VIC_PAL_FIRST_VISIBLE_LINE && _rasterCounter <= VIC_PAL_LAST_VISIBLE_LINE) {
+    if (elapsed >= occupiedCycles) {
+        int diff = elapsed - occupiedCycles;
+        occupiedCycles += diff;
+        _prevCycles = cycleCount;
+    } else {
+        return 0;
+    }
+
+    if (_rasterCounter >= VIC_PAL_FIRST_VISIBLE_LINE &&
+        _rasterCounter <= VIC_PAL_LAST_VISIBLE_LINE) {
         // draw border line
         int rasterLine = _rasterCounter - VIC_PAL_FIRST_VISIBLE_LINE;
         drawBorder(rasterLine);
@@ -260,29 +263,13 @@ int CVICII::update(int cycleCount) {
         }
     }
 
-    // check for bad line (http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt)
-    /*
-         A Bad Line Condition is given at any arbitrary clock cycle, if at the
-         negative edge of ø0 at the beginning of the cycle RASTER >= $30 and RASTER
-         <= $f7 and the lower three bits of RASTER are equal to YSCROLL and if the
-         DEN bit was set during an arbitrary cycle of raster line $30.
-     */
-    bool isBadLine = ((_rasterCounter >= 0x30) && (_rasterCounter <= 0xf7)) && ((_rasterCounter & 7) == (_scrollY & 7));
-    if (_rasterCounter == 0x30 && _scrollY == 0 && IS_BIT_SET(_regCr1, 4)) {
-        isBadLine = true;
-    }
-    if (isBadLine) {
-        occupiedCycles += VIC_PAL_CYCLES_PER_BADLINE;
-    } else {
-        occupiedCycles += VIC_PAL_CYCLES_PER_LINE;
-    }
-
     // increment the raster counter
     _rasterCounter++;
     if (_rasterCounter >= VIC_PAL_SCANLINES) {
         // reset raster counter
         _rasterCounter = 0;
     }
+
     updateRasterCounter();
     return occupiedCycles;
 }
@@ -296,25 +283,25 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
     }
 
     switch (addr) {
-        // control register 1
-        case 0xd016:
-            // bit 7 and 8 are always set
-            _cpu->memory()->readByte(addr, bt);
-            *bt |= 0xc0;
-            break;
+    // control register 1
+    case 0xd016:
+        // bit 6 and 7 are always set
+        _cpu->memory()->readByte(addr, bt);
+        *bt |= 0xc0;
+        break;
 
-            // interrupt register
-        case 0xd019:
-            // interrupt enabled
-        case 0xd01a:
-            // bit 4,5,6 are always set
-            _cpu->memory()->readByte(addr, bt);
-            *bt |= 0x70;
-            break;
+        // interrupt register
+    case 0xd019:
+        // interrupt enabled
+    case 0xd01a:
+        // bit 4,5,6 are always set
+        _cpu->memory()->readByte(addr, bt);
+        *bt |= 0x70;
+        break;
 
-        default:
-            // read memory
-            _cpu->memory()->readByte(addr, bt);
+    default:
+        // read memory
+        _cpu->memory()->readByte(addr, bt);
     }
 }
 
@@ -328,86 +315,70 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     }
 
     switch (addr) {
-        // control register 1
-        case 0xd011:
-            _regCr1 = bt;
+    // control register 1
+    case 0xd011:
+        _regCr1 = bt;
 
-            // setting cr1 also affects the raster counter (bit 8 of the raster counter is bit 7 of cr1)
-            _rasterIrqLine |= (bt >> 7);
+        // setting cr1 also affects the raster counter (bit 8 of the raster
+        // counter is bit 7 of cr1)
+        _rasterIrqLine |= (bt >> 7);
 
-            // RSEL
-            if (IS_BIT_SET(bt, 3)) {
-                _firstY = 51;
-                _lastY = 250;
-            } else {
-                _firstY = 55;
-                _lastY = 246;
-            }
+        // YSCROLL
+        _scrollY = bt & 0x7;
+        break;
 
-            // YSCROLL
-            _scrollY = bt & 0x7;
-            break;
+        // control register 2
+    case 0xd016:
+        _regCr2 = bt | 0xc0;
 
-            // control register 2
-        case 0xd016:
-            _regCr2 = bt | 0xc0;
+        // XSCROLL
+        _scrollX = bt & 0x7;
+        break;
 
-            // CSEL
-            if (IS_BIT_SET(bt, 3)) {
-                _firstX = 24;
-                _lastX = 343;
-            } else {
-                _firstX = 31;
-                _lastX = 334;
-            }
+        // interrupt register
+    case 0xd019:
+        _regInterruptLatch = bt;
+        break;
 
-            // XSCROLL
-            _scrollX = bt & 0x7;
-            break;
+        // interrupt enabled
+    case 0xd01a:
+        _regInterruptEnabled = bt;
+        break;
 
-            // interrupt register
-        case 0xd019:
-            _regInterruptLatch = bt;
-            break;
+        // raster counter
+    case 0xd012:
+        // sets the raster line at which the interrupt must happen, needs also
+        // bit 7 from cr1
+        _rasterIrqLine = bt | (_regCr1 >> 7);
+        break;
 
-            // interrupt enabled
-        case 0xd01a:
-            _regInterruptEnabled = bt;
-            break;
+        // border color
+    case 0xd020:
+        _regBorderColor = bt & 0xf;
+        break;
 
-            // raster counter
-        case 0xd012:
-            // sets the raster line at which the interrupt must happen, needs also bit 7 from cr1
-            _rasterIrqLine = bt | (_regCr1 >> 7);
-            break;
+        // background color 0
+    case 0xd021:
+        _regBackgroundColors[0] = bt & 0xf;
+        break;
 
-            // border color
-        case 0xd020:
-            _regBorderColor = bt & 0xf;
-            break;
+        // background color 1
+    case 0xd022:
+        _regBackgroundColors[1] = bt & 0xf;
+        break;
 
-            // background color 0
-        case 0xd021:
-            _regBackgroundColors[0] = bt & 0xf;
-            break;
+        // background color 2
+    case 0xd023:
+        _regBackgroundColors[2] = bt & 0xf;
+        break;
 
-            // background color 1
-        case 0xd022:
-            _regBackgroundColors[1] = bt & 0xf;
-            break;
+        // background color 3
+    case 0xd024:
+        _regBackgroundColors[3] = bt & 0xf;
+        break;
 
-            // background color 2
-        case 0xd023:
-            _regBackgroundColors[2] = bt & 0xf;
-            break;
-
-            // background color 3
-        case 0xd024:
-            _regBackgroundColors[3] = bt & 0xf;
-            break;
-
-        default:
-            break;
+    default:
+        break;
     }
 
     // finally write
@@ -448,7 +419,8 @@ bool CVICII::checkUnusedAddress(int type, uint16_t address, uint8_t *bt) {
     return false;
 }
 
-void CVICII::getTextModeScreenAddress(uint16_t *screenCharacterRamAddress, uint16_t *charsetAddress, int *bank) {
+void CVICII::getTextModeScreenAddress(uint16_t *screenCharacterRamAddress,
+                                      uint16_t *charsetAddress, int *bank) {
     // read base register
     uint8_t d018;
     _cpu->memory()->readByte(0xd018, &d018);
@@ -460,7 +432,8 @@ void CVICII::getTextModeScreenAddress(uint16_t *screenCharacterRamAddress, uint1
     *charsetAddress = ((((d018 & 0xf) >> 1) & 0x7) * 2048) + base;
 }
 
-void CVICII::getBitmapModeScreenAddress(uint16_t *colorInfoAddress, uint16_t *bitmapAddress) {
+void CVICII::getBitmapModeScreenAddress(uint16_t *colorInfoAddress,
+                                        uint16_t *bitmapAddress) {
     // TODO: implement
 }
 
