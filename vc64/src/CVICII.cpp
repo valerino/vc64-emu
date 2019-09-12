@@ -231,10 +231,10 @@ int CVICII::update(long cycleCount) {
         return 0;
     }
 
-    // interrupt enabled, generate a raster interrupt if needed
+    // generate a raster interrupt if needed
     // FIXME: this is probably wrong, but removing the regInterruptEnabled check
-    // makes the cursor blink normally .... if (IS_BIT_SET(_regInterruptEnabled,
-    // 0)) {
+    // makes the cursor blink normally ....
+    // if (IS_BIT_SET(_regInterruptEnabled, 0)) {
     if (_rasterCounter == _rasterIrqLine) {
         _cpu->irq();
         // reset the interrupt latch register by hand

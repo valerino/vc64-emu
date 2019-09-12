@@ -40,14 +40,14 @@ char *path = nullptr;
  * queue may still have ctrl-v to process. probably this is not the right way to
  * do it (SDL_PumpEvents ?)
  */
-#define CLIPBOARD_WAIT_FRAMES 100
+#define CLIPBOARD_WAIT_FRAMES 60
 int clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
 
 /**
  * @brief when there's clipboard events to process, process one event and skip
  * these many frames, until the queue is empty
  */
-#define CLIPBOARD_SKIP_FRAMES 50
+#define CLIPBOARD_SKIP_FRAMES 25
 int clipboardFrameCount = CLIPBOARD_SKIP_FRAMES;
 
 /**
@@ -202,7 +202,7 @@ void handleClipboard() {
  * issue a load of our prg. this trigger only once!
  */
 void handlePrgLoading() {
-    if (totalCycles > 14570000 && path) {
+    if (totalCycles > 2570000 && path) {
         // enough cycles passed....
         CLog::print("cycle=%ld", totalCycles);
         // TODO: determine if it's a prg, either fail....
