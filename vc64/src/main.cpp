@@ -321,7 +321,6 @@ int main(int argc, char **argv) {
         int cyclesPerFrame = 18656;
         int msecPerFrame = 20; // (50 : 1 = 1: x) * 1000
         int cycleCounter = cyclesPerFrame;
-        timeNow = SDL_GetTicks();
         while (running) {
             // step the cpu
             int cycles = cpu->step(debugger, debugger ? mustBreak : false);
