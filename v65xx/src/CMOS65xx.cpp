@@ -1805,25 +1805,36 @@ void CMOS65xx::debugger(int addressingMode, int *size) {
         }
     }
     if (_bpSet) {
+        bool standardBp = false;
+        bool cyclesBp = false;
         // breakpoint is set
         if (_bpCycles != 0 && _currentTotalCycles >= _bpCycles) {
             // cycles bp hit!
             doBreak = true;
+            cyclesBp = true;
         }
         if (_regPC == _bpAddress) {
             // address bp hit!
             doBreak = true;
+            standardBp = true;
         }
         // check breakpoints on irq/nmi
         if (_breakIrqOccured) {
             doBreak = true;
             CLog::printRaw("\tIRQ occurred!\n");
             _breakIrqOccured = false;
-        }
-        if (_breakNmiOccurred) {
+        } else if (_breakNmiOccurred) {
             doBreak = true;
             CLog::printRaw("\tNMI occurred!\n");
             _breakNmiOccurred = false;
+        } else if (standardBp) {
+            // standard breakpoint occurred
+            CLog::printRaw("\tbreakpoint occurred at address $%x!\n", _regPC);
+        } else if (cyclesBp) {
+            // standard breakpoint occurred
+            CLog::printRaw(
+                "\tbreakpoint occurred at address $%x, cycles >= %lld!\n",
+                _regPC, _currentTotalCycles);
         }
     }
 
@@ -1841,6 +1852,7 @@ void CMOS65xx::debugger(int addressingMode, int *size) {
         switch (line[0]) {
         case 'p':
             // step
+            _isG = false;
             _silenceLog = false;
             break;
 
@@ -1870,7 +1882,7 @@ void CMOS65xx::debugger(int addressingMode, int *size) {
             _bpCycles = 0;
             _breakIrq = false;
             _breakNmi = false;
-            CLog::printRaw("\tbreakpoint clear!\n");
+            CLog::printRaw("\tbreakpoints cleared!\n");
 
             // do not advance
             *size = 0;
