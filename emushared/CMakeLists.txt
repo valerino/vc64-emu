@@ -7,7 +7,6 @@ add_library (${PROJECT_NAME} STATIC
         src/CLog.cpp
         src/CBuffer.cpp
         src/CSDLUtils.cpp
-        include/IMemory.h
         include/bitutils.h)
 set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 
