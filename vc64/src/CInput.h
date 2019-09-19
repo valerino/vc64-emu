@@ -33,8 +33,8 @@
  * handles emulator input
  */
 class CInput {
-public:
-    CInput(CCIA1* cia1);
+  public:
+    CInput(CCIA1 *cia1);
 
     ~CInput();
 
@@ -47,27 +47,36 @@ public:
     int update(SDL_Event *ev, uint32_t *hotkeys);
 
     /**
-     * processes the clipboard queue by injecting the events into the emulated keyboard (useful to type listings!)
-     */
-    void processClipboardQueue();
-
-    /*
-     * returns wether the clipboard queue has events to be injected
-     */
-    bool hasClipboardEvents();
-
-    /**
-     * fills the clipboard queue with fake keyboard events, in response to HOTKEY_PASTE_TEXT
+     * fills the clipboard queue with fake keyboard events, in response to
+     * HOTKEY_PASTE_TEXT
      */
     void fillClipboardQueue();
 
-private:
-    CCIA1* _cia1 = nullptr;
-    std::queue<SDL_Event*> _kqueue = {};
-    uint8_t sdlScancodeToC64Scancode(uint32_t sdlScanCode);
-    void processEvent(SDL_Event* ev);
+    /**
+     * called at every redraw, handles events in the clipboard queue, if any
+     *
+     * @param totalCycles total cpu cycles elapsed
+     * @param cyclesPerFrame how many cpu cycles in a frame
+     * @param frameSkip how many frames to skip before injecting clipboard, if
+     * any
+     */
+    void checkClipboard(int64_t totalCycles, int cyclesPerFrame, int frameSkip);
 
+    /**
+     * inject characters in the keyboard buffer
+     * @param chars the characters to inject (max 10)
+     */
+    void injectKeyboardBuffer(const char *chars);
+
+  private:
+    CCIA1 *_cia1 = nullptr;
+    std::queue<SDL_Event *> _kqueue = {};
+    uint8_t sdlScancodeToC64Scancode(uint32_t sdlScanCode);
+    void processEvent(SDL_Event *ev);
+    int64_t _prevTotalCycles = 0;
+
+    void processClipboardQueue();
+    bool hasClipboardEvents();
 };
 
-
-#endif //VC64_EMU_CINPUT_H
+#endif // VC64_EMU_CINPUT_H

@@ -14,6 +14,8 @@ CInput::~CInput() {}
  * into the emulator
  * @todo rework the mapping!
  * @todo support tags like {CLR/HOME}, etc....
+ * @todo this may be rewritten exploiting the keyboard buffer at 631 as well (as
+ * for injecting RUN....)
  * @see @ref sdlScancodeToC64Scancode for information about the mapping
  */
 void CInput::fillClipboardQueue() {
@@ -118,6 +120,10 @@ void CInput::fillClipboardQueue() {
     SDL_free(txt);
 }
 
+/**
+ * processes the clipboard queue by injecting the events into the emulated
+ * keyboard (useful to type listings!)
+ */
 void CInput::processClipboardQueue() {
     // pop an event
     SDL_Event *ev = _kqueue.front();
@@ -128,6 +134,9 @@ void CInput::processClipboardQueue() {
     free(ev);
 }
 
+/*
+ * returns wether the clipboard queue has events to be injected
+ */
 bool CInput::hasClipboardEvents() {
     int l = _kqueue.size();
 #ifdef DEBUG_INPUT
@@ -140,6 +149,49 @@ bool CInput::hasClipboardEvents() {
         return true;
     }
     return false;
+}
+
+void CInput::injectKeyboardBuffer(const char *chars) {
+    // get memory object from cia1
+    IMemory *mem = _cia1->_cpu->memory();
+
+    // inject max 10 characters in the keyboard buffer at 631
+    // https://www.c64-wiki.com/wiki/631-640
+    // thanks to flavioweb/hokutoforce for the trick!
+    // https://www.youtube.com/watch?v=EHuyVeC6gFw
+    int written = 0;
+    int len = strlen(chars);
+    if (len > 10) {
+        // avoid overflow
+        len = 10;
+    }
+
+    // write chars
+    for (int i = 0; i < len; i++) {
+        mem->writeByte(631 + i, chars[i]);
+        written++;
+    }
+    // number of entries goes at location 198
+    mem->writeByte(198, written);
+}
+
+void CInput::checkClipboard(int64_t totalCycles, int cyclesPerFrame,
+                            int frameSkip) {
+    int toSkip = cyclesPerFrame * frameSkip;
+    if (_prevTotalCycles == 0) {
+        // init
+        _prevTotalCycles = totalCycles;
+    }
+    int diff = totalCycles - _prevTotalCycles;
+
+    // every 4 frames, check the clipboard
+    if (diff > toSkip) {
+        // check the clipboard queue, and process one event if not empty
+        if (hasClipboardEvents()) {
+            processClipboardQueue();
+        }
+        _prevTotalCycles = totalCycles;
+    }
 }
 
 /**

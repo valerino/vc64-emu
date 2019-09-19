@@ -36,21 +36,6 @@ int64_t totalCycles = 0;
 char *path = nullptr;
 
 /**
- * @brief when there's clipboard events to process, wait some frames or the SDL
- * queue may still have ctrl-v to process. probably this is not the right way to
- * do it (SDL_PumpEvents ?)
- */
-#define CLIPBOARD_WAIT_FRAMES 60
-int clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
-
-/**
- * @brief when there's clipboard events to process, process one event and skip
- * these many frames, until the queue is empty
- */
-#define CLIPBOARD_SKIP_FRAMES 25
-int clipboardFrameCount = CLIPBOARD_SKIP_FRAMES;
-
-/**
  * shows banner
  */
 void banner() {
@@ -123,7 +108,7 @@ void sdlEventCallback(SDL_Event *event) {
             CLog::print("DEBUGBREAK requested (works only in debugger mode!)");
             mustBreak = true;
         } else if (hotkeys == HOTKEY_PASTE_TEXT) {
-            // fill the clipboard queue with fake events
+            // fill the clipboard queue to be processed in the main loop
             input->fillClipboardQueue();
         } else if (hotkeys == HOTKEY_FORCE_EXIT) {
             // force exit
@@ -171,33 +156,6 @@ void testCpuMain(bool debugger) {
 }
 
 /**
- * handle keys in the clipboard, one per time. this is called at every frame
- * drawn.
- */
-void handleClipboard() {
-    // check the clipboard queue, and process one event if not empty
-    if (input->hasClipboardEvents()) {
-        // we must wait some frames, or ctrl-V may still be in the
-        // SDL internal queue
-        if (clipboardWaitFrames > 0) {
-            clipboardWaitFrames--;
-        } else {
-            // process clipboard one key at time, then wait some
-            // frames
-            if (clipboardFrameCount == 0) {
-                input->processClipboardQueue();
-                clipboardFrameCount = CLIPBOARD_SKIP_FRAMES;
-            } else {
-                clipboardFrameCount--;
-            }
-        }
-    } else {
-        // reset
-        clipboardWaitFrames = CLIPBOARD_WAIT_FRAMES;
-    }
-}
-
-/**
  * once the cpu has reached enough cycles to have loaded the BASIC interpreter,
  * issue a load of our prg. this trigger only once!
  */
@@ -208,9 +166,8 @@ void handlePrgLoading() {
         // TODO: determine if it's a prg, either fail....
         int res = mem->loadPrg(path);
         if (res == 0) {
-            // inject run!
-            SDL_SetClipboardText("RUN\n");
-            input->fillClipboardQueue();
+            // inject run in the keyboard buffer
+            input->injectKeyboardBuffer("RUN\r");
         }
 
         // we don't need this to trigger anymore
@@ -357,7 +314,7 @@ int main(int argc, char **argv) {
                 timeNow = timeThen;
 
                 // handle clipboard, if any
-                handleClipboard();
+                input->checkClipboard(totalCycles, cyclesPerFrame, 5);
             }
 
             // handle prg loading, if any and if enough cycles has passed, only
