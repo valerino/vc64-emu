@@ -7,7 +7,6 @@
 
 #include <CMOS65xx.h>
 #include "CCIA2.h"
-#include <CSDLUtils.h>
 
 #ifndef NDEBUG
 // debug-only flag
@@ -56,12 +55,23 @@
 #define VIC_REG_BG_COLOR_3 0xd024
 
 /**
+ * @brief defines a color in the c64 palettte
+ */
+typedef struct _rgbStruct {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+} rgbStruct;
+
+/**
+ * @brief callback to set the pixel at the specific position
+ */
+typedef void (*BlitCallback)(void *thisPtr, rgbStruct *rgb, int pos);
+
+/**
  * emulates the vic-ii 6569 chip
  */
 class CVICII {
-    /**
-     * can access private members
-     */
     friend class CDisplay;
 
   public:
@@ -95,8 +105,17 @@ class CVICII {
      */
     void write(uint16_t address, uint8_t bt);
 
+  protected:
+    /**
+     * set blitting callback
+     * @param display opaque pointer to the display handler
+     * @param cb callback to be called when blitting a pixel
+     */
+    void setBlitCallback(void *display, BlitCallback cb);
+
   private:
     CMOS65xx *_cpu = nullptr;
+    void *_displayObj = nullptr;
     int _prevCycles = 0;
     uint16_t _rasterCounter = 0;
     uint16_t _rasterIrqLine = 0;
@@ -108,20 +127,9 @@ class CVICII {
     uint8_t _regCr2 = 0;
     uint8_t _regInterruptLatch = 0;
     uint8_t _regInterruptEnabled = 0;
-    void setSdlCtx(SDLDisplayCtx *ctx, uint32_t *frameBuffer);
-
-    /**
-     * for the c64 palettte
-     */
-    typedef struct _rgbStruct {
-        uint8_t r;
-        uint8_t g;
-        uint8_t b;
-    } rgbStruct;
-    rgbStruct _palette[16] = {0};
-    uint32_t *_fb = nullptr;
-    SDLDisplayCtx *_sdlCtx = nullptr;
+    BlitCallback _cb = nullptr;
     CCIA2 *_cia2 = nullptr;
+
     void updateRasterCounter();
     uint16_t checkShadowAddress(uint16_t address);
     bool checkUnusedAddress(int type, uint16_t address, uint8_t *bt);
@@ -132,7 +140,7 @@ class CVICII {
     void drawBorder(int rasterLine);
     void drawCharacterMode(int rasterLine);
     bool isCharacterMode();
-    void blit(int x, int y, CVICII::rgbStruct *rgb);
+    void blit(int x, int y, rgbStruct *rgb);
 };
 
 #endif // VC64_EMU_CVICII_H

@@ -6,12 +6,12 @@
 #include "CMemory.h"
 #include <bitutils.h>
 #include <CLog.h>
-#include "globals.h"
+
+rgbStruct _palette[16] = {0};
 
 CVICII::CVICII(CMOS65xx *cpu, CCIA2 *cia2) {
     _cpu = cpu;
     _cia2 = cia2;
-
     // initialize color palette
     // https://www.c64-wiki.com/wiki/Color
     _palette[0] = {0, 0, 0};
@@ -34,13 +34,17 @@ CVICII::CVICII(CMOS65xx *cpu, CCIA2 *cia2) {
 
 CVICII::~CVICII() {}
 
+void CVICII::setBlitCallback(void *display, BlitCallback cb) {
+    _cb = cb;
+    _displayObj = display;
+}
 /**
  * blit into the framebuffer
  * @param x x coordinate
  * @param y y coordinate
  * @param rgb rgb color
  */
-void CVICII::blit(int x, int y, CVICII::rgbStruct *rgb) {
+void CVICII::blit(int x, int y, rgbStruct *rgb) {
     if (y >= VIC_PAL_SCREEN_H) {
         // not visible, vblank
         return;
@@ -48,7 +52,7 @@ void CVICII::blit(int x, int y, CVICII::rgbStruct *rgb) {
 
     // set the pixel
     int pos = (y * VIC_PAL_SCREEN_W) + x;
-    _fb[pos] = SDL_MapRGB(_sdlCtx->pxFormat, rgb->r, rgb->g, rgb->b);
+    _cb(_displayObj, rgb, pos);
 }
 
 /**
@@ -440,16 +444,6 @@ void CVICII::getTextModeScreenAddress(uint16_t *screenCharacterRamAddress,
 void CVICII::getBitmapModeScreenAddress(uint16_t *colorInfoAddress,
                                         uint16_t *bitmapAddress) {
     // TODO: implement
-}
-
-/**
- * set the SDL display context
- * @param ctx
- * @param frameBuffer
- */
-void CVICII::setSdlCtx(SDLDisplayCtx *ctx, uint32_t *frameBuffer) {
-    _fb = frameBuffer;
-    _sdlCtx = ctx;
 }
 
 /**

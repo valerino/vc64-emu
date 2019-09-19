@@ -16,7 +16,6 @@
 #include "CCIA2.h"
 #include "CVICII.h"
 #include "CSID.h"
-#include "globals.h"
 
 /**
  * globals
