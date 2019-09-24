@@ -1,0 +1,15 @@
+//
+// Created by valerino on 2019-05-03.
+//
+
+#ifndef VC64_EMU_CIACOMMON_H
+#define VC64_EMU_CIACOMMON_H
+/**
+ * timer modes
+ */
+#define CIA_TIMER_COUNT_CPU_CYCLES 0
+#define CIA_TIMER_COUNT_POSITIVE_CNT_SLOPES 1
+#define CIA_TIMER_COUNT_TIMERA_UNDERFLOW 2
+#define CIA_TIMER_COUNT_TIMERA_UNDERFLOW_IF_CNT_HI 3
+
+#endif //VC64_EMU_CIACOMMON_H
