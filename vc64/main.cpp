@@ -6,7 +6,7 @@
 #include <SDL.h>
 #include <CBuffer.h>
 #include <CMOS65xx.h>
-#include "getopt.h"
+#include <getopt.h>
 #include "CDisplay.h"
 #include "CInput.h"
 #include "CAudio.h"

@@ -5,6 +5,7 @@ set (CMAKE_CXX_STANDARD 11)
 
 add_library (${PROJECT_NAME} STATIC
         bitutils.h
+        getopt.h
         CBuffer.cpp)
 set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 
