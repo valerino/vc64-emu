@@ -22,8 +22,6 @@ make
 ~~~
 
 #### usage
-to use the cpu test feature, read [README_test.md](./test/README_test.md).
-
 ~~~
 vc64 - a c64 emulator
 (c)opyleft, valerino, y2k19
