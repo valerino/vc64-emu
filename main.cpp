@@ -273,13 +273,8 @@ int main(int argc, char **argv) {
             break;
         }
 
-        /*
-        The PAL C64 has 312 scanlines giving 63*312 = 19656 cycles. If the
-        display is activated (without sprites), the VIC will steal 40 cycles for
-        each badline which gives us 63*312 - (25*40) = 18656 cycles. Add some
-        sprites and the free cycles will decrease even more.
-        */
-        int cyclesPerFrame = 18656;
+        // 312 lines * 63 Cycles = 19656
+        int cyclesPerFrame = 19656;
         int msecPerFrame = 20; // (50 : 1 = 1: x) * 1000
         int cycleCounter = cyclesPerFrame;
         while (running) {
@@ -295,12 +290,15 @@ int main(int argc, char **argv) {
             // reset hotkey-dbgbreak status if any (for the debugger)
             hotkeyDbgBreak = false;
 
-            // update chips
-            sid->update(totalCycles);
+            // updating vic takes into account the less scanlines for badlines
+            // (23 vs 63)
             int c = vic->update(totalCycles);
             cycles += c;
+
+            // update other chips
             cia1->update(totalCycles);
             cia2->update(totalCycles);
+            sid->update(totalCycles);
 
             // update cyclecounter
             cycleCounter -= cycles;
