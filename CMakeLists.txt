@@ -13,7 +13,28 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
 add_subdirectory(emushared)
 add_subdirectory(v65xx)
-add_subdirectory(vc64)
+
+add_executable(${PROJECT_NAME}
+        main.cpp
+        CDisplay.cpp
+        CInput.cpp
+        CAudio.cpp
+        CMemory.cpp
+        CCIA1.cpp
+        CCIA2.cpp
+        CVICII.cpp
+        CSID.cpp
+        CIACommon.h)
+
+# needs sdsl2
+find_package(SDL2 REQUIRED)
+target_include_directories(${PROJECT_NAME} PRIVATE
+        ${SDL2_INCLUDE_DIRS})
+
+target_link_libraries(${PROJECT_NAME}
+        ${SDL2_LIBRARIES}
+        emushared
+        v65xx)
 
 # copy the bios folder to build directory
 file(COPY bios DESTINATION ${CMAKE_BINARY_DIR})
