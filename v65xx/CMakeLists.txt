@@ -4,13 +4,16 @@ project (v65xx)
 set (CMAKE_CXX_STANDARD 11)
 
 add_library (${PROJECT_NAME} SHARED
-        src/CMOS65xx.cpp
+        CMOS65xx.cpp
         )
 
+# needs sdsl2
+find_package(SDL2 REQUIRED)
 target_include_directories (${PROJECT_NAME} PUBLIC
-        ${PROJECT_SOURCE_DIR}/include
-        )
-
+        ${PROJECT_SOURCE_DIR}
+        PRIVATE
+        ${SDL2_INCLUDE_DIRS})
+        
 target_link_libraries(${PROJECT_NAME}
-        emushared
-        )
+        ${SDL2_LIBRARIES}
+        emushared)
