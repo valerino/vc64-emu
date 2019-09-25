@@ -20,6 +20,7 @@ add_executable(${PROJECT_NAME}
         CInput.cpp
         CAudio.cpp
         CMemory.cpp
+        CCIABase.cpp
         CCIA1.cpp
         CCIA2.cpp
         CVICII.cpp
