@@ -456,8 +456,8 @@ int CMOS65xx::parseInstruction(uint8_t opcodeByte, const char *functionName,
     default:
         // bug!
         logExecution(functionName, opcodeByte, *operand, addressingMode);
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-                     "invalid addressing mode: %d", addressingMode);
+        SDL_LogCritical(SDL_LOG_CATEGORY_ASSERT, "invalid addressing mode: %d",
+                        addressingMode);
 
         // this will cause step() to exit
         *size = 0;
@@ -615,7 +615,7 @@ int CMOS65xx::step(bool debugging, bool mustBreakAfter) {
             _prevPc = _regPC;
         } else {
             // break!
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "DEADLOCK!");
+            SDL_LogCritical(SDL_LOG_CATEGORY_ASSERT, "DEADLOCK!");
         }
         if (_regPC == 0x3469) {
             // success and exit!
@@ -1700,7 +1700,7 @@ void CMOS65xx::KIL(int opcodeByte, int addressingMode, int *cycles, int *size) {
     if (parseInstruction(opcodeByte, __FUNCTION__, addressingMode, &operand,
                          size, cycles) == 0) {
     }
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "invalid opcode!");
+    SDL_LogError(SDL_LOG_CATEGORY_ERROR, "invalid opcode!");
 }
 
 /**

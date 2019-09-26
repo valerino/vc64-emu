@@ -82,8 +82,6 @@ class CVICII {
      */
     CVICII(CMOS65xx *cpu, CCIA2 *cia2);
 
-    ~CVICII();
-
     /**
      * update the internal state
      * @param current cycle count
@@ -129,18 +127,20 @@ class CVICII {
     uint8_t _regInterruptEnabled = 0;
     BlitCallback _cb = nullptr;
     CCIA2 *_cia2 = nullptr;
+    rgbStruct _palette[16] = {0};
 
     void updateRasterCounter();
     uint16_t checkShadowAddress(uint16_t address);
     bool checkUnusedAddress(int type, uint16_t address, uint8_t *bt);
-    void getTextModeScreenAddress(uint16_t *screenCharacterRamAddress,
-                                  uint16_t *charsetAddress, int *bank);
+    void getCharacterModeScreenAddress(uint16_t *screenCharacterRamAddress,
+                                       uint16_t *charsetAddress, int *bank);
     void getBitmapModeScreenAddress(uint16_t *colorInfoAddress,
                                     uint16_t *bitmapAddress);
     void drawBorder(int rasterLine);
     void drawCharacterMode(int rasterLine);
     bool isCharacterMode();
     void blit(int x, int y, rgbStruct *rgb);
+    void initPalette();
 };
 
 #endif // VC64_EMU_CVICII_H

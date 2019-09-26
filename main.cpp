@@ -164,7 +164,8 @@ void testCpuMain(bool debugger) {
 void handlePrgLoading() {
     if (totalCycles > 2570000 && path) {
         // enough cycles passed....
-        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "cycle=%lld", totalCycles);
+        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+                     "cycle=%lld, loading prg at %s", totalCycles, path);
         // TODO: determine if it's a prg, either fail....
         int res = mem->loadPrg(path);
         if (res == 0) {
@@ -220,12 +221,13 @@ int main(int argc, char **argv) {
         // initialize sdl
         res = SDL_Init(SDL_INIT_EVERYTHING);
         if (res != 0) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_Init(): %s",
+            SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SDL_Init(): %s",
                          SDL_GetError());
             break;
         }
         sdlInitialized = true;
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "SDL initialized OK!");
+        SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
 
         // create memory
         mem = new CMemory();
@@ -235,8 +237,7 @@ int main(int argc, char **argv) {
         cpu = new CMOS65xx(mem, cpuCallbackRead, cpuCallbackWrite);
         if (cpu->reset(isTestCpu) != 0) {
             // failed to load bios
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-                         "failed to load bios files!");
+            SDL_LogError(SDL_LOG_CATEGORY_ERROR, "failed to load bios files!");
             break;
         }
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "CPU initialized OK!");
@@ -255,7 +256,7 @@ int main(int argc, char **argv) {
         try {
             display = new CDisplay(vic, "vc64-emu", fullScreen);
         } catch (std::exception ex) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "display->init(): %s",
+            SDL_LogError(SDL_LOG_CATEGORY_ERROR, "display->init(): %s",
                          ex.what());
             break;
         }

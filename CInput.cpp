@@ -10,8 +10,8 @@ CInput::CInput(CCIA1 *cia1) { _cia1 = cia1; }
 CInput::~CInput() {}
 
 /**
- * populates a queue with events from string on clipboard, when pasting text
- * into the emulator
+ * @brief populates a queue with events from string on clipboard, when pasting
+ * text into the emulator
  * @todo rework the mapping!
  * @todo support tags like {CLR/HOME}, etc....
  * @todo this may be rewritten exploiting the keyboard buffer at 631 as well (as

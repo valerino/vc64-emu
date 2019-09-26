@@ -9,34 +9,27 @@
 CCIA2::CCIA2(CMOS65xx *cpu)
     : CCIABase::CCIABase(cpu, CIA2_REGISTERS_START, CIA_TRIGGERS_NMI) {}
 
-int CCIA2::getVicBank(uint16_t *address) {
-    // read PRA to get vic base
-    int bank = 0;
-    uint8_t dataReg;
-    _cpu->memory()->readByte(0xdd00, &dataReg);
-    if (!IS_BIT_SET(dataReg, 0) && !IS_BIT_SET(dataReg, 1)) {
+void CCIA2::setVicBank(uint8_t pra) {
+    if (!IS_BIT_SET(pra, 0) && !IS_BIT_SET(pra, 1)) {
         // xxxxxx00
-        bank = 3;
-        *address = 0xc000;
-    } else if (!IS_BIT_SET(dataReg, 0) && IS_BIT_SET(dataReg, 1)) {
+        _vicBank = 3;
+        _vicAddress = 0xc000;
+    } else if (!IS_BIT_SET(pra, 0) && IS_BIT_SET(pra, 1)) {
         // xxxxxx01
-        bank = 2;
-        *address = 0x8000;
-    } else if (IS_BIT_SET(dataReg, 0) && !IS_BIT_SET(dataReg, 1)) {
+        _vicBank = 2;
+        _vicAddress = 0x8000;
+    } else if (IS_BIT_SET(pra, 0) && !IS_BIT_SET(pra, 1)) {
         // xxxxxx10
-        bank = 1;
-        *address = 0x4000;
-    } else if (IS_BIT_SET(dataReg, 0) && IS_BIT_SET(dataReg, 1)) {
+        _vicBank = 1;
+        _vicAddress = 0x4000;
+    } else if (IS_BIT_SET(pra, 0) && IS_BIT_SET(pra, 1)) {
         // xxxxxx11
-        bank = 0;
-        *address = 0x0;
+        _vicBank = 0;
+        _vicAddress = 0x0;
     }
-
-#ifdef DEBUG_CIA2
-    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "VIC-II bank %d selected!\n",
-                 bank);
-#endif
-    return bank;
+    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+                 "VIC-II bank %d selected, address=$%x!\n", _vicBank,
+                 _vicAddress);
 }
 
 void CCIA2::read(uint16_t address, uint8_t *bt) {
@@ -49,6 +42,29 @@ void CCIA2::read(uint16_t address, uint8_t *bt) {
 
 void CCIA2::write(uint16_t address, uint8_t bt) {
     switch (address) {
+    case 0xdd00:
+        // PRA
+        /*
+            Bit 0..1: Select the position of the VIC-memory
+            %00, 0: Bank 3: $C000-$FFFF, 49152-65535
+            %01, 1: Bank 2: $8000-$BFFF, 32768-49151
+            %10, 2: Bank 1: $4000-$7FFF, 16384-32767
+            %11, 3: Bank 0: $0000-$3FFF, 0-16383 (standard)
+            Bit 2: RS-232: TXD Output, userport: Data PA 2 (pin M)
+            Bit 3..5: serial bus Output (0=High/Inactive, 1=Low/Active)
+            Bit 3: ATN OUT
+            Bit 4: CLOCK OUT
+            Bit 5: DATA OUT
+            Bit 6..7: serial bus Input (0=Low/Active, 1=High/Inactive)
+            Bit 6: CLOCK IN
+            Bit 7: DATA IN
+        */
+
+        // set the vic bank and address
+        // @todo handle other bits
+        setVicBank(bt);
+        CCIABase::write(address, bt);
+        break;
 
     default:
         // default processing with the base class

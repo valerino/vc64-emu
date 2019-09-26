@@ -7,11 +7,7 @@
 #include "CMemory.h"
 #include "bitutils.h"
 
-rgbStruct _palette[16] = {0};
-
-CVICII::CVICII(CMOS65xx *cpu, CCIA2 *cia2) {
-    _cpu = cpu;
-    _cia2 = cia2;
+void CVICII::initPalette() {
     // initialize color palette
     // https://www.c64-wiki.com/wiki/Color
     _palette[0] = {0, 0, 0};
@@ -32,7 +28,11 @@ CVICII::CVICII(CMOS65xx *cpu, CCIA2 *cia2) {
     _palette[15] = {0xbb, 0xbb, 0xbb};
 }
 
-CVICII::~CVICII() {}
+CVICII::CVICII(CMOS65xx *cpu, CCIA2 *cia2) {
+    _cpu = cpu;
+    _cia2 = cia2;
+    initPalette();
+}
 
 void CVICII::setBlitCallback(void *display, BlitCallback cb) {
     _cb = cb;
@@ -105,7 +105,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
     uint16_t screenAddress;
     uint8_t *colorMem = _cpu->memory()->raw() + MEMORY_COLOR_ADDRESS;
     int bank;
-    getTextModeScreenAddress(&screenAddress, &charsetAddress, &bank);
+    getCharacterModeScreenAddress(&screenAddress, &charsetAddress, &bank);
     uint8_t *charset = _cpu->memory()->raw() + charsetAddress;
 
     // handle character shadows
@@ -428,15 +428,16 @@ bool CVICII::checkUnusedAddress(int type, uint16_t address, uint8_t *bt) {
     return false;
 }
 
-void CVICII::getTextModeScreenAddress(uint16_t *screenCharacterRamAddress,
-                                      uint16_t *charsetAddress, int *bank) {
+void CVICII::getCharacterModeScreenAddress(uint16_t *screenCharacterRamAddress,
+                                           uint16_t *charsetAddress,
+                                           int *bank) {
     // read base register
     uint8_t d018;
     _cpu->memory()->readByte(0xd018, &d018);
 
-    // get addresses
-    uint16_t base;
-    *bank = _cia2->getVicBank(&base);
+    // get screen address
+    uint16_t base = _cia2->vicAddress();
+    *bank = _cia2->vicBank();
     *screenCharacterRamAddress = ((d018 >> 4) & 0xf) * 1024;
     *charsetAddress = ((((d018 & 0xf) >> 1) & 0x7) * 2048) + base;
 }
@@ -447,7 +448,7 @@ void CVICII::getBitmapModeScreenAddress(uint16_t *colorInfoAddress,
 }
 
 /**
- * check for character mode
+ * @brief check for character mode display
  * @return
  */
 bool CVICII::isCharacterMode() {

@@ -22,14 +22,12 @@ class CCIA2 : public CCIABase {
     CCIA2(CMOS65xx *cpu);
     void read(uint16_t address, uint8_t *bt);
     void write(uint16_t address, uint8_t bt);
-
-    /**
-     * @brief get the bank connected to the VIC by looking at the data register
-     * https://www.c64-wiki.com/wiki/VIC_bank
-     * @param address on return, the vic base address
-     * @return bank 0-3
-     */
-    int getVicBank(uint16_t *address);
-
+    int vicBank() { return _vicBank;}
+    uint16_t vicAddress() { return _vicAddress; }
+  
   private:
+    int _vicBank = 0;
+    uint16_t _vicAddress = 0;
+    void setVicBank(uint8_t pra);
+
 };

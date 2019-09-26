@@ -100,6 +100,7 @@ void CDisplay::update() {
 }
 
 void CDisplay::blitCallback(void *thisPtr, rgbStruct *rgb, int pos) {
+    // blit the pixel
     CDisplay *d = (CDisplay *)thisPtr;
     d->_fb[pos] = SDL_MapRGB(d->_pxFormat, rgb->r, rgb->g, rgb->b);
 }
