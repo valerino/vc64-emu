@@ -143,7 +143,6 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
                 BIT_CLEAR(_timerBStatus, CIA_TIMER_INTERRUPT_UNDERFLOW_ENABLED);
             }
         }
-        _cpu->memory()->writeByte(address, bt);
         break;
     }
     case 0x0e:
@@ -177,9 +176,6 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
         } else {
             _timerAMode = CIA_TIMER_COUNT_CPU_CYCLES;
         }
-
-        // write value
-        _cpu->memory()->writeByte(address, bt);
         break;
 
     case 0x0f:
@@ -220,14 +216,14 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
             // 11
             _timerBMode = CIA_TIMER_COUNT_TIMERA_UNDERFLOW_IF_CNT_HI;
         }
-        _cpu->memory()->writeByte(address, bt);
         break;
 
     default:
-        // write memory
-        _cpu->memory()->writeByte(address, bt);
         break;
     }
+
+    // finally write value
+    _cpu->memory()->writeByte(address, bt);
 }
 void CCIABase::updateTimer(int cycleCount, int timerType) {
     // check which timer we're updating

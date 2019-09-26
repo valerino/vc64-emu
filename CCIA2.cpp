@@ -63,11 +63,12 @@ void CCIA2::write(uint16_t address, uint8_t bt) {
         // set the vic bank and address
         // @todo handle other bits
         setVicBank(bt);
-        CCIABase::write(address, bt);
         break;
 
     default:
-        // default processing with the base class
-        CCIABase::write(address, bt);
+        break;
     }
+
+    // finally write
+    CCIABase::write(address, bt);
 }

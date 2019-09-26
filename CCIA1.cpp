@@ -70,9 +70,11 @@ void CCIA1::write(uint16_t address, uint8_t bt) {
     switch (addr) {
 
     default:
-        // default processing with the base class
-        CCIABase::write(addr, bt);
+        break;
     }
+
+    // finally write
+    CCIABase::write(address, bt);
 }
 
 void CCIA1::setKeyState(uint8_t scancode, bool pressed) {

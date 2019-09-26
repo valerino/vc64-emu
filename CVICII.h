@@ -13,6 +13,16 @@
 //#define DEBUG_VIC
 #endif
 
+/**
+ * screen modes
+ * https://www.c64-wiki.com/wiki/Standard_Bitmap_Mode
+ */
+#define VIC_SCREEN_MODE_CHARACTER_STANDARD 0
+#define VIC_SCREEN_MODE_CHARACTER_MULTICOLOR 1
+#define VIC_SCREEN_MODE_BITMAP_STANDARD 2
+#define VIC_SCREEN_MODE_BITMAP_MULTICOLOR 3
+#define VIC_SCREEN_MODE_EXTENDED_BACKGROUND_COLOR 4
+
 // sizes comprensive of vblank and hblank
 // from http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
 #define VIC_PAL_SCREEN_W 403
@@ -115,16 +125,57 @@ class CVICII {
     CMOS65xx *_cpu = nullptr;
     void *_displayObj = nullptr;
     int _prevCycles = 0;
-    uint16_t _rasterCounter = 0;
     uint16_t _rasterIrqLine = 0;
     int _scrollX = 0;
     int _scrollY = 0;
-    uint8_t _regBackgroundColors[4] = {0};
-    uint8_t _regBorderColor = 0;
-    uint8_t _regCr1 = 0;
-    uint8_t _regCr2 = 0;
-    uint8_t _regInterruptLatch = 0;
+    uint8_t _regM0X = 0;
+    uint8_t _regM0Y = 0;
+    uint8_t _regM1X = 0;
+    uint8_t _regM1Y = 0;
+    uint8_t _regM2X = 0;
+    uint8_t _regM2Y = 0;
+    uint8_t _regM3X = 0;
+    uint8_t _regM3Y = 0;
+    uint8_t _regM4X = 0;
+    uint8_t _regM4Y = 0;
+    uint8_t _regM5X = 0;
+    uint8_t _regM5Y = 0;
+    uint8_t _regM6X = 0;
+    uint8_t _regM6Y = 0;
+    uint8_t _regM7X = 0;
+    uint8_t _regM7Y = 0;
+    uint8_t _regCR1 = 0;
+    uint16_t _regRASTER = 0;
+    uint8_t _regLPX = 0;
+    uint8_t _regLPY = 0;
+    uint8_t _regSpriteEnabled = 0;
+    uint8_t _regCR2 = 0;
+    uint8_t _regSpriteYExpansion = 0;
+    uint8_t _regMemoryPointers = 0;
+    uint8_t _regInterrupt = 0;
     uint8_t _regInterruptEnabled = 0;
+    uint8_t _regSpriteDataPriority = 0;
+    uint8_t _regSpriteMultiColor = 0;
+    uint8_t _regSpriteXExpansion = 0;
+    uint8_t _regSpriteSpriteCollision = 0;
+    uint8_t _regSpriteDataCollision = 0;
+    uint8_t _regBorderColor = 0;
+    uint8_t _regBackgroundColor0 = 0;
+    uint8_t _regBackgroundColor1 = 0;
+    uint8_t _regBackgroundColor2 = 0;
+    uint8_t _regBackgroundColor3 = 0;
+    // uint8_t _regBackgroundColors[4] = {0};
+    uint8_t _regSpriteMulticolor0 = 0;
+    uint8_t _regSpriteMulticolor1 = 0;
+    uint8_t _regSpriteColor0 = 0;
+    uint8_t _regSpriteColor1 = 0;
+    uint8_t _regSpriteColor2 = 0;
+    uint8_t _regSpriteColor3 = 0;
+    uint8_t _regSpriteColor4 = 0;
+    uint8_t _regSpriteColor5 = 0;
+    uint8_t _regSpriteColor6 = 0;
+    uint8_t _regSpriteColor7 = 0;
+
     BlitCallback _cb = nullptr;
     CCIA2 *_cia2 = nullptr;
     rgbStruct _palette[16] = {0};
@@ -141,6 +192,12 @@ class CVICII {
     bool isCharacterMode();
     void blit(int x, int y, rgbStruct *rgb);
     void initPalette();
+
+    /**
+     * @brief get the screen mode and return one of the VIC_SCREEN_MODE_* values
+     * @return int
+     */
+    int getScreenMode();
 };
 
 #endif // VC64_EMU_CVICII_H
