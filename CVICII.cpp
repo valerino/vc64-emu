@@ -234,7 +234,6 @@ int CVICII::update(long cycleCount) {
         if (IS_BIT_SET(_regInterruptEnabled, 0)) {
             // reset the interrupt latch register by hand
             // (http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt)
-            printf("triggering RASTER irq\n");
             _regInterruptEnabled |= 1;
             _cpu->irq();
         }
