@@ -19,7 +19,7 @@ void CCIABase::read(uint16_t address, uint8_t *bt) {
          */
     case 0x04:
         // TA LO
-        *bt = _timerA & 0xff;
+        *bt = (_timerA & 0xff);
         break;
 
     case 0x05:
@@ -29,7 +29,7 @@ void CCIABase::read(uint16_t address, uint8_t *bt) {
 
     case 0x06:
         // TB LO
-        *bt = _timerB & 0xff;
+        *bt = (_timerB & 0xff);
         break;
 
     case 0x07:
@@ -50,23 +50,17 @@ void CCIABase::read(uint16_t address, uint8_t *bt) {
             IS_BIT_SET(_timerBStatus,
                        CIA_TIMER_INTERRUPT_UNDERFLOW_TRIGGERED)) {
             // an interrupt occurred, set bit 7
-            SDL_Log("res before=%x", res);
             BIT_SET(res, 7);
-            SDL_Log("res after=%x", res);
 
             if (IS_BIT_SET(_timerAStatus,
                            CIA_TIMER_INTERRUPT_UNDERFLOW_TRIGGERED)) {
                 // source is timer A underflow
-                SDL_Log("res before=%x", res);
                 BIT_SET(res, 0);
-                SDL_Log("res after=%x", res);
             }
             if (IS_BIT_SET(_timerBStatus,
                            CIA_TIMER_INTERRUPT_UNDERFLOW_TRIGGERED)) {
                 // source is timer B underflow
-                SDL_Log("res before=%x", res);
                 BIT_SET(res, 1);
-                SDL_Log("res after=%x", res);
             }
 
             // reading resets flags
@@ -130,16 +124,16 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
         if (IS_BIT_SET(bt, 0)) {
             if (IS_BIT_SET(bt, 7)) {
                 BIT_SET(_timerAStatus, CIA_TIMER_INTERRUPT_UNDERFLOW_ENABLED);
-            } /*else {
+            } else {
                 BIT_CLEAR(_timerAStatus, CIA_TIMER_INTERRUPT_UNDERFLOW_ENABLED);
-            }*/
+            }
         }
         if (IS_BIT_SET(bt, 1)) {
             if (IS_BIT_SET(bt, 7)) {
                 BIT_SET(_timerBStatus, CIA_TIMER_INTERRUPT_UNDERFLOW_ENABLED);
-            } /*else {
+            } else {
                 BIT_CLEAR(_timerBStatus, CIA_TIMER_INTERRUPT_UNDERFLOW_ENABLED);
-            }*/
+            }
         }
         break;
     }
@@ -228,7 +222,6 @@ void CCIABase::updateTimer(int cycleCount, int timerType) {
     bool running = false;
     int mode = 0;
     bool interruptUnderflowEnabled = false;
-    bool interruptUnderflowTriggered = false;
     uint16_t latch = 0;
     int timer = 0;
     if (timerType == CIA_TIMER_A) {
@@ -255,10 +248,7 @@ void CCIABase::updateTimer(int cycleCount, int timerType) {
     // check timerA mode
     if (mode == CIA_TIMER_COUNT_CPU_CYCLES) {
         timer -= (cycleCount - _prevCycleCount);
-        // SDL_Log("timer %s=%d", timerType == CIA_TIMER_A ? "a" : "b", timer);
         if (timer <= 0) {
-            // SDL_Log("underflow timer %s", timerType == CIA_TIMER_A ? "a" :
-            // "b");
             // timer underflows!
             if (interruptUnderflowEnabled) {
                 // update interrupt status
@@ -273,8 +263,6 @@ void CCIABase::updateTimer(int cycleCount, int timerType) {
                 // and trigger irq or nmi depending on which cpu line it's
                 // connected to
                 if (_connectedTo == CIA_TRIGGERS_IRQ) {
-                    // SDL_Log("irq triggered timer %s", timerType ==
-                    // CIA_TIMER_A ? "a" : "b");
                     _cpu->irq();
                 } else {
                     _cpu->nmi();
@@ -282,11 +270,14 @@ void CCIABase::updateTimer(int cycleCount, int timerType) {
             }
 
             // reload timer with latch
-            if (timerType == CIA_TIMER_A) {
-                _timerA = latch;
-            } else {
-                _timerB = latch;
-            }
+            timer = latch;
+        }
+
+        // update
+        if (timerType == CIA_TIMER_A) {
+            _timerA = timer;
+        } else {
+            _timerB = timer;
         }
     } else {
         // TODO: mode is count slopes at CNT pin
