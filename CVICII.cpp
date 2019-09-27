@@ -188,6 +188,9 @@ void CVICII::drawCharacterMode(int rasterLine) {
 int CVICII::update(long cycleCount) {
     if (IS_BIT_SET(_regInterrupt, 7)) {
         // IRQ is set
+
+        // @todo i'm not sure of that :)
+        BIT_CLEAR(_regInterrupt, 7);
         _cpu->irq();
     }
 
@@ -231,6 +234,7 @@ int CVICII::update(long cycleCount) {
         if (IS_BIT_SET(_regInterruptEnabled, 0)) {
             // reset the interrupt latch register by hand
             // (http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt)
+            printf("triggering RASTER irq\n");
             _regInterruptEnabled |= 1;
             _cpu->irq();
         }
