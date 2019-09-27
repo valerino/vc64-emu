@@ -180,7 +180,6 @@ class CVICII {
     CCIA2 *_cia2 = nullptr;
     rgbStruct _palette[16] = {0};
 
-    void updateRasterCounter();
     uint16_t checkShadowAddress(uint16_t address);
     bool checkUnusedAddress(int type, uint16_t address, uint8_t *bt);
     void getCharacterModeScreenAddress(uint16_t *screenCharacterRamAddress,

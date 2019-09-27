@@ -67,10 +67,10 @@ class CCIABase {
 
   protected:
     CMOS65xx *_cpu = nullptr;
-    uint16_t _timerALatch = 0;
-    uint16_t _timerBLatch = 0;
-    uint16_t _timerA = 0;
-    uint16_t _timerB = 0;
+    int _timerALatch = 0;
+    int _timerBLatch = 0;
+    int _timerA = 0;
+    int _timerB = 0;
     int _timerAStatus = 0;
     int _timerBStatus = 0;
     int _timerAMode = 0;

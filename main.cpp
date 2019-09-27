@@ -295,6 +295,7 @@ int main(int argc, char **argv) {
             // (23 vs 63)
             int c = vic->update(totalCycles);
             cycles += c;
+            // totalCycles += c;
 
             // update other chips
             cia1->update(totalCycles);
