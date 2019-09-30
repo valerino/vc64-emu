@@ -227,7 +227,7 @@ int CInput::update(SDL_Event *ev, uint32_t *hotkeys) {
         // break requested!
         *hotkeys = HOTKEY_DEBUGGER;
         return 0;
-    } else if (keys[SDL_SCANCODE_TAB] && keys[SDL_SCANCODE_PAGEUP]) {
+    } else if (keys[SDL_SCANCODE_TAB] && keys[SDL_SCANCODE_BACKSPACE]) {
         // runstop + restore causes a nonmaskable interrupt
         _cia1->_cpu->nmi();
         return 0;
@@ -266,6 +266,7 @@ uint8_t CInput::sdlScancodeToC64Scancode(uint32_t sdlScanCode) {
      */
     switch (sdlScanCode) {
     case SDL_SCANCODE_BACKSPACE:
+        // ins/del
         return 0x0;
     case SDL_SCANCODE_RETURN:
         return 0x1;
@@ -276,20 +277,28 @@ uint8_t CInput::sdlScancodeToC64Scancode(uint32_t sdlScanCode) {
         return 0x3b; /* joy 1 right = 2 */
         // return 0x2;
     case SDL_SCANCODE_F7:
+        // f7/f8
         return 0x3;
     case SDL_SCANCODE_F8:
+        // f7/f8
         return 0x3;
     case SDL_SCANCODE_F1:
+        // f1/f2
         return 0x4;
     case SDL_SCANCODE_F2:
+        // f1/f2
         return 0x4;
     case SDL_SCANCODE_F3:
+        // f3/f4
         return 0x5;
     case SDL_SCANCODE_F4:
+        // f3/f4
         return 0x5;
     case SDL_SCANCODE_F5:
+        // f5/f6
         return 0x6;
     case SDL_SCANCODE_F6:
+        // f5/f6
         return 0x6;
     case SDL_SCANCODE_UP:
         return 0x38; /* joy 1 up = 1 */
@@ -385,6 +394,7 @@ uint8_t CInput::sdlScancodeToC64Scancode(uint32_t sdlScanCode) {
     case SDL_SCANCODE_APOSTROPHE: /**< italian keyboard: à -> ; */
         return 0x32;
     case SDL_SCANCODE_HOME:
+        // clr/home
         return 0x33;
     case SDL_SCANCODE_RSHIFT:
         return 0x34;
@@ -407,10 +417,12 @@ uint8_t CInput::sdlScancodeToC64Scancode(uint32_t sdlScanCode) {
     case SDL_SCANCODE_SPACE:
         return 0x3c;
     case SDL_SCANCODE_LALT:
+        // commodore
         return 0x3d;
     case SDL_SCANCODE_Q:
         return 0x3e;
     case SDL_SCANCODE_TAB:
+        // run-stop
         return 0x3f;
     default:
         break;

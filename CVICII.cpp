@@ -257,7 +257,7 @@ int CVICII::update(long cycleCount) {
 }
 
 void CVICII::read(uint16_t address, uint8_t *bt) {
-    // check shadow
+    // check shadow and unused addresses
     uint16_t addr = checkShadowAddress(address);
     if (checkUnusedAddress(CPU_MEM_READ, addr, bt)) {
         return;
@@ -286,6 +286,15 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
         // bit 4,5,6,7 are always set
         // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
         *bt = (_regInterruptEnabled | 0xf0);
+        break;
+
+    case 0xd01e:
+        // Sprite-sprite collision, cannot be read
+        *bt = 0;
+        break;
+    case 0xd01f:
+        // Sprite-data collision
+        *bt = 0;
         break;
 
     default:

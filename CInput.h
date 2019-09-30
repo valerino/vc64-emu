@@ -30,7 +30,11 @@
 #define HOTKEY_FORCE_EXIT 3
 
 /**
- * handles emulator input
+ * @brief handles emulator input
+ * special keys:
+ * TAB  ->  run-stop
+ * TAB + BACKSPACE -> runstop + restore
+ * LEFT ALT -> commodore
  */
 class CInput {
   public:
