@@ -27,6 +27,8 @@
 // from http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
 #define VIC_PAL_SCREEN_W 403
 #define VIC_PAL_SCREEN_H 284
+#define VIC_RESOLUTION_X 320
+#define VIC_RESOLUTION_Y 200
 #define VIC_PAL_SCANLINES 312
 #define VIC_PAL_HZ 985248
 #define VIC_PAL_CYCLES_PER_LINE 63
@@ -54,21 +56,6 @@
  */
 #define VIC_REGISTERS_START 0xd000
 #define VIC_REGISTERS_END 0xd3ff
-
-#define VIC_REG_CR1 0xd011
-#define VIC_REG_RASTERCOUNTER 0xd012
-#define VIC_REG_CR2 0xd016
-
-// https://www.c64-wiki.com/wiki/53272
-#define VIC_REG_BASE_ADDR 0xd018
-
-#define VIC_REG_INTERRUPT_LATCH 0xd019
-#define VIC_REG_IRQ_ENABLED 0xd01a
-#define VIC_REG_BORDER_COLOR 0xd020
-#define VIC_REG_BG_COLOR_0 0xd021
-#define VIC_REG_BG_COLOR_1 0xd022
-#define VIC_REG_BG_COLOR_2 0xd023
-#define VIC_REG_BG_COLOR_3 0xd024
 
 /**
  * @brief defines a color in the c64 palettte
@@ -134,6 +121,8 @@ class CVICII {
     uint16_t _rasterIrqLine = 0;
     int _scrollX = 0;
     int _scrollY = 0;
+    bool _CSEL = false;
+    bool _RSEL = false;
     uint8_t _regM[8 * 2] = {0}; // 8 hardware sprites coordinates registers X/Y
                                 // (M0X,M0Y ... M7X,M7Y)
     uint8_t _regMSBX = 0;
@@ -163,6 +152,7 @@ class CVICII {
     uint16_t checkShadowAddress(uint16_t address);
 
     bool isSpriteEnabled(int idx);
+    bool isSpriteMulticolor(int idx);
     bool isSpriteYExpanded(int idx);
     bool isSpriteXExpanded(int idx);
 
@@ -179,8 +169,9 @@ class CVICII {
     void setBackgoundColor(int idx, uint8_t val);
 
     bool checkUnusedAddress(int type, uint16_t address, uint8_t *bt);
-    void getCharacterModeScreenAddress(uint16_t *screenCharacterRamAddress,
-                                       uint16_t *charsetAddress, int *bank);
+    void getScreenAddress(uint16_t *screenAddress,
+                          uint16_t *charsetAddress = nullptr,
+                          int *bank = nullptr);
     void getBitmapModeScreenAddress(uint16_t *colorInfoAddress,
                                     uint16_t *bitmapAddress);
 
@@ -194,7 +185,9 @@ class CVICII {
     void initPalette();
     int getScreenMode();
     void drawSprite(int x, int y, int idx, int row);
-    uint16_t getSpritePtr(int idx);
+    void drawSpriteMulticolor(int x, int y, int idx, int row);
+    bool isSpriteDrawingOnBorder(int x, int y);
+    uint16_t getSpriteDataAddress(int idx);
 };
 
 #endif // VC64_EMU_CVICII_H

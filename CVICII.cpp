@@ -67,40 +67,151 @@ void CVICII::drawBorder(int rasterLine) {
     }
 }
 
-uint16_t CVICII::getSpritePtr(int idx) {
-    uint16_t ptraddr = screen_mem_ + kSpritePtrsOffset + n;
-    return kSpriteSize * mem_->vic_read_byte(ptraddr);
+uint16_t CVICII::getSpriteDataAddress(int idx) {
+    uint16_t screenAddress;
+    getScreenAddress(&screenAddress);
+
+    // https://www.c64-wiki.com/wiki/Sprite#Sprite_pointers
+    // https://dustlayer.com/vic-ii
+
+    // read sprite pointer for sprite idx
+    uint16_t spP = screenAddress + 0x3f8 + idx;
+    uint8_t ptr;
+    _cpu->memory()->readByte(spP, &ptr);
+
+    // get sprite data address from sprite pointer
+    uint16_t addr = 64 * ptr;
+    // SDL_Log("sprite address=$%x, idx=%d", addr, idx);
+    return addr;
 }
+
+/**
+ * @brief check if while drawing sprite we're hitting borders
+ * @return
+ */
+bool CVICII::isSpriteDrawingOnBorder(int x, int y) {
+    int sideBorderOffset = 0;
+    int topBorderOffset = 0;
+    int bottomBorderOffset = 0;
+    if (!_RSEL) {
+        // RSEL is not set in CR1, 24 lines mode
+        topBorderOffset = 2;
+        bottomBorderOffset = 4;
+    }
+    if (!_CSEL) {
+        // CSEL is not set in CR2, 38 ccolumns mode
+        sideBorderOffset = 8;
+    }
+
+    // check if we're drawing sprites on border
+    // @todo this will obviously prevent to draw sprites on border. .... but
+    // leave it as is for now
+    if (x <= VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN + topBorderOffset) {
+        return true;
+    }
+    if (y < VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN + topBorderOffset) {
+        return true;
+    }
+    if (x > VIC_RESOLUTION_X + VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN -
+                sideBorderOffset) {
+        return true;
+    }
+    if (y >= VIC_RESOLUTION_Y + VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN -
+                 bottomBorderOffset) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * @brief draw sprite row (multicolor sprite)
+ * @param x x screen coordinates
+ * @param y y screen coordinates
+ * @param idx the sprite index
+ * @param row sprite row number
+ */
+void CVICII::drawSpriteMulticolor(int x, int y, int idx, int row) {
+    uint16_t addr = getSpriteDataAddress(idx);
+    // draw sprite row
+    for (int i = 0; i < 3; i++) {
+        // get sprite byte
+        uint8_t spByte;
+        uint16_t a = addr + (row * 3) + i;
+        // SDL_Log("reading multicolor sprite byte at $%x", a);
+        _cpu->memory()->readByte(a, &spByte);
+
+        // read sprite data considering double-wide pixels
+        for (int j = 0; j < 4; j++) {
+            int color = 0;
+            // https://www.c64-wiki.com/wiki/Sprite#High_resolution_or_multicolor_mode
+            // bits 0 and 1 determines the color to use
+            uint8_t bits = ((spByte >> j * 2) & 0x3);
+            switch (bits) {
+            case 0:
+                // 00 = transparent
+                break;
+            case 1:
+                // 01 = multicolor register 0
+                color = getSpriteMulticolor(0);
+                break;
+            case 2:
+                // 10  = standard sprite color for sprite idx
+                color = getSpriteColor(idx);
+                break;
+            case 3:
+                // 11 = multicolor register 1
+                color = getSpriteMulticolor(1);
+                break;
+            }
+
+            if (bits != 0) {
+                // blit
+                rgbStruct rgb = _palette[color];
+                int pixelX = x + (i * 8) + (8 - (j * 2));
+                blit(pixelX, y, &rgb);
+                blit(pixelX + 1, y, &rgb);
+            }
+        }
+    }
+}
+
+/**
+ * @brief draw sprite row (mono sprite)
+ * @param x x screen coordinates
+ * @param y y screen coordinates
+ * @param idx the sprite index
+ * @param row sprite row number
+ */
 void CVICII::drawSprite(int x, int y, int idx, int row) {
-    int wMultiplier = isSpriteXExpanded(idx) ? 2 : 1;
-    uint16_t addr = get_sprite_ptr(sprite);
-    for (int w = 0; w < swid; w++) {
-        for (int i = 0; i < 3; i++) {
-            uint8_t data = mem_->vic_read_byte(addr + row * 3 + i);
+    // get sprite data address
+    uint16_t addr = getSpriteDataAddress(idx);
+
+    // a sprite is 24x21, each row is 3 bytes
+    for (int i = 0; i < 3; i++) {
+        // read sprite byte
+        uint8_t spByte;
+        uint16_t a = addr + (row * 3) + i;
+        // SDL_Log("reading sprite byte at $%x", a);
+        _cpu->memory()->readByte(a, &spByte);
+
+        // draw sprite row bit by bit, take into account sprite X expansion (2x
+        // multiplier)
+        int multiplier = isSpriteXExpanded(idx) ? 2 : 1;
+        for (int m = 0; m < multiplier; m++) {
             for (int j = 0; j < 8; j++) {
-                if (ISSET_BIT(data, j)) {
-                    int new_x =
-                        (x + w + (i * 8 * swid) + (8 * swid) - (j * swid));
-                    int color = sprite_colors_[sprite];
-                    int side_border_offset = 0;
-                    int top_border_offset = 0;
-                    int btm_border_offset = 0;
-                    /* check 38 cols mode */
-                    if (!ISSET_BIT(cr2_, 3))
-                        side_border_offset = 8;
-                    /* check 24 line mode */
-                    if (!ISSET_BIT(cr1_, 3)) {
-                        top_border_offset = 2;
-                        btm_border_offset = 4;
+                if (IS_BIT_SET(spByte, j)) {
+                    // x to screen coordinate
+                    int pixelX = x + m + (i * 8 * multiplier) +
+                                 (8 * multiplier) - (j * multiplier);
+
+                    // blit pixel
+                    int color = getSpriteColor(idx);
+                    if (isSpriteDrawingOnBorder(pixelX, y)) {
+                        // draw using border color
+                        color = _regBorderColor;
                     }
-                    /* check bounds */
-                    if (new_x <= kGFirstCol + side_border_offset ||
-                        y < kGFirstCol + top_border_offset ||
-                        new_x > kGResX + kGFirstCol - side_border_offset ||
-                        y >= kGResY + kGFirstCol - btm_border_offset)
-                        color = border_color_;
-                    /* update pixel */
-                    io_->screen_update_pixel(new_x, y, color);
+                    rgbStruct rgb = _palette[color & 0xf];
+                    blit(pixelX, y, &rgb);
                 }
             }
         }
@@ -112,27 +223,40 @@ void CVICII::drawSprite(int x, int y, int idx, int row) {
  * @param rasterLine the rasterline index to draw
  */
 void CVICII::drawSprites(int rasterLine) {
-    int y = rstr - kFirstVisibleLine;
-    int sp_y = rstr - kSpritesFirstLine;
+    if (_regSpriteEnabled == 0) {
+        // no sprites enabled
+        return;
+    }
 
-    // draw hardware sprites
+    int currentLine = rasterLine - VIC_PAL_FIRST_VISIBLE_LINE;
+    int spriteLine = rasterLine - VIC_SPRITE_FIRST_RASTERLINE;
     for (int i = 0; i < 8; i++) {
-        if (isSpriteEnabled(i)) {
-            // get coordinates and color
-            int x = getSpriteXCoordinate(i);
-            int y = getSpriteXCoordinate(y);
-            int color = getSpriteColor(i);
-            int mc0 = getSpriteMulticolor(0);
-            int mc1 = getSpriteMulticolor(1);
+        bool spriteEnabled = isSpriteEnabled(i);
+        if (!spriteEnabled) {
+            // this sprite is not enabled
+            continue;
+        }
 
-            // set height and width
-            int h = VIC_DEFAULT_SPRITE_H;
-            int w = VIC_DEFAULT_SPRITE_W;
-            if (isSpriteXExpanded(i)) {
-                w *= 2;
+        // get sprite properties
+        bool isSpriteHExpanded = isSpriteYExpanded(i);
+        int h =
+            isSpriteHExpanded ? VIC_DEFAULT_SPRITE_H * 2 : VIC_DEFAULT_SPRITE_H;
+        int spriteYCoord = getSpriteYCoordinate(i);
+        int spriteXCoord = getSpriteXCoordinate(i);
+        bool multicolor = isSpriteMulticolor(i);
+        if (spriteLine >= spriteYCoord && (spriteLine < spriteYCoord + h)) {
+            // draw sprite row at the current scanline
+            int row = spriteLine - spriteYCoord;
+            int x = VIC_SPRITE_FIRST_COLUMN + spriteXCoord;
+            if (isSpriteHExpanded) {
+                // handle Y expansion
+                row = (spriteLine - spriteYCoord) / 2;
             }
-            if (isSpriteYExpanded(w)) {
-                h *= 2;
+
+            if (multicolor) {
+                drawSpriteMulticolor(x, currentLine, i, row);
+            } else {
+                drawSprite(x, currentLine, i, row);
             }
         }
     }
@@ -161,7 +285,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
     uint16_t screenAddress;
     uint8_t *colorMem = _cpu->memory()->raw() + MEMORY_COLOR_ADDRESS;
     int bank;
-    getCharacterModeScreenAddress(&screenAddress, &charsetAddress, &bank);
+    getScreenAddress(&screenAddress, &charsetAddress, &bank);
     uint8_t *charset = _cpu->memory()->raw() + charsetAddress;
 
     // get screen mode
@@ -178,8 +302,8 @@ void CVICII::drawCharacterMode(int rasterLine) {
     // draw characters
     int columns = VIC_CHAR_MODE_COLUMNS;
     for (int c = 0; c < columns; c++) {
-        if (!IS_BIT_SET(_regCR2, 3)) {
-            // 38 columns, skip drawing column 0 and 39
+        if (!_CSEL) {
+            // 38 characters, skip drawing column 0 and 39
             if (c == 0 || c == VIC_CHAR_MODE_COLUMNS - 1) {
                 continue;
             }
@@ -250,8 +374,8 @@ void CVICII::drawCharacterMode(int rasterLine) {
                     break;
 
                 case 3:
-                    // 11, default (use background color, doc says use character
-                    // color ??)
+                    // 11, default (use background color, doc says use
+                    // character color ??)
                     charRgb = _palette[getBackgoundColor(0)];
                     break;
                 }
@@ -290,7 +414,8 @@ int CVICII::update(long cycleCount) {
         BIT_CLEAR(_regInterrupt, 7);
     }
 
-    // check for bad line (http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt)
+    // check for bad line
+    // (http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt)
     int occupiedCycles = 0;
     long elapsed = cycleCount - _prevCycles;
     bool isBadLine = ((_regRASTER >= 0x30) && (_regRASTER <= 0xf7)) &&
@@ -329,13 +454,14 @@ int CVICII::update(long cycleCount) {
             drawCharacterMode(line);
 
             // draw sprites
-            drawSprites();
+            drawSprites(_regRASTER);
         }
     }
     if (_regRASTER == _rasterIrqLine) {
         if (IS_BIT_SET(_regInterruptEnabled, 0) &&
             IS_BIT_SET(_regInterrupt, 0)) {
-            // trigger irq if bits in d019/d01a are set for the raster interrupt
+            // trigger irq if bits in d019/d01a are set for the raster
+            // interrupt
             _cpu->irq();
 
             // sets bit 7, an interrupt has been triggered
@@ -448,6 +574,16 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
         *bt = (_regInterruptEnabled | 0x70);
         break;
 
+    case 0xd01b:
+        // MnDP: sprite data priority
+        *bt = _regSpriteDataPriority;
+        break;
+
+    case 0xd01c:
+        // MnMC: sprite multicolor
+        *bt = _regSpriteMultiColor;
+        break;
+
     case 0xd01d:
         // MnXE: sprite X expanded
         *bt = _regSpriteXExpansion;
@@ -545,14 +681,17 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
         // YSCROLL
         _scrollY = bt & 0x7;
+
+        // RSEL
+        _RSEL = IS_BIT_SET(bt, 3);
         break;
 
     case 0xd012:
         // RASTER
         _regRASTER = bt;
 
-        // set the raster line at which an IRQ must happen, using RASTER and bit
-        // 7 of CR1 if set
+        // set the raster line at which an IRQ must happen, using RASTER and
+        // bit 7 of CR1 if set
         _rasterIrqLine = _regRASTER;
         if (IS_BIT_SET(_regCR1, 7)) {
             BIT_SET(_rasterIrqLine, 8);
@@ -577,6 +716,9 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
         // XSCROLL (bit 0,1,2)
         _scrollX = bt & 0x7;
+
+        // CSEL
+        _CSEL = IS_BIT_SET(bt, 3);
         break;
 
     case 0xd017:
@@ -597,6 +739,16 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     case 0xd01a:
         // interrupt enabled
         _regInterruptEnabled = bt;
+        break;
+
+    case 0xd01b:
+        // MnDP: sprite data priority
+        _regSpriteDataPriority = bt;
+        break;
+
+    case 0xd01c:
+        // MnMC: sprite multicolor
+        _regSpriteMultiColor = bt;
         break;
 
     case 0xd01d:
@@ -737,18 +889,27 @@ bool CVICII::checkUnusedAddress(int type, uint16_t address, uint8_t *bt) {
     return false;
 }
 
-void CVICII::getCharacterModeScreenAddress(uint16_t *screenCharacterRamAddress,
-                                           uint16_t *charsetAddress,
-                                           int *bank) {
+void CVICII::getScreenAddress(uint16_t *screenAddress, uint16_t *charsetAddress,
+                              int *bank) {
     // read base register
     uint8_t d018;
     _cpu->memory()->readByte(0xd018, &d018);
 
     // get screen address
     uint16_t base = _cia2->vicAddress();
-    *bank = _cia2->vicBank();
-    *screenCharacterRamAddress = ((d018 >> 4) & 0xf) * 1024;
-    *charsetAddress = ((((d018 & 0xf) >> 1) & 0x7) * 2048) + base;
+
+    if (bank) {
+        // get bank
+        *bank = _cia2->vicBank();
+    }
+
+    if (charsetAddress) {
+        // get charset address
+        *charsetAddress = ((((d018 & 0xf) >> 1) & 0x7) * 2048) + base;
+    }
+
+    // get screen address
+    *screenAddress = ((d018 >> 4) & 0xf) * 1024;
 }
 
 void CVICII::getBitmapModeScreenAddress(uint16_t *colorInfoAddress,
@@ -757,8 +918,8 @@ void CVICII::getBitmapModeScreenAddress(uint16_t *colorInfoAddress,
 }
 
 /**
- * @brief get X coordinate of sprite at idx, combining value of the MnX with the
- * corresponding bit of $d010 as MSB
+ * @brief get X coordinate of sprite at idx, combining value of the MnX with
+ * the corresponding bit of $d010 as MSB
  * @return the effective X coordinate
  */
 uint16_t CVICII::getSpriteXCoordinate(int idx) {
@@ -778,7 +939,7 @@ uint16_t CVICII::getSpriteXCoordinate(int idx) {
  */
 uint8_t CVICII::getSpriteYCoordinate(int idx) {
     // get MnY
-    uint16_t mny = _regM[(idx * 2) + 1];
+    uint8_t mny = _regM[(idx * 2) + 1];
     return mny;
 }
 
@@ -798,6 +959,15 @@ bool CVICII::isSpriteEnabled(int idx) {
 bool CVICII::isSpriteYExpanded(int idx) {
     bool expanded = IS_BIT_SET(_regSpriteYExpansion, idx);
     return expanded;
+}
+
+/**
+ * @brief check if the sprite n is multicolor
+ * @return
+ */
+bool CVICII::isSpriteMulticolor(int idx) {
+    bool mc = IS_BIT_SET(_regSpriteMultiColor, idx);
+    return mc;
 }
 
 /**
@@ -830,8 +1000,8 @@ int CVICII::getScreenMode() {
     }
     if (!IS_BIT_SET(_regCR1, 6) && IS_BIT_SET(_regCR1, 5) &&
         !IS_BIT_SET(_regCR2, 4)) {
-        // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "selecting standard bitmap
-        // mode");
+        // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "selecting standard
+        // bitmap mode");
         return VIC_SCREEN_MODE_BITMAP_STANDARD;
     }
     if (!IS_BIT_SET(_regCR1, 6) && IS_BIT_SET(_regCR1, 5) &&
@@ -846,8 +1016,8 @@ int CVICII::getScreenMode() {
         // background color mode");
         return VIC_SCREEN_MODE_EXTENDED_BACKGROUND_COLOR;
     }
-    // SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "invalid color mode!! CR1=%x,
-    // CR2=%x", _regCR1, _regCR2);
+    // SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "invalid color mode!!
+    // CR1=%x, CR2=%x", _regCR1, _regCR2);
 
     return -1;
 }
