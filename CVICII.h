@@ -156,6 +156,10 @@ class CVICII {
 
     uint16_t checkShadowAddress(uint16_t address);
 
+    bool isSpriteEnabled(int idx);
+    bool isSpriteYExpanded(int idx);
+    bool isSpriteXExpanded(int idx);
+
     void setSpriteCoordinate(int idx, uint8_t val);
     uint8_t getSpriteCoordinate(int idx);
 
@@ -179,7 +183,6 @@ class CVICII {
 
     void drawBorder(int rasterLine);
     void drawCharacterMode(int rasterLine);
-    bool isCharacterMode();
     void blit(int x, int y, rgbStruct *rgb);
     void initPalette();
     int getScreenMode();

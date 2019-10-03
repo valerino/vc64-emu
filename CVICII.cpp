@@ -188,11 +188,12 @@ void CVICII::drawCharacterMode(int rasterLine) {
 
 int CVICII::update(long cycleCount) {
     if (IS_BIT_SET(_regInterrupt, 7)) {
-        // IRQ is set
-
-        // @todo i'm not sure of that :)
-        BIT_CLEAR(_regInterrupt, 7);
+        // IRQ bit is set, trigger an interrupt
         _cpu->irq();
+
+        // and clear the bit
+        // https://dustlayer.com/vic-ii
+        BIT_CLEAR(_regInterrupt, 7);
     }
 
     // check for bad line (http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt)
@@ -226,17 +227,21 @@ int CVICII::update(long cycleCount) {
         int line = _regRASTER - VIC_PAL_FIRST_VISIBLE_LINE;
         drawBorder(line);
 
-        if (isCharacterMode()) {
+        int screenMode = getScreenMode();
+        if (screenMode == VIC_SCREEN_MODE_CHARACTER_STANDARD ||
+            screenMode == VIC_SCREEN_MODE_CHARACTER_MULTICOLOR) {
             // draw screen line in character mode
             drawCharacterMode(line);
         }
     }
     if (_regRASTER == _rasterIrqLine) {
-        if (IS_BIT_SET(_regInterruptEnabled, 0)) {
-            // reset the interrupt latch register by hand
-            // (http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt)
-            _regInterruptEnabled |= 1;
+        if (IS_BIT_SET(_regInterruptEnabled, 0) &&
+            IS_BIT_SET(_regInterrupt, 0)) {
+            // trigger irq if bits in d019/d01a are set for the raster interrupt
             _cpu->irq();
+
+            // sets bit 7, an interrupt has been triggered
+            BIT_SET(_regInterrupt, 7);
         }
     }
 
@@ -310,10 +315,26 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
         break;
     }
 
+    case 0xd015:
+        // MnE: sprite enabled
+        *bt = _regSpriteEnabled;
+        break;
+
     case 0xd016:
         // CR2
-        // bit 6 and 7 are always set
+        // bit 6,7 are always set
         *bt = (_regCR2 | 0xc0);
+        break;
+
+    case 0xd017:
+        // MnYE: sprite Y expanded
+        *bt = _regSpriteYExpansion;
+        break;
+
+    case 0xd018:
+        // memory pointers
+        // bit 0 is always set
+        *bt = (_regMemoryPointers | 1);
         break;
 
     case 0xd019:
@@ -324,9 +345,14 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
         break;
     case 0xd01a:
         // interrupt enable register
-        // bit 4,5,6,7 are always set
+        // bit 4,5,6 are always set
         // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
-        *bt = (_regInterruptEnabled | 0xf0);
+        *bt = (_regInterruptEnabled | 0x70);
+        break;
+
+    case 0xd01d:
+        // MnXE: sprite X expanded
+        *bt = _regSpriteXExpansion;
         break;
 
     case 0xd01e:
@@ -442,13 +468,27 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         _regLP[lp] = bt;
         break;
     }
+    case 0xd015:
+        // MnE: sprite enabled
+        _regSpriteEnabled = bt;
+        break;
 
     case 0xd016:
         // CR2
-        _regCR2 = bt | 0xc0;
+        _regCR2 = bt;
 
-        // XSCROLL
+        // XSCROLL (bit 0,1,2)
         _scrollX = bt & 0x7;
+        break;
+
+    case 0xd017:
+        // MnYE: sprite Y expanded
+        _regSpriteYExpansion = bt;
+        break;
+
+    case 0xd018:
+        // memory pointers
+        _regMemoryPointers = bt;
         break;
 
     case 0xd019:
@@ -459,6 +499,11 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     case 0xd01a:
         // interrupt enabled
         _regInterruptEnabled = bt;
+        break;
+
+    case 0xd01d:
+        // MnXE: sprite X expanded
+        _regSpriteXExpansion = bt;
         break;
 
     case 0xd020:
@@ -614,19 +659,6 @@ void CVICII::getBitmapModeScreenAddress(uint16_t *colorInfoAddress,
 }
 
 /**
- * @brief check for character mode display
- * @return
- */
-bool CVICII::isCharacterMode() {
-    if (!IS_BIT_SET(_regCR1, 6) && !IS_BIT_SET(_regCR1, 5)) {
-        if (!IS_BIT_SET(_regCR2, 5)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-/**
  * @brief get X coordinate of sprite at idx, combining value of the MnX with the
  * corresponding bit of $d010 as MSB
  * @return the effective X coordinate
@@ -653,19 +685,71 @@ uint8_t CVICII::getSpriteYCoordinate(int idx) {
 }
 
 /**
+ * @brief check if sprite n is enabled
+ * @return
+ */
+bool CVICII::isSpriteEnabled(int idx) {
+    bool enabled = IS_BIT_SET(_regSpriteEnabled, idx);
+    return enabled;
+}
+
+/**
+ * @brief check if sprite n is Y expanded (Y size * 2)
+ * @return
+ */
+bool CVICII::isSpriteYExpanded(int idx) {
+    bool expanded = IS_BIT_SET(_regSpriteYExpansion, idx);
+    return expanded;
+}
+
+/**
+ * @brief check if sprite n is Y expanded (Y size * 2)
+ * @return
+ */
+bool CVICII::isSpriteXExpanded(int idx) {
+    bool expanded = IS_BIT_SET(_regSpriteXExpansion, idx);
+    return expanded;
+}
+
+/**
  * @brief get the screen mode and return one of the VIC_SCREEN_MODE_* values
- * @return int
+ * @return int one of the VIC_SCREEN_MODE_x, or -1 on error
  */
 int CVICII::getScreenMode() {
-    /*
+    // refers to bitmasks at
+    // https://www.c64-wiki.com/wiki/Standard_Character_Mode
+    if (!IS_BIT_SET(_regCR1, 6) && !IS_BIT_SET(_regCR1, 5) &&
+        !IS_BIT_SET(_regCR2, 4)) {
+        // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "selecting standard
+        // character mode");
+        return VIC_SCREEN_MODE_CHARACTER_STANDARD;
+    }
+    if (!IS_BIT_SET(_regCR1, 6) && !IS_BIT_SET(_regCR1, 5) &&
+        IS_BIT_SET(_regCR2, 4)) {
+        // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "selecting multicolor
+        // character mode");
+        return VIC_SCREEN_MODE_CHARACTER_MULTICOLOR;
+    }
+    if (!IS_BIT_SET(_regCR1, 6) && IS_BIT_SET(_regCR1, 5) &&
+        !IS_BIT_SET(_regCR2, 4)) {
+        // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "selecting standard bitmap
+        // mode");
+        return VIC_SCREEN_MODE_BITMAP_STANDARD;
+    }
+    if (!IS_BIT_SET(_regCR1, 6) && IS_BIT_SET(_regCR1, 5) &&
+        IS_BIT_SET(_regCR2, 4)) {
+        // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "selecting multicolor
+        // bitmap mode");
+        return VIC_SCREEN_MODE_BITMAP_MULTICOLOR;
+    }
+    if (IS_BIT_SET(_regCR1, 6) && !IS_BIT_SET(_regCR1, 5) &&
+        !IS_BIT_SET(_regCR2, 4)) {
+        // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "selecting extended
+        // background color mode");
+        return VIC_SCREEN_MODE_EXTENDED_BACKGROUND_COLOR;
+    }
+    // SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "invalid color mode!! CR1=%x,
+    // CR2=%x", _regCR1, _regCR2);
 
-Table 2 - Graphics Modes VIC-II Bit Combinations
-Mode	ECM	BMM	MCM	Result
-0	0	0	0	Standard Character Mode
-1	0	0	1	Multicolor Character Mode
-2	0	1	0	Standard Bitmap Mode
-3	0	1	1	Multicolor Bitmap Mode
-4	1	0	0	Extended Background Color Mode
-    */
-    return 0;
+    return -1;
 }
