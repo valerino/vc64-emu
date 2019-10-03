@@ -122,36 +122,37 @@ void CVICII::drawCharacterMode(int rasterLine) {
         // character row
         int charRow = line % 8;
 
-        // read screencode (character position) from screen memory
-        uint8_t screenCharPosition;
+        // read screencode from screen memory
+        uint8_t screenCharacterCode;
         _cpu->memory()->readByte(screenAddress + (row * columns) + c,
-                                 &screenCharPosition);
+                                 &screenCharacterCode);
 
         rgbStruct backgroundRgb;
         if (screenMode == VIC_SCREEN_MODE_EXTENDED_BACKGROUND_COLOR) {
             // determine which background color register to be used
-            if (!IS_BIT_SET(screenCharPosition, 7) &&
-                !IS_BIT_SET(screenCharPosition, 6)) {
+            // https://www.c64-wiki.com/wiki/Extended_color_mode
+            if (!IS_BIT_SET(screenCharacterCode, 7) &&
+                !IS_BIT_SET(screenCharacterCode, 6)) {
                 backgroundRgb = _palette[getBackgoundColor(0)];
-            } else if (!IS_BIT_SET(screenCharPosition, 7) &&
-                       IS_BIT_SET(screenCharPosition, 6)) {
+            } else if (!IS_BIT_SET(screenCharacterCode, 7) &&
+                       IS_BIT_SET(screenCharacterCode, 6)) {
                 backgroundRgb = _palette[getBackgoundColor(1)];
-            } else if (IS_BIT_SET(screenCharPosition, 7) &&
-                       !IS_BIT_SET(screenCharPosition, 6)) {
+            } else if (IS_BIT_SET(screenCharacterCode, 7) &&
+                       !IS_BIT_SET(screenCharacterCode, 6)) {
                 backgroundRgb = _palette[getBackgoundColor(2)];
-            } else if (IS_BIT_SET(screenCharPosition, 7) &&
-                       IS_BIT_SET(screenCharPosition, 6)) {
+            } else if (IS_BIT_SET(screenCharacterCode, 7) &&
+                       IS_BIT_SET(screenCharacterCode, 6)) {
                 backgroundRgb = _palette[getBackgoundColor(3)];
             }
-            // clear bits in character position
-            screenCharPosition &= 0x3f;
+            // clear bits in character
+            screenCharacterCode &= 0x3f;
         } else {
             // default text mode
             backgroundRgb = _palette[getBackgoundColor(0)];
         }
 
         // read the character data and color
-        uint8_t data = charset[(screenCharPosition * 8) + charRow];
+        uint8_t data = charset[(screenCharacterCode * 8) + charRow];
         uint8_t charColor = (colorMem[(row * columns) + c]);
         rgbStruct charRgb = _palette[charColor & 0xf];
 
