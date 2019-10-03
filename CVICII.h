@@ -36,6 +36,12 @@
 
 #define VIC_CHAR_MODE_COLUMNS 40
 
+#define VIC_DEFAULT_SPRITE_W 24
+#define VIC_DEFAULT_SPRITE_H 21
+#define VIC_SPRITE_SIZE 64
+#define VIC_SPRITE_FIRST_RASTERLINE 6
+#define VIC_SPRITE_FIRST_COLUMN 18
+
 // display window is intended the 'blue' window surrounded by the border, when
 // c64 boots :)
 #define VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN 42
@@ -183,9 +189,12 @@ class CVICII {
 
     void drawBorder(int rasterLine);
     void drawCharacterMode(int rasterLine);
+    void drawSprites(int rasterLine);
     void blit(int x, int y, rgbStruct *rgb);
     void initPalette();
     int getScreenMode();
+    void drawSprite(int x, int y, int idx, int row);
+    uint16_t getSpritePtr(int idx);
 };
 
 #endif // VC64_EMU_CVICII_H

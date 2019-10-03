@@ -67,8 +67,79 @@ void CVICII::drawBorder(int rasterLine) {
     }
 }
 
+uint16_t CVICII::getSpritePtr(int idx) {
+    uint16_t ptraddr = screen_mem_ + kSpritePtrsOffset + n;
+    return kSpriteSize * mem_->vic_read_byte(ptraddr);
+}
+void CVICII::drawSprite(int x, int y, int idx, int row) {
+    int wMultiplier = isSpriteXExpanded(idx) ? 2 : 1;
+    uint16_t addr = get_sprite_ptr(sprite);
+    for (int w = 0; w < swid; w++) {
+        for (int i = 0; i < 3; i++) {
+            uint8_t data = mem_->vic_read_byte(addr + row * 3 + i);
+            for (int j = 0; j < 8; j++) {
+                if (ISSET_BIT(data, j)) {
+                    int new_x =
+                        (x + w + (i * 8 * swid) + (8 * swid) - (j * swid));
+                    int color = sprite_colors_[sprite];
+                    int side_border_offset = 0;
+                    int top_border_offset = 0;
+                    int btm_border_offset = 0;
+                    /* check 38 cols mode */
+                    if (!ISSET_BIT(cr2_, 3))
+                        side_border_offset = 8;
+                    /* check 24 line mode */
+                    if (!ISSET_BIT(cr1_, 3)) {
+                        top_border_offset = 2;
+                        btm_border_offset = 4;
+                    }
+                    /* check bounds */
+                    if (new_x <= kGFirstCol + side_border_offset ||
+                        y < kGFirstCol + top_border_offset ||
+                        new_x > kGResX + kGFirstCol - side_border_offset ||
+                        y >= kGResY + kGFirstCol - btm_border_offset)
+                        color = border_color_;
+                    /* update pixel */
+                    io_->screen_update_pixel(new_x, y, color);
+                }
+            }
+        }
+    }
+}
+
 /**
- * draw a character mode line
+ * @brief draw hardware sprites
+ * @param rasterLine the rasterline index to draw
+ */
+void CVICII::drawSprites(int rasterLine) {
+    int y = rstr - kFirstVisibleLine;
+    int sp_y = rstr - kSpritesFirstLine;
+
+    // draw hardware sprites
+    for (int i = 0; i < 8; i++) {
+        if (isSpriteEnabled(i)) {
+            // get coordinates and color
+            int x = getSpriteXCoordinate(i);
+            int y = getSpriteXCoordinate(y);
+            int color = getSpriteColor(i);
+            int mc0 = getSpriteMulticolor(0);
+            int mc1 = getSpriteMulticolor(1);
+
+            // set height and width
+            int h = VIC_DEFAULT_SPRITE_H;
+            int w = VIC_DEFAULT_SPRITE_W;
+            if (isSpriteXExpanded(i)) {
+                w *= 2;
+            }
+            if (isSpriteYExpanded(w)) {
+                h *= 2;
+            }
+        }
+    }
+}
+
+/**
+ * @brief draw a character mode line
  * @param rasterLine the rasterline index to draw
  */
 void CVICII::drawCharacterMode(int rasterLine) {
@@ -256,6 +327,9 @@ int CVICII::update(long cycleCount) {
             screenMode == VIC_SCREEN_MODE_EXTENDED_BACKGROUND_COLOR) {
             // draw screen line in character mode
             drawCharacterMode(line);
+
+            // draw sprites
+            drawSprites();
         }
     }
     if (_regRASTER == _rasterIrqLine) {
