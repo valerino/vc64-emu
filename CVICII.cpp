@@ -93,6 +93,9 @@ void CVICII::drawCharacterMode(int rasterLine) {
     getCharacterModeScreenAddress(&screenAddress, &charsetAddress, &bank);
     uint8_t *charset = _cpu->memory()->raw() + charsetAddress;
 
+    // get screen mode
+    int screenMode = getScreenMode();
+
     // handle character shadows
     // https://www.c64-wiki.com/wiki/VIC_bank
     if (bank == 0 && charsetAddress == 0x1000) {
@@ -104,7 +107,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
     // draw characters
     int columns = VIC_CHAR_MODE_COLUMNS;
     for (int c = 0; c < columns; c++) {
-        if (!(IS_BIT_SET(_regCR2, 3))) {
+        if (!IS_BIT_SET(_regCR2, 3)) {
             // 38 columns, skip drawing column 0 and 39
             if (c == 0 || c == VIC_CHAR_MODE_COLUMNS - 1) {
                 continue;
@@ -119,21 +122,41 @@ void CVICII::drawCharacterMode(int rasterLine) {
         // character row
         int charRow = line % 8;
 
-        // read screenchode from screen memory
-        uint8_t screenChar;
+        // read screencode (character position) from screen memory
+        uint8_t screenCharPosition;
         _cpu->memory()->readByte(screenAddress + (row * columns) + c,
-                                 &screenChar);
+                                 &screenCharPosition);
+
+        rgbStruct backgroundRgb;
+        if (screenMode == VIC_SCREEN_MODE_EXTENDED_BACKGROUND_COLOR) {
+            // determine which background color register to be used
+            if (!IS_BIT_SET(screenCharPosition, 7) &&
+                !IS_BIT_SET(screenCharPosition, 6)) {
+                backgroundRgb = _palette[getBackgoundColor(0)];
+            } else if (!IS_BIT_SET(screenCharPosition, 7) &&
+                       IS_BIT_SET(screenCharPosition, 6)) {
+                backgroundRgb = _palette[getBackgoundColor(1)];
+            } else if (IS_BIT_SET(screenCharPosition, 7) &&
+                       !IS_BIT_SET(screenCharPosition, 6)) {
+                backgroundRgb = _palette[getBackgoundColor(2)];
+            } else if (IS_BIT_SET(screenCharPosition, 7) &&
+                       IS_BIT_SET(screenCharPosition, 6)) {
+                backgroundRgb = _palette[getBackgoundColor(3)];
+            }
+            // clear bits in character position
+            screenCharPosition &= 0x3f;
+        } else {
+            // default text mode
+            backgroundRgb = _palette[getBackgoundColor(0)];
+        }
 
         // read the character data and color
-        uint8_t data = charset[(screenChar * 8) + charRow];
+        uint8_t data = charset[(screenCharPosition * 8) + charRow];
         uint8_t charColor = (colorMem[(row * columns) + c]);
         rgbStruct charRgb = _palette[charColor & 0xf];
 
-        // check for multicolor mode
-        bool multicolor = IS_BIT_SET(_regCR2, 4);
-
         // draw character bit by bit
-        if (multicolor) {
+        if (screenMode == VIC_SCREEN_MODE_CHARACTER_MULTICOLOR) {
             // https://www.c64-wiki.com/wiki/Character_set#Defining_a_multi-color_character
             for (int i = 0; i < 8; i++) {
                 // only the last 3 bits count
@@ -169,16 +192,15 @@ void CVICII::drawCharacterMode(int rasterLine) {
                 data >>= 2;
             }
         } else {
-            // default text mode
+            // default text mode or extended background mode
             data = (data >> _scrollX);
             for (int i = 0; i < 8; i++) {
                 int pixelX = x + 8 - i;
                 if (IS_BIT_SET(data, i)) {
-                    // put pixel
+                    // put pixel in foreground color
                     blit(pixelX, rasterLine, &charRgb);
                 } else {
-                    // put pixel in background color 0
-                    rgbStruct backgroundRgb = _palette[getBackgoundColor(0)];
+                    // put pixel in background color
                     blit(pixelX, rasterLine, &backgroundRgb);
                 }
             }
@@ -229,7 +251,8 @@ int CVICII::update(long cycleCount) {
 
         int screenMode = getScreenMode();
         if (screenMode == VIC_SCREEN_MODE_CHARACTER_STANDARD ||
-            screenMode == VIC_SCREEN_MODE_CHARACTER_MULTICOLOR) {
+            screenMode == VIC_SCREEN_MODE_CHARACTER_MULTICOLOR ||
+            screenMode == VIC_SCREEN_MODE_EXTENDED_BACKGROUND_COLOR) {
             // draw screen line in character mode
             drawCharacterMode(line);
         }
