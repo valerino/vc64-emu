@@ -133,8 +133,7 @@ class CVICII {
     uint8_t _regMSBX = 0;
     uint8_t _regCR1 = 0;
     uint16_t _regRASTER = 0;
-    uint8_t _regLPX = 0;
-    uint8_t _regLPY = 0;
+    uint8_t _regLP[2] = {0};
     uint8_t _regSpriteEnabled = 0;
     uint8_t _regCR2 = 0;
     uint8_t _regSpriteYExpansion = 0;
@@ -174,6 +173,10 @@ class CVICII {
                                        uint16_t *charsetAddress, int *bank);
     void getBitmapModeScreenAddress(uint16_t *colorInfoAddress,
                                     uint16_t *bitmapAddress);
+
+    uint16_t getSpriteXCoordinate(int idx);
+    uint8_t getSpriteYCoordinate(int idx);
+
     void drawBorder(int rasterLine);
     void drawCharacterMode(int rasterLine);
     bool isCharacterMode();

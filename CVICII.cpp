@@ -245,13 +245,13 @@ int CVICII::update(long cycleCount) {
         _regRASTER = 0;
     }
 
-    // update the raster counter and cr1 with the new values
+    // update the raster counter and cr1
     if (_regRASTER > 0xff) {
         // bit 8 of the raster counter is set into bit 7 of cr1
-        _regCR1 |= (_regRASTER >> 8) << 7;
-        _cpu->memory()->writeByte(0xd011, _regCR1);
+        BIT_SET(_regCR1, 7);
     }
-    _cpu->memory()->writeByte(0xd012, _regRASTER & 0xff);
+    _cpu->memory()->writeByte(0xd011, _regCR1);
+    _cpu->memory()->writeByte(0xd012, (_regRASTER & 0xff));
 
     // return how many cycles drawing occupied
     return occupiedCycles;
@@ -287,10 +287,28 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
         break;
     }
 
+    case 0xd010:
+        // MSBx of X sprites X coordinates
+        *bt = _regMSBX;
+        break;
+
     case 0xd011:
         // CR1
         *bt = _regCR1;
         break;
+
+    case 0xd012:
+        // RASTER
+        *bt = (_regRASTER & 0xff);
+        break;
+
+    case 0xd013:
+    case 0xd014: {
+        // lightpen X/Y coordinate
+        int lp = 0xd013 - addr;
+        *bt = _regLP[lp];
+        break;
+    }
 
     case 0xd016:
         // CR2
@@ -389,22 +407,44 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         setSpriteCoordinate(spriteCoordIdx, bt);
         break;
     }
+    case 0xd010:
+        // MSBx of X sprites X coordinates
+        _regMSBX = bt;
+        break;
 
     case 0xd011:
         // CR1
         _regCR1 = bt;
 
-        // setting cr1 also affects the raster counter (bit 8 of the raster
-        // counter is bit 7 of cr1)
-        _regRASTER |= (bt >> 7);
-        _rasterIrqLine = _regRASTER;
+        // setting cr1 also affects the raster irq line (sets 8th bit)
+        _rasterIrqLine = _regRASTER | (bt >> 7);
 
         // YSCROLL
         _scrollY = bt & 0x7;
         break;
 
-        // control register 2
+    case 0xd012:
+        // RASTER
+        _regRASTER = bt;
+
+        // set the raster line at which an IRQ must happen, using RASTER and bit
+        // 7 of CR1 if set
+        _rasterIrqLine = _regRASTER;
+        if (IS_BIT_SET(_regCR1, 7)) {
+            BIT_SET(_rasterIrqLine, 8);
+        }
+        break;
+
+    case 0xd013:
+    case 0xd014: {
+        // lightpen X/Y coordinate
+        int lp = 0xd013 - addr;
+        _regLP[lp] = bt;
+        break;
+    }
+
     case 0xd016:
+        // CR2
         _regCR2 = bt | 0xc0;
 
         // XSCROLL
@@ -419,14 +459,6 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     case 0xd01a:
         // interrupt enabled
         _regInterruptEnabled = bt;
-        break;
-
-    case 0xd012:
-        // RASTER
-        // sets the raster line at which an IRQ must happen, also sets bit 7
-        // of cr1
-        _regRASTER = bt | (_regCR1 >> 7);
-        _rasterIrqLine = _regRASTER;
         break;
 
     case 0xd020:
@@ -592,6 +624,32 @@ bool CVICII::isCharacterMode() {
         }
     }
     return false;
+}
+
+/**
+ * @brief get X coordinate of sprite at idx, combining value of the MnX with the
+ * corresponding bit of $d010 as MSB
+ * @return the effective X coordinate
+ */
+uint16_t CVICII::getSpriteXCoordinate(int idx) {
+    // get MnX
+    uint16_t mnx = _regM[idx * 2];
+
+    // set 8th bit if the bit is set in $d010
+    if (IS_BIT_SET(_regMSBX, idx)) {
+        mnx |= 0x100;
+    }
+    return mnx;
+}
+
+/**
+ * @brief get Y coordinate of sprite at idx
+ * @return
+ */
+uint8_t CVICII::getSpriteYCoordinate(int idx) {
+    // get MnY
+    uint16_t mny = _regM[(idx * 2) + 1];
+    return mny;
 }
 
 /**
