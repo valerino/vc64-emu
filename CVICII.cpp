@@ -141,23 +141,23 @@ void CVICII::drawCharacterMode(int rasterLine) {
                 switch (bits) {
                 case 0:
                     // 00
-                    charRgb = _palette[_regBackgroundColor0];
+                    charRgb = _palette[getBackgoundColor(0)];
                     break;
 
                 case 1:
                     // 01
-                    charRgb = _palette[_regBackgroundColor1];
+                    charRgb = _palette[getBackgoundColor(1)];
                     break;
 
                 case 2:
                     // 10
-                    charRgb = _palette[_regBackgroundColor2];
+                    charRgb = _palette[getBackgoundColor(2)];
                     break;
 
                 case 3:
                     // 11, default (use background color, doc says use character
                     // color ??)
-                    charRgb = _palette[_regBackgroundColor0];
+                    charRgb = _palette[getBackgoundColor(0)];
                     break;
                 }
                 int pixelX = x + 8 - i;
@@ -169,6 +169,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
                 data >>= 2;
             }
         } else {
+            // default text mode
             data = (data >> _scrollX);
             for (int i = 0; i < 8; i++) {
                 int pixelX = x + 8 - i;
@@ -176,8 +177,8 @@ void CVICII::drawCharacterMode(int rasterLine) {
                     // put pixel
                     blit(pixelX, rasterLine, &charRgb);
                 } else {
-                    // put pixel in background color
-                    rgbStruct backgroundRgb = _palette[_regBackgroundColor0];
+                    // put pixel in background color 0
+                    rgbStruct backgroundRgb = _palette[getBackgoundColor(0)];
                     blit(pixelX, rasterLine, &backgroundRgb);
                 }
             }
@@ -264,6 +265,28 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
     }
 
     switch (addr) {
+    case 0xd000:
+    case 0xd001:
+    case 0xd002:
+    case 0xd003:
+    case 0xd004:
+    case 0xd005:
+    case 0xd006:
+    case 0xd007:
+    case 0xd008:
+    case 0xd009:
+    case 0xd00a:
+    case 0xd00b:
+    case 0xd00c:
+    case 0xd00d:
+    case 0xd00e:
+    case 0xd00f: {
+        // MmX/Y = sprite n X/Y coordinates
+        int spriteCoordIdx = addr - 0xd000;
+        *bt = getSpriteCoordinate(spriteCoordIdx);
+        break;
+    }
+
     case 0xd011:
         // CR1
         *bt = _regCR1;
@@ -297,6 +320,38 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
         *bt = 0;
         break;
 
+    case 0xd021:
+    case 0xd022:
+    case 0xd023:
+    case 0xd024: {
+        // BnC = background color 0-3
+        int bcIdx = addr - 0xd021;
+        *bt = getBackgoundColor(bcIdx);
+        break;
+    }
+
+    case 0xd025:
+    case 0xd026: {
+        // MMn = sprite multicolor 0-1
+        int mmIdx = addr - 0xd025;
+        *bt = getSpriteMulticolor(mmIdx);
+        break;
+    }
+
+    case 0xd027:
+    case 0xd028:
+    case 0xd029:
+    case 0xd02a:
+    case 0xd02b:
+    case 0xd02c:
+    case 0xd02d:
+    case 0xd02e: {
+        // MnC = sprite color 0-7
+        int mIdx = addr - 0xd027;
+        *bt = getSpriteColor(mIdx);
+        break;
+    }
+
     default:
         // read memory
         _cpu->memory()->readByte(addr, bt);
@@ -313,6 +368,28 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     }
 
     switch (addr) {
+    case 0xd000:
+    case 0xd001:
+    case 0xd002:
+    case 0xd003:
+    case 0xd004:
+    case 0xd005:
+    case 0xd006:
+    case 0xd007:
+    case 0xd008:
+    case 0xd009:
+    case 0xd00a:
+    case 0xd00b:
+    case 0xd00c:
+    case 0xd00d:
+    case 0xd00e:
+    case 0xd00f: {
+        // MmX/Y = sprite n X/Y coordinates
+        int spriteCoordIdx = addr - 0xd000;
+        setSpriteCoordinate(spriteCoordIdx, bt);
+        break;
+    }
+
     case 0xd011:
         // CR1
         _regCR1 = bt;
@@ -358,26 +435,36 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         break;
 
     case 0xd021:
-        //  B0C
-        _regBackgroundColor0 = bt & 0xf;
-        break;
-
     case 0xd022:
-        //  B1C
-        _regBackgroundColor1 = bt & 0xf;
-        break;
-
-        // background color 2
     case 0xd023:
-        //  B2C
-        _regBackgroundColor2 = bt & 0xf;
+    case 0xd024: {
+        // BnC = background color 0-3
+        int bcIdx = addr - 0xd021;
+        setBackgoundColor(bcIdx, bt);
         break;
+    }
 
-        // background color 3
-    case 0xd024:
-        //  B2C
-        _regBackgroundColor3 = bt & 0xf;
+    case 0xd025:
+    case 0xd026: {
+        // MMn = sprite multicolor 0-1
+        int mmIdx = addr - 0xd025;
+        setSpriteMulticolor(mmIdx, bt);
         break;
+    }
+
+    case 0xd027:
+    case 0xd028:
+    case 0xd029:
+    case 0xd02a:
+    case 0xd02b:
+    case 0xd02c:
+    case 0xd02d:
+    case 0xd02e: {
+        // MnC = sprite color 0-7
+        int mIdx = addr - 0xd027;
+        setSpriteColor(mIdx, bt);
+        break;
+    }
 
     default:
         break;
@@ -386,6 +473,60 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     // finally write
     _cpu->memory()->writeByte(addr, bt);
 }
+
+/**
+ * @brief set sprite x or y coordinate, affecting MnX/Y registers
+ * @param idx register index in the sprites coordinates registers array
+ * @param val the value to be set
+ */
+void CVICII::setSpriteCoordinate(int idx, uint8_t val) { _regM[idx] = val; }
+
+/**
+ * @brief get sprite x or y coordinate
+ * @param idx register index in the sprites coordinates registers array
+ * @return x or y coordinate
+ */
+uint8_t CVICII::getSpriteCoordinate(int idx) { return _regM[idx]; }
+
+/**
+ * @brief get the background color from the BnC register
+ * @param idx register index in the background color registers array
+ * @return the background color 0-3
+ */
+uint8_t CVICII::getBackgoundColor(int idx) { return _regBC[idx]; }
+
+/**
+ * @brief set the background color in the BnC register (4 bits)
+ * @param idx register index in the background color registers array
+ * @param val the color to set
+ */
+void CVICII::setBackgoundColor(int idx, uint8_t val) {
+    _regBC[idx] = (val & 0xf);
+}
+
+/**
+ * @brief set color of sprite n in the MnC register (4 bits)
+ * @param idx register index in the sprite color registers array
+ * @param val the color to set
+ */
+void CVICII::setSpriteColor(int idx, uint8_t val) { _regM[idx] = (val & 0xf); }
+
+/**
+ * @brief get color of sprite n from the MnC register
+ * @param idx register index in the sprite color registers array
+ */
+uint8_t CVICII::getSpriteColor(int idx) { return _regM[idx]; }
+
+/**
+ * @brief get color from sprite multicolor register MMn
+ * @param idx register index in the sprite multicolor registers array
+ * @param val the color to set
+ */
+void CVICII::setSpriteMulticolor(int idx, uint8_t val) {
+    _regMM[idx] = (val & 0xf);
+}
+
+uint8_t CVICII::getSpriteMulticolor(int idx) { return _regMM[idx]; }
 
 /**
  * some addresses are shadowed and maps to other addresses
@@ -453,6 +594,10 @@ bool CVICII::isCharacterMode() {
     return false;
 }
 
+/**
+ * @brief get the screen mode and return one of the VIC_SCREEN_MODE_* values
+ * @return int
+ */
 int CVICII::getScreenMode() {
     /*
 

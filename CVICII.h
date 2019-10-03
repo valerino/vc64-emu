@@ -128,22 +128,9 @@ class CVICII {
     uint16_t _rasterIrqLine = 0;
     int _scrollX = 0;
     int _scrollY = 0;
-    uint8_t _regM0X = 0;
-    uint8_t _regM0Y = 0;
-    uint8_t _regM1X = 0;
-    uint8_t _regM1Y = 0;
-    uint8_t _regM2X = 0;
-    uint8_t _regM2Y = 0;
-    uint8_t _regM3X = 0;
-    uint8_t _regM3Y = 0;
-    uint8_t _regM4X = 0;
-    uint8_t _regM4Y = 0;
-    uint8_t _regM5X = 0;
-    uint8_t _regM5Y = 0;
-    uint8_t _regM6X = 0;
-    uint8_t _regM6Y = 0;
-    uint8_t _regM7X = 0;
-    uint8_t _regM7Y = 0;
+    uint8_t _regM[8 * 2] = {0}; // 8 hardware sprites coordinates registers X/Y
+                                // (M0X,M0Y ... M7X,M7Y)
+    uint8_t _regMSBX = 0;
     uint8_t _regCR1 = 0;
     uint16_t _regRASTER = 0;
     uint8_t _regLPX = 0;
@@ -160,27 +147,28 @@ class CVICII {
     uint8_t _regSpriteSpriteCollision = 0;
     uint8_t _regSpriteDataCollision = 0;
     uint8_t _regBorderColor = 0;
-    uint8_t _regBackgroundColor0 = 0;
-    uint8_t _regBackgroundColor1 = 0;
-    uint8_t _regBackgroundColor2 = 0;
-    uint8_t _regBackgroundColor3 = 0;
-    // uint8_t _regBackgroundColors[4] = {0};
-    uint8_t _regSpriteMulticolor0 = 0;
-    uint8_t _regSpriteMulticolor1 = 0;
-    uint8_t _regSpriteColor0 = 0;
-    uint8_t _regSpriteColor1 = 0;
-    uint8_t _regSpriteColor2 = 0;
-    uint8_t _regSpriteColor3 = 0;
-    uint8_t _regSpriteColor4 = 0;
-    uint8_t _regSpriteColor5 = 0;
-    uint8_t _regSpriteColor6 = 0;
-    uint8_t _regSpriteColor7 = 0;
-
+    uint8_t _regBC[4] = {0}; // 4 background colors (registers B0C ... B3C)
+    uint8_t _regMM[2] = {0}; // sprite multicolor (registers MM0-MM1)
+    uint8_t
+        regMC[8]; // sprite colors for hw sprites 0..7 (registers M0C ... M7C)
     BlitCallback _cb = nullptr;
     CCIA2 *_cia2 = nullptr;
     rgbStruct _palette[16] = {0};
 
     uint16_t checkShadowAddress(uint16_t address);
+
+    void setSpriteCoordinate(int idx, uint8_t val);
+    uint8_t getSpriteCoordinate(int idx);
+
+    void setSpriteColor(int idx, uint8_t val);
+    uint8_t getSpriteColor(int idx);
+
+    void setSpriteMulticolor(int idx, uint8_t val);
+    uint8_t getSpriteMulticolor(int idx);
+
+    uint8_t getBackgoundColor(int idx);
+    void setBackgoundColor(int idx, uint8_t val);
+
     bool checkUnusedAddress(int type, uint16_t address, uint8_t *bt);
     void getCharacterModeScreenAddress(uint16_t *screenCharacterRamAddress,
                                        uint16_t *charsetAddress, int *bank);
@@ -191,11 +179,6 @@ class CVICII {
     bool isCharacterMode();
     void blit(int x, int y, rgbStruct *rgb);
     void initPalette();
-
-    /**
-     * @brief get the screen mode and return one of the VIC_SCREEN_MODE_* values
-     * @return int
-     */
     int getScreenMode();
 };
 
