@@ -376,7 +376,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         // background color 3
     case 0xd024:
         //  B2C
-        _regBackgroundColor2 = bt & 0xf;
+        _regBackgroundColor3 = bt & 0xf;
         break;
 
     default:
