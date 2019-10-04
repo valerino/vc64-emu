@@ -33,22 +33,8 @@
 #define VIC_PAL_HZ 985248
 #define VIC_PAL_CYCLES_PER_LINE 63
 #define VIC_PAL_CYCLES_PER_BADLINE 23
-#define VIC_PAL_FIRST_VISIBLE_LINE 14
-#define VIC_PAL_LAST_VISIBLE_LINE 298
-
-#define VIC_CHAR_MODE_COLUMNS 40
-
-#define VIC_DEFAULT_SPRITE_W 24
-#define VIC_DEFAULT_SPRITE_H 21
-#define VIC_SPRITE_SIZE 64
-#define VIC_SPRITE_FIRST_RASTERLINE 6
-#define VIC_SPRITE_FIRST_COLUMN 18
-
-// display window is intended the 'blue' window surrounded by the border, when
-// c64 boots :)
-#define VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN 42
-#define VIC_PAL_FIRST_DISPLAYWINDOW_LINE 56
-#define VIC_PAL_LAST_DISPLAYWINDOW_LINE 256
+#define VIC_PAL_FIRST_VISIBLE_LINE 15 // 14
+#define VIC_PAL_LAST_VISIBLE_LINE 298 // 300 // 298
 
 /**
  * registers
@@ -119,10 +105,12 @@ class CVICII {
     void *_displayObj = nullptr;
     int _prevCycles = 0;
     uint16_t _rasterIrqLine = 0;
+    uint16_t _rasterCounter = 0;
     int _scrollX = 0;
     int _scrollY = 0;
     bool _CSEL = false;
     bool _RSEL = false;
+    bool _DEN = false;
     uint8_t _regM[8 * 2] = {0}; // 8 hardware sprites coordinates registers X/Y
                                 // (M0X,M0Y ... M7X,M7Y)
     uint8_t _regMSBX = 0;
@@ -184,8 +172,8 @@ class CVICII {
     void blit(int x, int y, rgbStruct *rgb);
     void initPalette();
     int getScreenMode();
-    void drawSprite(int x, int y, int idx, int row);
-    void drawSpriteMulticolor(int x, int y, int idx, int row);
+    void drawSprite(int rasterLine, int idx, int x, int row);
+    void drawSpriteMulticolor(int rasterLine, int idx, int x, int row);
     bool isSpriteDrawingOnBorder(int x, int y);
     uint16_t getSpriteDataAddress(int idx);
 };

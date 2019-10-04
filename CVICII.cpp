@@ -55,18 +55,6 @@ void CVICII::blit(int x, int y, rgbStruct *rgb) {
     _cb(_displayObj, rgb, pos);
 }
 
-/**
- * draw a border line
- * @param rasterLine the rasterline index to draw
- */
-void CVICII::drawBorder(int rasterLine) {
-    // draw border row
-    rgbStruct borderRgb = _palette[_regBorderColor];
-    for (int i = 0; i < VIC_PAL_SCREEN_W; i++) {
-        blit(i, rasterLine, &borderRgb);
-    }
-}
-
 uint16_t CVICII::getSpriteDataAddress(int idx) {
     uint16_t screenAddress;
     getScreenAddress(&screenAddress);
@@ -90,6 +78,11 @@ uint16_t CVICII::getSpriteDataAddress(int idx) {
  * @return
  */
 bool CVICII::isSpriteDrawingOnBorder(int x, int y) {
+    int firstX = 24; // 42; // 24;
+    if (!_CSEL) {
+        firstX = 31; // 42; // 52;
+    }
+
     int sideBorderOffset = 0;
     int topBorderOffset = 0;
     int bottomBorderOffset = 0;
@@ -106,17 +99,17 @@ bool CVICII::isSpriteDrawingOnBorder(int x, int y) {
     // check if we're drawing sprites on border
     // @todo this will obviously prevent to draw sprites on border. .... but
     // leave it as is for now
-    if (x <= VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN + topBorderOffset) {
+    if (x <= firstX /*VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN*/ + topBorderOffset) {
         return true;
     }
-    if (y < VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN + topBorderOffset) {
+    if (y < firstX /*VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN*/ + topBorderOffset) {
         return true;
     }
-    if (x > VIC_RESOLUTION_X + VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN -
+    if (x > VIC_RESOLUTION_X + firstX /*VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN*/ -
                 sideBorderOffset) {
         return true;
     }
-    if (y >= VIC_RESOLUTION_Y + VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN -
+    if (y >= VIC_RESOLUTION_Y + firstX /*VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN*/ -
                  bottomBorderOffset) {
         return true;
     }
@@ -125,12 +118,13 @@ bool CVICII::isSpriteDrawingOnBorder(int x, int y) {
 
 /**
  * @brief draw sprite row (multicolor sprite)
- * @param x x screen coordinates
- * @param y y screen coordinates
+ * @param rasterLine the rasterline index to draw
  * @param idx the sprite index
+ * @param x x screen coordinates
  * @param row sprite row number
  */
-void CVICII::drawSpriteMulticolor(int x, int y, int idx, int row) {
+void CVICII::drawSpriteMulticolor(int rasterLine, int idx, int x, int row) {
+    int currentLine = rasterLine - VIC_PAL_FIRST_VISIBLE_LINE;
     uint16_t addr = getSpriteDataAddress(idx);
     // draw sprite row
     for (int i = 0; i < 3; i++) {
@@ -168,8 +162,8 @@ void CVICII::drawSpriteMulticolor(int x, int y, int idx, int row) {
                 // blit
                 rgbStruct rgb = _palette[color];
                 int pixelX = x + (i * 8) + (8 - (j * 2));
-                blit(pixelX, y, &rgb);
-                blit(pixelX + 1, y, &rgb);
+                blit(pixelX, currentLine, &rgb);
+                blit(pixelX + 1, currentLine, &rgb);
             }
         }
     }
@@ -177,12 +171,14 @@ void CVICII::drawSpriteMulticolor(int x, int y, int idx, int row) {
 
 /**
  * @brief draw sprite row (mono sprite)
- * @param x x screen coordinates
- * @param y y screen coordinates
+ * @param rasterLine the rasterline index to draw
  * @param idx the sprite index
+ * @param x x screen coordinates
  * @param row sprite row number
  */
-void CVICII::drawSprite(int x, int y, int idx, int row) {
+void CVICII::drawSprite(int rasterLine, int idx, int x, int row) {
+    int currentLine = rasterLine - VIC_PAL_FIRST_VISIBLE_LINE;
+
     // get sprite data address
     uint16_t addr = getSpriteDataAddress(idx);
 
@@ -206,12 +202,12 @@ void CVICII::drawSprite(int x, int y, int idx, int row) {
 
                     // blit pixel
                     int color = getSpriteColor(idx);
-                    if (isSpriteDrawingOnBorder(pixelX, y)) {
+                    if (isSpriteDrawingOnBorder(pixelX, currentLine)) {
                         // draw using border color
                         color = _regBorderColor;
                     }
                     rgbStruct rgb = _palette[color & 0xf];
-                    blit(pixelX, y, &rgb);
+                    blit(pixelX, currentLine, &rgb);
                 }
             }
         }
@@ -228,35 +224,42 @@ void CVICII::drawSprites(int rasterLine) {
         return;
     }
 
+    if (!_DEN) {
+        // display enabled bit must be set
+        return;
+    }
+
+    int defaultSpriteH = 21;
+    int defaultSpriteW = 24;
+    // @todo : why 18 ?
+    int spriteFirstColumn = 18;
     int currentLine = rasterLine - VIC_PAL_FIRST_VISIBLE_LINE;
-    int spriteLine = rasterLine - VIC_SPRITE_FIRST_RASTERLINE;
-    for (int i = 0; i < 8; i++) {
-        bool spriteEnabled = isSpriteEnabled(i);
+    for (int idx = 0; idx < 8; idx++) {
+        bool spriteEnabled = isSpriteEnabled(idx);
         if (!spriteEnabled) {
             // this sprite is not enabled
             continue;
         }
 
         // get sprite properties
-        bool isSpriteHExpanded = isSpriteYExpanded(i);
-        int h =
-            isSpriteHExpanded ? VIC_DEFAULT_SPRITE_H * 2 : VIC_DEFAULT_SPRITE_H;
-        int spriteYCoord = getSpriteYCoordinate(i);
-        int spriteXCoord = getSpriteXCoordinate(i);
-        bool multicolor = isSpriteMulticolor(i);
-        if (spriteLine >= spriteYCoord && (spriteLine < spriteYCoord + h)) {
+        bool isSpriteHExpanded = isSpriteYExpanded(idx);
+        int h = isSpriteHExpanded ? defaultSpriteH * 2 : defaultSpriteH;
+        int spriteYCoord = getSpriteYCoordinate(idx);
+        int spriteXCoord = getSpriteXCoordinate(idx);
+        bool multicolor = isSpriteMulticolor(idx);
+        if (rasterLine >= spriteYCoord && (rasterLine < spriteYCoord + h)) {
             // draw sprite row at the current scanline
-            int row = spriteLine - spriteYCoord;
-            int x = VIC_SPRITE_FIRST_COLUMN + spriteXCoord;
+            int row = rasterLine - spriteYCoord;
+            int x = spriteFirstColumn + spriteXCoord;
             if (isSpriteHExpanded) {
                 // handle Y expansion
-                row = (spriteLine - spriteYCoord) / 2;
+                row = (rasterLine - spriteYCoord) / 2;
             }
 
             if (multicolor) {
-                drawSpriteMulticolor(x, currentLine, i, row);
+                drawSpriteMulticolor(rasterLine, idx, x, row);
             } else {
-                drawSprite(x, currentLine, i, row);
+                drawSprite(rasterLine, idx, x, row);
             }
         }
     }
@@ -267,15 +270,29 @@ void CVICII::drawSprites(int rasterLine) {
  * @param rasterLine the rasterline index to draw
  */
 void CVICII::drawCharacterMode(int rasterLine) {
-    if (_regRASTER < VIC_PAL_FIRST_DISPLAYWINDOW_LINE) {
+    // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
+    int firstLine = 51;
+    int lastLine = 250;
+    if (!_RSEL) {
+        firstLine = 55;
+        lastLine = 246;
+    }
+
+    // @fixme this should be 24
+    int firstX = 42;
+    if (!_CSEL) {
+        // @fixme this should be 31
+        firstX = 42;
+    }
+    if (_regRASTER < firstLine) {
         // out of screen
         return;
     }
-    if (_regRASTER >= VIC_PAL_LAST_DISPLAYWINDOW_LINE) {
+    if (_regRASTER >= lastLine) {
         // out of screen
         return;
     }
-    if (!(IS_BIT_SET(_regCR1, 4))) {
+    if (!_DEN) {
         // display enabled bit must be set
         return;
     }
@@ -291,7 +308,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
     // get screen mode
     int screenMode = getScreenMode();
 
-    // handle character shadows
+    // handle character ROM shadow
     // https://www.c64-wiki.com/wiki/VIC_bank
     if (bank == 0 && charsetAddress == 0x1000) {
         charset = ((CMemory *)_cpu->memory())->charset();
@@ -300,16 +317,16 @@ void CVICII::drawCharacterMode(int rasterLine) {
     }
 
     // draw characters
-    int columns = VIC_CHAR_MODE_COLUMNS;
+    int columns = 40;
     for (int c = 0; c < columns; c++) {
         if (!_CSEL) {
             // 38 characters, skip drawing column 0 and 39
-            if (c == 0 || c == VIC_CHAR_MODE_COLUMNS - 1) {
+            if (c == 0 || c == 39) {
                 continue;
             }
         }
-        int x = VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN + (c * 8);
-        int line = _regRASTER - VIC_PAL_FIRST_DISPLAYWINDOW_LINE;
+        int x = firstX + (c * 8);
+        int line = _regRASTER - firstLine;
 
         // screen row from raster line
         int row = line / 8;
@@ -404,6 +421,18 @@ void CVICII::drawCharacterMode(int rasterLine) {
     }
 }
 
+/**
+ * draw a border line
+ * @param rasterLine the rasterline index to draw
+ */
+void CVICII::drawBorder(int rasterLine) {
+    // draw border row
+    rgbStruct borderRgb = _palette[_regBorderColor];
+    for (int i = 0; i < VIC_PAL_SCREEN_W; i++) {
+        blit(i, rasterLine, &borderRgb);
+    }
+}
+
 int CVICII::update(long cycleCount) {
     if (IS_BIT_SET(_regInterrupt, 7)) {
         // IRQ bit is set, trigger an interrupt
@@ -468,19 +497,15 @@ int CVICII::update(long cycleCount) {
             BIT_SET(_regInterrupt, 7);
         }
     }
-
-    if (_regRASTER >= VIC_PAL_SCANLINES) {
-        // reset raster counter
-        _regRASTER = 0;
-    }
-
-    // update the raster counter and cr1
     if (_regRASTER > 0xff) {
         // bit 8 of the raster counter is set into bit 7 of cr1
         BIT_SET(_regCR1, 7);
     }
-    _cpu->memory()->writeByte(0xd011, _regCR1);
-    _cpu->memory()->writeByte(0xd012, (_regRASTER & 0xff));
+    // write(0xd011, _regCR1);
+    if (_regRASTER >= VIC_PAL_SCANLINES) {
+        // reset raster counter
+        _regRASTER = 0;
+    }
 
     // return how many cycles drawing occupied
     return occupiedCycles;
@@ -528,7 +553,7 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
 
     case 0xd012:
         // RASTER
-        *bt = (_regRASTER & 0xff);
+        *bt = _regRASTER;
         break;
 
     case 0xd013:
@@ -679,6 +704,9 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         // setting cr1 also affects the raster irq line (sets 8th bit)
         _rasterIrqLine = _regRASTER | (bt >> 7);
 
+        // display enable (DEN)
+        _DEN = IS_BIT_SET(bt, 4);
+
         // YSCROLL
         _scrollY = bt & 0x7;
 
@@ -692,7 +720,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
         // set the raster line at which an IRQ must happen, using RASTER and
         // bit 7 of CR1 if set
-        _rasterIrqLine = _regRASTER;
+        _rasterIrqLine = bt;
         if (IS_BIT_SET(_regCR1, 7)) {
             BIT_SET(_rasterIrqLine, 8);
         }
@@ -996,6 +1024,9 @@ int CVICII::getScreenMode() {
         IS_BIT_SET(_regCR2, 4)) {
         // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "selecting multicolor
         // character mode");
+        // @todo: here returning VIC_SCREEN_MODE_CHARACTER_STANDARD fix some
+        // displays..... but it's wrong
+        // return VIC_SCREEN_MODE_CHARACTER_STANDARD;
         return VIC_SCREEN_MODE_CHARACTER_MULTICOLOR;
     }
     if (!IS_BIT_SET(_regCR1, 6) && IS_BIT_SET(_regCR1, 5) &&
