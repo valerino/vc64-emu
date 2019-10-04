@@ -78,39 +78,34 @@ uint16_t CVICII::getSpriteDataAddress(int idx) {
  * @return
  */
 bool CVICII::isSpriteDrawingOnBorder(int x, int y) {
-    int firstX = 24; // 42; // 24;
-    if (!_CSEL) {
-        firstX = 31; // 42; // 52;
+    // from http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt (PAL c64)
+    int firstLine = 51;
+    int lastLine = 250;
+    if (!_RSEL) {
+        firstLine = 55;
+        lastLine = 246;
     }
 
-    int sideBorderOffset = 0;
-    int topBorderOffset = 0;
-    int bottomBorderOffset = 0;
-    if (!_RSEL) {
-        // RSEL is not set in CR1, 24 lines mode
-        topBorderOffset = 2;
-        bottomBorderOffset = 4;
-    }
+    int firstX = 24;
+    int lastX = 343;
     if (!_CSEL) {
-        // CSEL is not set in CR2, 38 ccolumns mode
-        sideBorderOffset = 8;
+        firstX = 31;
+        lastX = 334;
     }
 
     // check if we're drawing sprites on border
     // @todo this will obviously prevent to draw sprites on border. .... but
     // leave it as is for now
-    if (x <= firstX /*VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN*/ + topBorderOffset) {
+    if (x <= firstX) {
         return true;
     }
-    if (y < firstX /*VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN*/ + topBorderOffset) {
+    if (y < firstLine) {
         return true;
     }
-    if (x > VIC_RESOLUTION_X + firstX /*VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN*/ -
-                sideBorderOffset) {
+    if (x > lastX) {
         return true;
     }
-    if (y >= VIC_RESOLUTION_Y + firstX /*VIC_PAL_FIRST_DISPLAYWINDOW_COLUMN*/ -
-                 bottomBorderOffset) {
+    if (y >= lastLine) {
         return true;
     }
     return false;
@@ -231,8 +226,6 @@ void CVICII::drawSprites(int rasterLine) {
 
     int defaultSpriteH = 21;
     int defaultSpriteW = 24;
-    // @todo : why 18 ?
-    int spriteFirstColumn = 18;
     int currentLine = rasterLine - VIC_PAL_FIRST_VISIBLE_LINE;
     for (int idx = 0; idx < 8; idx++) {
         bool spriteEnabled = isSpriteEnabled(idx);
@@ -250,7 +243,14 @@ void CVICII::drawSprites(int rasterLine) {
         if (rasterLine >= spriteYCoord && (rasterLine < spriteYCoord + h)) {
             // draw sprite row at the current scanline
             int row = rasterLine - spriteYCoord;
-            int x = spriteFirstColumn + spriteXCoord;
+            // @todo i don't know why this works...... probably has something to
+            // do with LP registers as explained at
+            // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt ??? apparently,
+            // the x coordinate is not enough and must be 'shifted' some pixels
+            // to the right ....
+            int spriteFirstX = 18;
+            int x = spriteFirstX + spriteXCoord;
+            // SDL_Log("LPX=%d, xcoord=%d, x=%d", _regLP[0], spriteXCoord, x);
             if (isSpriteHExpanded) {
                 // handle Y expansion
                 row = (rasterLine - spriteYCoord) / 2;
@@ -486,6 +486,8 @@ int CVICII::update(long cycleCount) {
             drawSprites(_regRASTER);
         }
     }
+
+    // handle raster interrupt
     if (_regRASTER == _rasterIrqLine) {
         if (IS_BIT_SET(_regInterruptEnabled, 0) &&
             IS_BIT_SET(_regInterrupt, 0)) {
@@ -497,6 +499,7 @@ int CVICII::update(long cycleCount) {
             BIT_SET(_regInterrupt, 7);
         }
     }
+
     if (_regRASTER > 0xff) {
         // bit 8 of the raster counter is set into bit 7 of cr1
         BIT_SET(_regCR1, 7);
@@ -782,6 +785,30 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     case 0xd01d:
         // MnXE: sprite X expanded
         _regSpriteXExpansion = bt;
+        break;
+
+    case 0xd01e:
+        // MnM: sprite-sprite collision
+        _regSpriteSpriteCollision = bt;
+        if (_regSpriteSpriteCollision) {
+            // some sprite collide!
+            BIT_SET(_regInterrupt, 2);
+            if (IS_BIT_SET(_regInterruptEnabled, 2)) {
+                _cpu->irq();
+            }
+        }
+        break;
+
+    case 0xd01f:
+        // MnD: sprite-background collision
+        _regSpriteDataCollision = bt;
+        if (_regSpriteDataCollision) {
+            // some sprite collide with background!
+            BIT_SET(_regInterrupt, 1);
+            if (IS_BIT_SET(_regInterruptEnabled, 1)) {
+                _cpu->irq();
+            }
+        }
         break;
 
     case 0xd020:
