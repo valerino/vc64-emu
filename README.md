@@ -35,10 +35,9 @@ vc64 - a c64 emulator
 ~~~
 
 #### STATUS
-lot of stuff, many bugs, many things missing!
+lot of stuff broken and partially implemented, many bugs.
 
-follow my twitter https://twitter.com/valerino for updates, i usually post there about the development
-https://twitter.com/valerino
+follow my twitter https://twitter.com/valerino for updates, i usually post there about the development.
 
 ### emushared (helper library)
 just generic helpers, if i plan to write other emulators
