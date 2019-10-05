@@ -54,7 +54,7 @@ vc64 - a c64 emulator
 (yep ... it started as a Llamasoft tribute!)
 
 #### TODO
-implement sprites in VIC-II, fix banking (see the 2nd tweet), fix the timing in CIA1, loooot more :)
+lot of stuff, many bugs, many things missing!
 
 ### emushared (helper library)
 just generic helpers, if i plan to write other emulators
