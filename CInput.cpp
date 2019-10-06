@@ -4,7 +4,7 @@
 
 #include "CInput.h"
 #include <SDL.h>
-
+#include <bitutils.h>
 CInput::CInput(CCIA1 *cia1) { _cia1 = cia1; }
 
 CInput::~CInput() {}
@@ -272,6 +272,7 @@ uint8_t CInput::sdlScancodeToC64Scancode(uint32_t sdlScanCode) {
         return 0x1;
     case SDL_SCANCODE_LEFT:
         return 0x3a; /* joy 1 left = ctrl */
+
         // return 0x2;
     case SDL_SCANCODE_RIGHT:
         return 0x3b; /* joy 1 right = 2 */

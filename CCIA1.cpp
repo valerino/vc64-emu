@@ -64,6 +64,20 @@ void CCIA1::read(uint16_t address, uint8_t *bt) {
     }
 }
 
+uint8_t CCIA1::readPRA() {
+    uint8_t bt;
+    read(0xdc00, &bt);
+    return bt;
+}
+uint8_t CCIA1::readPRB() {
+    uint8_t bt;
+    read(0xdc01, &bt);
+    return bt;
+}
+
+void CCIA1::writePRA(uint8_t pra) { write(0xdc00, pra); }
+void CCIA1::writePRB(uint8_t prb) { write(0xdc01, prb); }
+
 void CCIA1::write(uint16_t address, uint8_t bt) {
     // in CIA1 some addresses d010-d0ff are repeated every 16 bytes
     uint16_t addr = checkShadowAddress(address);

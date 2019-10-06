@@ -616,17 +616,6 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
         *bt = _regSpriteXExpansion;
         break;
 
-    case 0xd01e:
-        // Sprite-sprite collision, cannot be read
-        // SDL_Log("reading d01e");
-        *bt = 0;
-        break;
-    case 0xd01f:
-        // Sprite-data collision
-        // SDL_Log("reading d01f");
-        *bt = 0;
-        break;
-
     case 0xd021:
     case 0xd022:
     case 0xd023:
@@ -785,34 +774,6 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     case 0xd01d:
         // MnXE: sprite X expanded
         _regSpriteXExpansion = bt;
-        break;
-
-    case 0xd01e:
-        // MnM: sprite-sprite collision
-        SDL_Log("writing d01e");
-        _regSpriteSpriteCollision = bt;
-        if (_regSpriteSpriteCollision) {
-            // some sprite collide!
-            SDL_Log("writing d01e, trigger irq");
-            BIT_SET(_regInterrupt, 2);
-            if (IS_BIT_SET(_regInterruptEnabled, 2)) {
-                _cpu->irq();
-            }
-        }
-        break;
-
-    case 0xd01f:
-        // MnD: sprite-background collision
-        _regSpriteDataCollision = bt;
-        if (_regSpriteDataCollision) {
-            // some sprite collide with background!
-            SDL_Log("writing d01f");
-            BIT_SET(_regInterrupt, 1);
-            if (IS_BIT_SET(_regInterruptEnabled, 1)) {
-                SDL_Log("writing d01f, trigger irq");
-                _cpu->irq();
-            }
-        }
         break;
 
     case 0xd020:

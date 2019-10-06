@@ -31,8 +31,15 @@ class CCIA1 : public CCIABase {
      */
     void setKeyState(uint8_t scancode, bool pressed);
 
+    uint8_t readPRA();
+    uint8_t readPRB();
+
+    void writePRA(uint8_t pra);
+    void writePRB(uint8_t prb);
+
   private:
     void readKeyboardMatrixColumn(uint8_t *bt, uint8_t pra);
     uint16_t checkShadowAddress(uint16_t address);
+
     bool _kbMatrix[0x40] = {false};
 };
