@@ -262,6 +262,10 @@ void CVICII::drawCharacterMode(int rasterLine) {
     // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
     Rect limits;
     getScreenLimits(&limits);
+
+    SDL_Log("first visible x=%d", limits.firstVisibleX);
+    // @fixme: this is wrong, adjusted manually. should be the firstVisibleX
+    // taken from documentation.....
     limits.firstVisibleX = 42;
 
     // check if we're within the display window
