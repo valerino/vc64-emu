@@ -31,7 +31,7 @@ class CDisplay {
     /**
      * @brief called by vic when blitting
      */
-    static void blitCallback(void *thisPtr, rgbStruct *rgb, int pos);
+    static void blitCallback(void *thisPtr, RgbStruct *rgb, int pos);
 
   private:
     SDL_Window *_window = nullptr;

@@ -50,12 +50,24 @@ typedef struct _rgbStruct {
     uint8_t r;
     uint8_t g;
     uint8_t b;
-} rgbStruct;
+} RgbStruct;
+
+/**
+ * @brief defines a rectangle
+ */
+typedef struct _rect {
+    int firstX;
+    int firstY;
+    int lastX;
+    int lastY;
+    int vBorderSize;
+    int hBorderSize;
+} Rect;
 
 /**
  * @brief callback to set the pixel at the specific position
  */
-typedef void (*BlitCallback)(void *thisPtr, rgbStruct *rgb, int pos);
+typedef void (*BlitCallback)(void *thisPtr, RgbStruct *rgb, int pos);
 
 /**
  * emulates the vic-ii 6569 chip
@@ -105,7 +117,6 @@ class CVICII {
     void *_displayObj = nullptr;
     int _prevCycles = 0;
     uint16_t _rasterIrqLine = 0;
-    uint16_t _rasterCounter = 0;
     int _scrollX = 0;
     int _scrollY = 0;
     bool _CSEL = false;
@@ -135,7 +146,7 @@ class CVICII {
         regMC[8]; // sprite colors for hw sprites 0..7 (registers M0C ... M7C)
     BlitCallback _cb = nullptr;
     CCIA2 *_cia2 = nullptr;
-    rgbStruct _palette[16] = {0};
+    RgbStruct _palette[16] = {0};
 
     uint16_t checkShadowAddress(uint16_t address);
 
@@ -169,13 +180,20 @@ class CVICII {
     void drawBorder(int rasterLine);
     void drawCharacterMode(int rasterLine);
     void drawSprites(int rasterLine);
-    void blit(int x, int y, rgbStruct *rgb);
+    void blit(int x, int y, RgbStruct *rgb);
     void initPalette();
     int getScreenMode();
     void drawSprite(int rasterLine, int idx, int x, int row);
     void drawSpriteMulticolor(int rasterLine, int idx, int x, int row);
     bool isSpriteDrawingOnBorder(int x, int y);
     uint16_t getSpriteDataAddress(int idx);
+    void getDisplayWindowLimits(Rect *limits);
+    void getScreenLimits(Rect *limits);
+    void drawStandardCharacterMode();
+    void drawMulticolorCharacterMode();
+    void drawBorder();
+    int getCurrentRasterLine();
+    void setCurrentRasterLine(int line);
 };
 
 #endif // VC64_EMU_CVICII_H
