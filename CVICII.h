@@ -24,17 +24,13 @@
 #define VIC_SCREEN_MODE_EXTENDED_BACKGROUND_COLOR 4
 
 // sizes comprensive of vblank and hblank
-// from http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
+// http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
 #define VIC_PAL_SCREEN_W 403
 #define VIC_PAL_SCREEN_H 284
-#define VIC_RESOLUTION_X 320
-#define VIC_RESOLUTION_Y 200
 #define VIC_PAL_SCANLINES 312
 #define VIC_PAL_HZ 985248
 #define VIC_PAL_CYCLES_PER_LINE 63
 #define VIC_PAL_CYCLES_PER_BADLINE 23
-#define VIC_PAL_FIRST_VISIBLE_LINE 15 // 14
-#define VIC_PAL_LAST_VISIBLE_LINE 298 // 300 // 298
 
 /**
  * registers
@@ -56,12 +52,12 @@ typedef struct _rgbStruct {
  * @brief defines a rectangle
  */
 typedef struct _rect {
-    int firstX;
-    int firstY;
-    int lastX;
-    int lastY;
-    int vBorderSize;
-    int hBorderSize;
+    int firstVisibleX;
+    int firstVisibleY;
+    int lastVisibleX;
+    int lastVisibleY;
+    int firstVblankLine;
+    int lastVblankLine;
 } Rect;
 
 /**
@@ -180,18 +176,14 @@ class CVICII {
     void drawBorder(int rasterLine);
     void drawCharacterMode(int rasterLine);
     void drawSprites(int rasterLine);
+    void drawSpriteMulticolor(int rasterLine, int idx, int x, int row);
     void blit(int x, int y, RgbStruct *rgb);
     void initPalette();
     int getScreenMode();
     void drawSprite(int rasterLine, int idx, int x, int row);
-    void drawSpriteMulticolor(int rasterLine, int idx, int x, int row);
     bool isSpriteDrawingOnBorder(int x, int y);
     uint16_t getSpriteDataAddress(int idx);
-    void getDisplayWindowLimits(Rect *limits);
     void getScreenLimits(Rect *limits);
-    void drawStandardCharacterMode();
-    void drawMulticolorCharacterMode();
-    void drawBorder();
     int getCurrentRasterLine();
     void setCurrentRasterLine(int line);
 };

@@ -158,8 +158,8 @@ void testCpuMain(bool debugger) {
 }
 
 /**
- * once the cpu has reached enough cycles to have loaded the BASIC interpreter,
- * issue a load of our prg. this trigger only once!
+ * @brief once the cpu has reached enough cycles to have loaded the BASIC
+ * interpreter, issue a load of our prg. this trigger only once!
  */
 void handlePrgLoading() {
     if (totalCycles > 2570000 && path) {
@@ -295,6 +295,8 @@ int main(int argc, char **argv) {
             // (23 vs 63)
             int c = vic->update(totalCycles);
             cycles += c;
+            
+            // @fixme: this is wrong, cycles should be added .... but doing it screws all (probably vic cycle counting is wrong)
             // totalCycles += c;
 
             // update other chips

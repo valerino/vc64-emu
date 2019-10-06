@@ -79,33 +79,22 @@ uint16_t CVICII::getSpriteDataAddress(int idx) {
  */
 bool CVICII::isSpriteDrawingOnBorder(int x, int y) {
     // from http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt (PAL c64)
-    int firstLine = 51;
-    int lastLine = 250;
-    if (!_RSEL) {
-        firstLine = 55;
-        lastLine = 246;
-    }
-
-    int firstX = 24;
-    int lastX = 343;
-    if (!_CSEL) {
-        firstX = 31;
-        lastX = 334;
-    }
+    Rect limits;
+    getScreenLimits(&limits);
 
     // check if we're drawing sprites on border
     // @todo this will obviously prevent to draw sprites on border. .... but
     // leave it as is for now
-    if (x <= firstX) {
+    if (x < limits.firstVisibleX) {
         return true;
     }
-    if (y < firstLine) {
+    if (y < limits.firstVisibleY) {
         return true;
     }
-    if (x > lastX) {
+    if (x > limits.lastVisibleX) {
         return true;
     }
-    if (y >= lastLine) {
+    if (y > limits.lastVisibleY) {
         return true;
     }
     return false;
@@ -119,7 +108,7 @@ bool CVICII::isSpriteDrawingOnBorder(int x, int y) {
  * @param row sprite row number
  */
 void CVICII::drawSpriteMulticolor(int rasterLine, int idx, int x, int row) {
-    int currentLine = rasterLine - VIC_PAL_FIRST_VISIBLE_LINE;
+    int currentLine = rasterLine; // - VIC_PAL_FIRST_VISIBLE_LINE;
     uint16_t addr = getSpriteDataAddress(idx);
     // draw sprite row
     for (int i = 0; i < 3; i++) {
@@ -172,7 +161,7 @@ void CVICII::drawSpriteMulticolor(int rasterLine, int idx, int x, int row) {
  * @param row sprite row number
  */
 void CVICII::drawSprite(int rasterLine, int idx, int x, int row) {
-    int currentLine = rasterLine - VIC_PAL_FIRST_VISIBLE_LINE;
+    int currentLine = rasterLine; // - VIC_PAL_FIRST_VISIBLE_LINE;
 
     // get sprite data address
     uint16_t addr = getSpriteDataAddress(idx);
@@ -226,7 +215,7 @@ void CVICII::drawSprites(int rasterLine) {
 
     int defaultSpriteH = 21;
     int defaultSpriteW = 24;
-    int currentLine = rasterLine - VIC_PAL_FIRST_VISIBLE_LINE;
+    int currentLine = rasterLine;
     for (int idx = 0; idx < 8; idx++) {
         bool spriteEnabled = isSpriteEnabled(idx);
         if (!spriteEnabled) {
@@ -265,32 +254,19 @@ void CVICII::drawSprites(int rasterLine) {
     }
 }
 
-void CVICII::drawMulticolorCharacterMode() {}
 /**
  * @brief draw a character mode line
  * @param rasterLine the rasterline index to draw
  */
-/*void CVICII::drawCharacterMode(int rasterLine) {
+void CVICII::drawCharacterMode(int rasterLine) {
     // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
-    int firstLine = 51;
-    int lastLine = 250;
-    if (!_RSEL) {
-        firstLine = 55;
-        lastLine = 246;
-    }
+    Rect limits;
+    getScreenLimits(&limits);
+    limits.firstVisibleX = 42;
 
-    // @fixme this should be 24
-    int firstX = 42;
-    if (!_CSEL) {
-        // @fixme this should be 31
-        firstX = 42;
-    }
-    if (_regRASTER < firstLine) {
-        // out of screen
-        return;
-    }
-    if (_regRASTER >= lastLine) {
-        // out of screen
+    // check if we're within the display window
+    if (rasterLine < limits.firstVisibleY || rasterLine > limits.lastVisibleY) {
+        // out of display window
         return;
     }
     if (!_DEN) {
@@ -306,9 +282,6 @@ void CVICII::drawMulticolorCharacterMode() {}
     getScreenAddress(&screenAddress, &charsetAddress, &bank);
     uint8_t *charset = _cpu->memory()->raw() + charsetAddress;
 
-    // get screen mode
-    int screenMode = getScreenMode();
-
     // handle character ROM shadow
     // https://www.c64-wiki.com/wiki/VIC_bank
     if (bank == 0 && charsetAddress == 0x1000) {
@@ -317,22 +290,28 @@ void CVICII::drawMulticolorCharacterMode() {}
         charset = ((CMemory *)_cpu->memory())->charset();
     }
 
+    // get screen mode
+    int screenMode = getScreenMode();
     // draw characters
     int columns = 40;
     for (int c = 0; c < columns; c++) {
         if (!_CSEL) {
-            // 38 characters, skip drawing column 0 and 39
+            // 38 characters mode, skip drawing column 0 and 39
             if (c == 0 || c == 39) {
                 continue;
             }
         }
-        int x = firstX + (c * 8);
-        int line = _regRASTER - firstLine;
 
-        // screen row from raster line
+        // this is the display window line
+        int line = rasterLine - limits.firstVisibleY;
+
+        // this is the first display window column of the character to display
+        int x = limits.firstVisibleX + (c * 8);
+
+        // this is the first display window row of the character to display
         int row = line / 8;
 
-        // character row
+        // this is the row of the character itself (8x8 character)
         int charRow = line % 8;
 
         // read screencode from screen memory
@@ -371,9 +350,7 @@ void CVICII::drawMulticolorCharacterMode() {}
 
         // draw character bit by bit
         if (screenMode == VIC_SCREEN_MODE_CHARACTER_MULTICOLOR) {
-            //
-https://www.c64-wiki.com/wiki/Character_set#Defining_a_multi-color_character for
-(int i = 0; i < 8; i++) {
+            for (int i = 0; i < 8; i++) {
                 // only the last 3 bits count
                 uint8_t bits = data & 3;
                 switch (bits) {
@@ -422,136 +399,16 @@ https://www.c64-wiki.com/wiki/Character_set#Defining_a_multi-color_character for
         }
     }
 }
-*/
+
 /**
- * draw a border line
+ * @brief draw a border line
  * @param rasterLine the rasterline index to draw
  */
 void CVICII::drawBorder(int rasterLine) {
-    /*    // draw border row
-        RgbStruct borderRgb = _palette[_regBorderColor];
-        for (int i = 0; i < VIC_PAL_SCREEN_W; i++) {
-            blit(i, rasterLine, &borderRgb);
-        }
-        */
-}
-
-void CVICII::drawStandardCharacterMode() {
-    if (!_DEN) {
-        // display not enabled
-        return;
-    }
-    Rect dispLimits;
-    getDisplayWindowLimits(&dispLimits);
-    int line = getCurrentRasterLine();
-
-    // skip drawing border
-    if (line < dispLimits.firstY || line > dispLimits.lastY) {
-        return;
-    }
-
-    // get screen and character set address
-    uint16_t charsetAddress;
-    uint16_t screenAddress;
-    uint8_t *colorMem = _cpu->memory()->raw() + MEMORY_COLOR_ADDRESS;
-    int bank;
-    getScreenAddress(&screenAddress, &charsetAddress, &bank);
-    uint8_t *charset = _cpu->memory()->raw() + charsetAddress;
-    // handle character ROM shadow
-    // https://www.c64-wiki.com/wiki/VIC_bank
-    if (bank == 0 && charsetAddress == 0x1000) {
-        charset = ((CMemory *)_cpu->memory())->charset();
-    } else if (bank == 2 && charsetAddress == 0x9000) {
-        charset = ((CMemory *)_cpu->memory())->charset();
-    }
-
-    // draw character screen, 40x25, 8x8 characters
-    for (int i = 0; i < 40; i++) {
-        int charStartColumn = i;
-        int x =
-            dispLimits.firstX + (charStartColumn * 8); // screenColumn = i / 8;
-        int charStartRow = line / 8;
-        int charRow = line % 8;
-        uint8_t screenCharacterCode;
-        _cpu->memory()->readByte(screenAddress + (charStartRow * 40) +
-                                     charStartColumn,
-                                 &screenCharacterCode);
-
-        // read the character data and color
-        uint8_t data = charset[(screenCharacterCode * 8) + charRow];
-        uint8_t charColor = (colorMem[(charStartRow * 40) + charStartColumn]);
-        RgbStruct charRgb = _palette[charColor & 0xf];
-
-        data = (data >> _scrollX);
-        RgbStruct backgroundRgb = _palette[getBackgoundColor(0)];
-        for (int bit = 0; bit < 8; bit++) {
-            int pixelX = x + 8 - bit;
-            if (IS_BIT_SET(data, bit)) {
-                // put pixel in foreground color
-                blit(pixelX, line, &charRgb);
-            } else {
-                // put pixel in background color
-                blit(pixelX, line, &backgroundRgb);
-            }
-        }
-
-        // SDL_Log("row=%d, col=%d", screenRow, screenColumn);
-    }
-
-    /*
-    // draw character screen, 40x25, 8x8 characters
-    for (int i = dispLimits.firstX; i < dispLimits.lastX; i++) {
-        // this is the start y of a character on screen
-        int charStartRow = line / 8;
-        int charStartColumn = i / 8;
-        // this is the start x of a character on screen
-        // this is the index of a character row (0-7)
-        int charRow = line % 8;
-        int x =
-            dispLimits.firstX + (charStartColumn * 8); // screenColumn = i / 8;
-        // read screencode from screen memory
-        uint8_t screenCharacterCode;
-        _cpu->memory()->readByte(screenAddress + (charStartRow * 40) +
-                                     charStartColumn,
-                                 &screenCharacterCode);
-
-        // read the character data and color
-        uint8_t data = charset[(screenCharacterCode * 8) + charRow];
-        uint8_t charColor = (colorMem[(charStartRow * 40) + charStartColumn]);
-        RgbStruct charRgb = _palette[charColor & 0xf];
-
-        data = (data >> _scrollX);
-        RgbStruct backgroundRgb = _palette[getBackgoundColor(0)];
-        for (int bit = 0; bit < 8; bit++) {
-            int pixelX = x + 8 - bit;
-            if (IS_BIT_SET(data, bit)) {
-                // put pixel in foreground color
-                blit(pixelX, line, &charRgb);
-            } else {
-                // put pixel in background color
-                blit(pixelX, line, &backgroundRgb);
-            }
-        }
-
-        // SDL_Log("row=%d, col=%d", screenRow, screenColumn);
-    }
-    */
-    //
-    /*RgbStruct rgb = _palette[_regBC[0]];
-    for (int i = dispLimits.firstX; i < dispLimits.lastX; i++) {
-        blit(i, line, &rgb);
-    }*/
-}
-
-void CVICII::drawBorder() {
-    int line = getCurrentRasterLine();
-    Rect dispLimits;
-    getDisplayWindowLimits(&dispLimits);
-
-    // draw a full line in border color
+    // draw border row through all screen
     RgbStruct borderRgb = _palette[_regBorderColor];
     for (int i = 0; i < VIC_PAL_SCREEN_W; i++) {
-        blit(i, line, &borderRgb);
+        blit(i, rasterLine, &borderRgb);
     }
 }
 
@@ -560,49 +417,28 @@ void CVICII::drawBorder() {
  * @param limits on return, the display window limits (first/last visible
  * coordinates)
  */
-void CVICII::getDisplayWindowLimits(Rect *limits) {
-    // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
-    memset(limits, 0, sizeof(Rect));
-    limits->firstY = 51;
-    limits->lastY = 250;
-    if (!_RSEL) {
-        limits->firstY = 55;
-        limits->lastY = 246;
-    }
-
-    limits->firstX = 24;
-    limits->lastX = 343;
-    if (!_CSEL) {
-        limits->firstX = 31;
-        limits->lastX = 334;
-    }
-
-    // calculate border size
-    limits->hBorderSize = (VIC_PAL_SCREEN_W - 320) / 2; // limits->lastX;
-    limits->vBorderSize = (VIC_PAL_SCREEN_H - 200) / 2; // limits->lastY;
-}
-
-/**
- * @brief get screen limits (including border and vblank) limits
- * @param limits on return, the display window limits (first/last visible
- * coordinates)
- */
 void CVICII::getScreenLimits(Rect *limits) {
     // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
     memset(limits, 0, sizeof(Rect));
-    limits->firstY = 15;
-    limits->lastY = 300;
+    limits->firstVisibleY = 51;
+    limits->lastVisibleY = 250;
+    if (!_RSEL) {
+        limits->firstVisibleY = 55;
+        limits->lastVisibleY = 246;
+    }
+
+    limits->firstVisibleX = 24;
+    limits->lastVisibleX = 343;
+    if (!_CSEL) {
+        limits->firstVisibleX = 31;
+        limits->lastVisibleX = 334;
+    }
+
+    limits->firstVblankLine = 15;
+    limits->lastVblankLine = 300;
 }
 
 int CVICII::update(long cycleCount) {
-    // drawing a line always happens every 63 cycles on a PAL c64
-    // (we will handle badlines at a later stage....)
-    int elapsedCycles = cycleCount - _prevCycles;
-    if (elapsedCycles < VIC_PAL_CYCLES_PER_LINE) {
-        // not yet
-        return 0;
-    }
-
     if (IS_BIT_SET(_regInterrupt, 7)) {
         // IRQ bit is set, trigger an interrupt
         _cpu->irq();
@@ -612,90 +448,65 @@ int CVICII::update(long cycleCount) {
         BIT_CLEAR(_regInterrupt, 7);
     }
 
-    /*
-    // check for bad line
-    // (http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt) 3.5
-    int occupiedCycles = 0;
-    long elapsed = cycleCount - _prevCycles;
-    bool isBadLine = ((_regRASTER >= 0x30) && (_regRASTER <= 0xf7)) &&
-                     ((_regRASTER & 7) == (_regRASTER & 7));
-    if (_regRASTER == 0x30 && _scrollY == 0 && _DEN) {
+    // check for badline
+    int currentRaster = getCurrentRasterLine();
+    bool isBadLine = ((currentRaster >= 0x30) && (currentRaster <= 0xf7)) &&
+                     ((currentRaster & 7) == (_scrollY & 7));
+    if (currentRaster == 0x30 && _scrollY == 0 && IS_BIT_SET(_regCR1, 4)) {
         isBadLine = true;
     }
+
+    // drawing a line always happens every 63 cycles on a PAL c64
+    int elapsedCycles = cycleCount - _prevCycles;
     if (isBadLine) {
-        occupiedCycles = VIC_PAL_CYCLES_PER_BADLINE;
+        if (elapsedCycles < VIC_PAL_CYCLES_PER_BADLINE) {
+            return 0;
+        }
     } else {
-        occupiedCycles = VIC_PAL_CYCLES_PER_LINE;
-    }
-    if (elapsed < occupiedCycles) {
-        // it's not time to draw a scanline yet
-        return 0;
-    }
-    */
-
-    /*
-    int cr = _regRASTER;
-    if (IS_BIT_SET(_regCR1, 7)) {
-        BIT_SET(cr, 8);
-    }
-    if (cr > 0) {
-        SDL_Log("current raster=%d", cr);
-    }
-    */
-
-    /*
-     // calculate how many cycles passed
-     int diff = elapsed - occupiedCycles;
-     occupiedCycles += diff;
-     _prevCycles = cycleCount;
-
-     // increment the raster counter
-     _currentRasterLine++;
-     Rect limits;
-     getScreenLimits(&limits);
-     if (_currentRasterLine < limits.firstY &&
-         _currentRasterLine > limits.lastY) {
-         return occupiedCycles;
-     }
-     */
-    // draw border line
-    // int line = _regRASTER - VIC_PAL_FIRST_VISIBLE_LINE;
-    // drawBorder(line);
-    drawBorder();
-
-    int screenMode = getScreenMode();
-    if (screenMode == VIC_SCREEN_MODE_CHARACTER_STANDARD ||
-        screenMode == VIC_SCREEN_MODE_CHARACTER_MULTICOLOR ||
-        screenMode == VIC_SCREEN_MODE_EXTENDED_BACKGROUND_COLOR) {
-        // draw screen line in character mode
-        drawStandardCharacterMode();
-        // drawCharacterMode(line);
-
-        // draw sprites
-        // drawSprites(_regRASTER);
-    }
-
-    // handle raster interrupt
-    int currentRaster = getCurrentRasterLine();
-    if (currentRaster == _rasterIrqLine) {
-        if (IS_BIT_SET(_regInterruptEnabled, 0) &&
-            IS_BIT_SET(_regInterrupt, 0)) {
-            // trigger irq if bits in d019/d01a are set for the raster
-            // interrupt
-            _cpu->irq();
-
-            // sets bit 7, an interrupt has been triggered
-            BIT_SET(_regInterrupt, 7);
+        if (elapsedCycles < VIC_PAL_CYCLES_PER_LINE) {
+            return 0;
         }
     }
 
-    // update raster and rasterIrqLine accordingly
+    // are we between in between upper and lower vblanks (= effectively drawing
+    // the screen) ?
+    Rect limits;
+    getScreenLimits(&limits);
+    if (currentRaster > limits.firstVblankLine &&
+        currentRaster < limits.lastVblankLine) {
+        drawBorder(currentRaster - limits.firstVblankLine);
+
+        int screenMode = getScreenMode();
+        if (screenMode == VIC_SCREEN_MODE_CHARACTER_STANDARD ||
+            screenMode == VIC_SCREEN_MODE_CHARACTER_MULTICOLOR ||
+            screenMode == VIC_SCREEN_MODE_EXTENDED_BACKGROUND_COLOR) {
+            // draw screen line in character mode
+            drawCharacterMode(currentRaster - limits.firstVblankLine);
+
+            // draw sprites
+            drawSprites(currentRaster - limits.firstVblankLine);
+        }
+    }
+
+    // handle raster interrupt if needed
+    if (currentRaster == _rasterIrqLine) {
+        if (IS_BIT_SET(_regInterruptEnabled, 0)) {
+            // trigger irq if bits in $d01a is set for the raster
+            // interrupt
+            BIT_SET(_regInterrupt, 0);
+            _cpu->irq();
+        }
+    } else {
+        // raster interrupt not happened
+        BIT_CLEAR(_regInterrupt, 0);
+    }
+    // update registers accordingly
     currentRaster++;
     setCurrentRasterLine(currentRaster);
 
     // return how many cycles drawing occupied
     _prevCycles = cycleCount;
-    return VIC_PAL_CYCLES_PER_LINE;
+    return isBadLine ? VIC_PAL_CYCLES_PER_BADLINE : VIC_PAL_CYCLES_PER_LINE;
 }
 
 void CVICII::read(uint16_t address, uint8_t *bt) {
@@ -803,10 +614,12 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
 
     case 0xd01e:
         // Sprite-sprite collision, cannot be read
+        // SDL_Log("reading d01e");
         *bt = 0;
         break;
     case 0xd01f:
         // Sprite-data collision
+        // SDL_Log("reading d01f");
         *bt = 0;
         break;
 
@@ -972,9 +785,11 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
     case 0xd01e:
         // MnM: sprite-sprite collision
+        SDL_Log("writing d01e");
         _regSpriteSpriteCollision = bt;
         if (_regSpriteSpriteCollision) {
             // some sprite collide!
+            SDL_Log("writing d01e, trigger irq");
             BIT_SET(_regInterrupt, 2);
             if (IS_BIT_SET(_regInterruptEnabled, 2)) {
                 _cpu->irq();
@@ -987,8 +802,10 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         _regSpriteDataCollision = bt;
         if (_regSpriteDataCollision) {
             // some sprite collide with background!
+            SDL_Log("writing d01f");
             BIT_SET(_regInterrupt, 1);
             if (IS_BIT_SET(_regInterruptEnabled, 1)) {
+                SDL_Log("writing d01f, trigger irq");
                 _cpu->irq();
             }
         }
