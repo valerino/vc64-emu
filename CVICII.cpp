@@ -263,7 +263,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
     Rect limits;
     getScreenLimits(&limits);
 
-    SDL_Log("first visible x=%d", limits.firstVisibleX);
+    // SDL_Log("first visible x=%d", limits.firstVisibleX);
     // @fixme: this is wrong, adjusted manually. should be the firstVisibleX
     // taken from documentation.....
     limits.firstVisibleX = 42;
