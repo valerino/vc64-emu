@@ -278,24 +278,23 @@ void CVICII::drawCharacterMode(int rasterLine) {
         return;
     }
 
-    // get screen and character set address
-    uint16_t charsetAddress;
-    uint16_t screenAddress;
+    // get color memory address
     uint8_t *colorMem = _cpu->memory()->raw() + MEMORY_COLOR_ADDRESS;
-    int bank;
-    getScreenAddress(&screenAddress, &charsetAddress, &bank);
-    uint8_t *charset = _cpu->memory()->raw() + charsetAddress;
 
-    // handle character ROM shadow
-    // https://www.c64-wiki.com/wiki/VIC_bank
-    if (bank == 0 && charsetAddress == 0x1000) {
-        charset = ((CMemory *)_cpu->memory())->charset();
-    } else if (bank == 2 && charsetAddress == 0x9000) {
-        charset = ((CMemory *)_cpu->memory())->charset();
+    // handle character ROM shadow (https://www.c64-wiki.com/wiki/VIC_bank)
+    int bank = _cia2->vicBank();
+    uint8_t *cAddr = nullptr;
+    if (bank == 0 && _charAddress == 0x1000) {
+        cAddr = ((CMemory *)_cpu->memory())->charset();
+    } else if (bank == 2 && _charAddress == 0x9000) {
+        cAddr = ((CMemory *)_cpu->memory())->charset();
+    } else {
+        cAddr = _cpu->memory()->raw() + _charAddress;
     }
 
     // get screen mode
     int screenMode = getScreenMode();
+
     // draw characters
     int columns = 40;
     for (int c = 0; c < columns; c++) {
@@ -320,7 +319,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
 
         // read screencode from screen memory
         uint8_t screenCharacterCode;
-        _cpu->memory()->readByte(screenAddress + (row * columns) + c,
+        _cpu->memory()->readByte(_screenAddress + (row * columns) + c,
                                  &screenCharacterCode);
 
         RgbStruct backgroundRgb;
@@ -348,7 +347,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
         }
 
         // read the character data and color
-        uint8_t data = charset[(screenCharacterCode * 8) + charRow];
+        uint8_t data = cAddr[(screenCharacterCode * 8) + charRow];
         uint8_t charColor = (colorMem[(row * columns) + c]);
         RgbStruct charRgb = _palette[charColor & 0xf];
 
@@ -416,6 +415,124 @@ void CVICII::drawBorder(int rasterLine) {
     }
 }
 
+void CVICII::drawBitmapMode(int rasterLine) {
+    // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt 3.7.3.3
+    Rect limits;
+    getScreenLimits(&limits);
+
+    // @fixme: this is wrong, adjusted manually. should be the firstVisibleX
+    // taken from documentation.....
+    limits.firstVisibleX = 42;
+
+    if (rasterLine < limits.firstVisibleY || rasterLine > limits.lastVisibleY) {
+        // out of display window
+        return;
+    }
+    if (!_DEN) {
+        // display enabled bit must be set
+        return;
+    }
+
+    // get color memory address
+    uint8_t *colorMem = _cpu->memory()->raw() + MEMORY_COLOR_ADDRESS;
+
+    // handle character ROM shadow (https://www.c64-wiki.com/wiki/VIC_bank)
+    int bank = _cia2->vicBank();
+    uint8_t *cAddr = nullptr;
+    if (bank == 0 && _charAddress == 0x1000) {
+        cAddr = ((CMemory *)_cpu->memory())->charset();
+    } else if (bank == 2 && _charAddress == 0x9000) {
+        cAddr = ((CMemory *)_cpu->memory())->charset();
+    } else {
+        cAddr = _cpu->memory()->raw() + _charAddress;
+    }
+
+    // get screen mode
+    int screenMode = getScreenMode();
+
+    // draw bitmaps
+    int columns = 40;
+    for (int c = 0; c < columns; c++) {
+        // this is the display window line
+        int line = rasterLine - limits.firstVisibleY;
+
+        // this is the first display window column of the bitmap to display
+        int x = limits.firstVisibleX + (c * 8);
+
+        // this is the first display window row of the bitmap to display
+        int row = line / 8;
+
+        // this is the row of the bitmap itself (8x8)
+        int bitmapRow = line % 8;
+
+        // read screencode from screen memory
+        uint8_t screenCharacterCode;
+        _cpu->memory()->readByte(_screenAddress + (row * columns) + c,
+                                 &screenCharacterCode);
+        uint8_t screenColor = cAddr[(screenCharacterCode * 8) + bitmapRow];
+
+        // read bitmap data and color
+        uint16_t bitmapAddr = _bitmapAddress + (row * columns + c) * 8 + line;
+        uint8_t bitmapData;
+        _cpu->memory()->readByte(bitmapAddr, &bitmapData);
+
+        // draw bitmap
+        if (screenMode == VIC_SCREEN_MODE_BITMAP_STANDARD) {
+            // standard bitmap
+            RgbStruct fgColor = _palette[(screenColor >> 4) & 0xf];
+            RgbStruct bgColor = _palette[screenColor & 0xf];
+            for (int i = 0; i < 8; i++) {
+                int pixelX = x + 8 - i + _scrollX;
+                if (pixelX > (limits.firstVisibleX + 320)) {
+                    // do not draw off screen
+                    continue;
+                }
+
+                if (IS_BIT_SET(bitmapData, i)) {
+                    blit(pixelX, line, &fgColor);
+                } else {
+                    blit(pixelX, line, &bgColor);
+                }
+            }
+        } else {
+            // multicolor bitmap
+            for (int i = 0; i < 8; i++) {
+                // only the last 3 bits count
+                uint8_t bits = bitmapData & 3;
+                RgbStruct rgb;
+                switch (bits) {
+                case 0:
+                    // 00
+                    rgb = _palette[getBackgoundColor(0)];
+                    break;
+
+                case 1:
+                    // 01
+                    rgb = _palette[(screenColor >> 4) & 0xf];
+                    break;
+
+                case 2:
+                    // 10
+                    rgb = _palette[screenColor & 0xf];
+                    break;
+
+                case 3:
+                    uint8_t mColor = (colorMem[(row * columns) + c]);
+                    rgb = _palette[mColor];
+                    break;
+                }
+                int pixelX = x + 8 - (i * 2) + _scrollX;
+                blit(pixelX, rasterLine, &rgb);
+                blit(pixelX + 1, rasterLine, &rgb);
+
+                // each pixel is doubled
+                i++;
+                bitmapData >>= 2;
+            }
+        }
+    }
+}
+
 /**
  * @brief get display window (the 'screen' inside border) limits
  * @param limits on return, the display window limits (first/last visible
@@ -472,8 +589,8 @@ int CVICII::update(long cycleCount) {
         }
     }
 
-    // are we between in between upper and lower vblanks (= effectively drawing
-    // the screen) ?
+    // are we between in between upper and lower vblanks (= effectively
+    // drawing the screen) ?
     Rect limits;
     getScreenLimits(&limits);
     if (currentRaster > limits.firstVblankLine &&
@@ -487,9 +604,13 @@ int CVICII::update(long cycleCount) {
             // draw screen line in character mode
             drawCharacterMode(currentRaster - limits.firstVblankLine);
 
-            // draw sprites
-            drawSprites(currentRaster - limits.firstVblankLine);
+        } else if (screenMode == VIC_SCREEN_MODE_BITMAP_STANDARD ||
+                   screenMode == VIC_SCREEN_MODE_BITMAP_MULTICOLOR) {
+            // draw bitmap
+            drawBitmapMode(currentRaster - limits.firstVblankLine);
         }
+        // draw sprites
+        drawSprites(currentRaster - limits.firstVblankLine);
     }
 
     // handle raster interrupt if needed
@@ -753,6 +874,9 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     case 0xd018:
         // memory pointers
         _regMemoryPointers = bt;
+        _charAddress = (bt & 0xe) << 10;
+        _screenAddress = (bt & 0xf0) << 6;
+        _bitmapAddress = (bt & 0x8) << 10;
         break;
 
     case 0xd019:
@@ -1050,8 +1174,8 @@ int CVICII::getScreenMode() {
 }
 
 /**
- * @brief get the current raster line indicated by $d012(RASTER) and bit 7 of
- * $d011(CR1)
+ * @brief get the current raster line indicated by $d012(RASTER) and bit 7
+ * of $d011(CR1)
  * @return
  */
 int CVICII::getCurrentRasterLine() {

@@ -127,7 +127,7 @@ class CVICII {
     uint8_t _regSpriteEnabled = 0;
     uint8_t _regCR2 = 0;
     uint8_t _regSpriteYExpansion = 0;
-    uint8_t _regMemoryPointers = 0;
+    uint8_t _regMemoryPointers = 1;
     uint8_t _regInterrupt = 0;
     uint8_t _regInterruptEnabled = 0;
     uint8_t _regSpriteDataPriority = 0;
@@ -143,7 +143,9 @@ class CVICII {
     BlitCallback _cb = nullptr;
     CCIA2 *_cia2 = nullptr;
     RgbStruct _palette[16] = {0};
-
+    uint16_t _charAddress = 0xd000;
+    uint16_t _screenAddress = 0x400;
+    uint16_t _bitmapAddress = 0;
     uint16_t checkShadowAddress(uint16_t address);
 
     bool isSpriteEnabled(int idx);
@@ -186,6 +188,7 @@ class CVICII {
     void getScreenLimits(Rect *limits);
     int getCurrentRasterLine();
     void setCurrentRasterLine(int line);
+    void drawBitmapMode(int rasterLine);
 };
 
 #endif // VC64_EMU_CVICII_H
