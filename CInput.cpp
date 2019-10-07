@@ -5,7 +5,22 @@
 #include "CInput.h"
 #include <SDL.h>
 #include <bitutils.h>
-CInput::CInput(CCIA1 *cia1) { _cia1 = cia1; }
+CInput::CInput(CCIA1 *cia1, int joyConfiguration) {
+    _cia1 = cia1;
+    _joyNum = joyConfiguration;
+    switch (_joyNum) {
+    case 1:
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+                    "joystick port #1 connected!");
+        break;
+    case 2:
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+                    "joystick port #2 connected!");
+        break;
+    default:
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "no joystick connected!");
+    }
+}
 
 CInput::~CInput() {}
 
@@ -198,6 +213,115 @@ void CInput::checkClipboard(int64_t totalCycles, int cyclesPerFrame,
 }
 
 /**
+ * @brief simulate joysticks via keypresses
+ * (https://www.c64-wiki.com/wiki/Joystick)
+ * @param sdlScanCode the pressed key, SDL side
+ * @param pressed true if pressed, false if released
+ * @return true if handled
+ */
+bool CInput::handleJoystick(uint32_t sdlScanCode, bool pressed) {
+    uint8_t c64ScanCode = 0;
+    switch (sdlScanCode) {
+    case SDL_SCANCODE_LEFT:
+        switch (_joyNum) {
+        case 1:
+            // ctrl
+            c64ScanCode = 0x3a;
+            _cia1->setKeyState(c64ScanCode, pressed);
+            return true;
+        case 2:
+            // space + C
+            c64ScanCode = 0x3c;
+            _cia1->setKeyState(c64ScanCode, pressed);
+            c64ScanCode = 0x14;
+            _cia1->setKeyState(c64ScanCode, pressed);
+            return true;
+        default:
+            break;
+        }
+        break;
+    case SDL_SCANCODE_RIGHT:
+        switch (_joyNum) {
+        case 1:
+            // 2
+            c64ScanCode = 0x3b;
+            _cia1->setKeyState(c64ScanCode, pressed);
+            return true;
+        case 2:
+            // space + B
+            c64ScanCode = 0x3c;
+            _cia1->setKeyState(c64ScanCode, pressed);
+            c64ScanCode = 0x1c;
+            _cia1->setKeyState(c64ScanCode, pressed);
+            return true;
+        default:
+            break;
+        }
+        break;
+    case SDL_SCANCODE_UP:
+        switch (_joyNum) {
+        case 1:
+            // 1
+            c64ScanCode = 0x38;
+            _cia1->setKeyState(c64ScanCode, pressed);
+            return true;
+        case 2:
+            // space + f1/f2
+            c64ScanCode = 0x3c;
+            _cia1->setKeyState(c64ScanCode, pressed);
+            c64ScanCode = 0x04;
+            _cia1->setKeyState(c64ScanCode, pressed);
+            return true;
+        default:
+            break;
+        }
+        break;
+    case SDL_SCANCODE_DOWN:
+        switch (_joyNum) {
+        case 1:
+            // 1
+            c64ScanCode = 0x39;
+            _cia1->setKeyState(c64ScanCode, pressed);
+            return true;
+        case 2:
+            // space + Z
+            c64ScanCode = 0x3c;
+            _cia1->setKeyState(c64ScanCode, pressed);
+            c64ScanCode = 0x0c;
+            _cia1->setKeyState(c64ScanCode, pressed);
+            return true;
+        default:
+            break;
+        }
+        break;
+    case SDL_SCANCODE_LSHIFT:
+        // fire button
+        switch (_joyNum) {
+        case 1:
+            // space
+            c64ScanCode = 0x3c;
+            _cia1->setKeyState(c64ScanCode, pressed);
+            return true;
+        case 2:
+            // space + M
+            SDL_Log("fire, pressed=%d\n", pressed);
+            c64ScanCode = 0x3c;
+            _cia1->setKeyState(c64ScanCode, pressed);
+            c64ScanCode = 0x24;
+            _cia1->setKeyState(c64ScanCode, pressed);
+            return true;
+        default:
+            break;
+        }
+        break;
+
+    default:
+        break;
+    }
+    return false;
+}
+
+/**
  * process an event, used also to process injected keyboard events from
  * clipboard
  * @param ev the event
@@ -211,10 +335,17 @@ void CInput::processEvent(SDL_Event *ev) {
 
     // convert to c64 scancode
     SDL_Scancode sds = ev->key.keysym.scancode;
-    uint8_t scancode = sdlScancodeToC64Scancode(sds);
-    if (scancode != 0xff) {
-        // update internal keyboard state
-        _cia1->setKeyState(scancode, ev->type == SDL_KEYDOWN ? true : false);
+    bool pressed = (ev->type == SDL_KEYDOWN);
+
+    // handle joystick 1/2 presses
+    bool isJoystick = handleJoystick(sds, pressed);
+    if (!isJoystick) {
+        // handle keyboard, if no joystick
+        uint8_t scancode = sdlScancodeToC64Scancode(sds);
+        if (scancode != 0xff) {
+            // update internal keyboard state
+            _cia1->setKeyState(scancode, pressed);
+        }
     }
 }
 
@@ -252,7 +383,7 @@ int CInput::update(SDL_Event *ev, uint32_t *hotkeys) {
  *  https://sites.google.com/site/h2obsession/CBM/C128/keyboard-scan
  * @param sdlScanCode the sdl scancode
  * @todo this should be reworked using the system layout, actually maps the C64
- * keyboard roughly to the italian keyboard\n also, shifted keys like cursors
+ * keyboard roughly to the italian keyboard. also, shifted keys like cursors
  * should be handled internally
  * @return the c64 scancode
  */
@@ -271,12 +402,17 @@ uint8_t CInput::sdlScancodeToC64Scancode(uint32_t sdlScanCode) {
     case SDL_SCANCODE_RETURN:
         return 0x1;
     case SDL_SCANCODE_LEFT:
-        return 0x3a; /* joy 1 left = ctrl */
+        // cursor left/right
+        // joy 1 left sets 0x3a(key 'CTRL') in PRB, either return 0x2
+        // (cursor left/right) when no joy1 is connected
+        return 0x2;
 
-        // return 0x2;
     case SDL_SCANCODE_RIGHT:
-        return 0x3b; /* joy 1 right = 2 */
-        // return 0x2;
+        // cursor left/right
+        // joy 1 left sets 0x3b(key '2') in PRB, either return 0x2 (cursor
+        // left/right) when no joy1 is connected
+        return 0x2;
+
     case SDL_SCANCODE_F7:
         // f7/f8
         return 0x3;
@@ -302,11 +438,15 @@ uint8_t CInput::sdlScancodeToC64Scancode(uint32_t sdlScanCode) {
         // f5/f6
         return 0x6;
     case SDL_SCANCODE_UP:
-        return 0x38; /* joy 1 up = 1 */
-        // return 0x7;
+        // cursor up/down
+        // joy 1 up sets 0x38(key '1') in PRB, either return 0x7 (cursor
+        // up/down) when no joy1 is connected
+        return 0x7;
     case SDL_SCANCODE_DOWN:
-        return 0x39; /* joy 1 down = esc */
-        // return 0x7;
+        // cursor up/down
+        // joy 1 up sets 0x39(key '<-') in PRB, either return 0x7 (cursor
+        // up/down) when no joy1 is connected
+        return 0x7;
     case SDL_SCANCODE_3:
         return 0x8;
     case SDL_SCANCODE_W:
@@ -416,6 +556,9 @@ uint8_t CInput::sdlScancodeToC64Scancode(uint32_t sdlScanCode) {
     case SDL_SCANCODE_2:
         return 0x3b;
     case SDL_SCANCODE_SPACE:
+        // space
+        // joy 1 up sets 0x3c(key 'SPACEBAR') in PRB, either return 0x7
+        // (cursor up/down) when no joy1 is connected
         return 0x3c;
     case SDL_SCANCODE_LALT:
         // commodore

@@ -29,6 +29,22 @@
  */
 #define HOTKEY_FORCE_EXIT 3
 
+#define JOY_2_LEFT 0
+#define JOY_2_RIGHT 1
+#define JOY_2_UP 2
+#define JOY_2_DOWN 3
+#define JOY_2_FIRE 4
+#define JOY_1_LEFT 5
+#define JOY_1_RIGHT 6
+#define JOY_1_UP 7
+#define JOY_1_DOWN 8
+#define JOY_1_FIRE 9
+#define JOY_LEFT 10
+#define JOY_RIGHT 11
+#define JOY_UP 12
+#define JOY_DOWN 13
+#define JOY_FIRE 14
+
 /**
  * @brief handles emulator input
  * special keys:
@@ -38,7 +54,13 @@
  */
 class CInput {
   public:
-    CInput(CCIA1 *cia1);
+    /**
+     * @brief constructor
+     * @param cia1 pointer to the CIA1 instance
+     * @param joyConfiguration 1=joystick in port 1, 2=joystick in port 2, 0=no
+     * joystick(default)
+     */
+    CInput(CCIA1 *cia1, int joyConfiguration = 0);
 
     ~CInput();
 
@@ -78,9 +100,10 @@ class CInput {
     uint8_t sdlScancodeToC64Scancode(uint32_t sdlScanCode);
     void processEvent(SDL_Event *ev);
     int64_t _prevTotalCycles = 0;
-
+    int _joyNum = 0;
     void processClipboardQueue();
     bool hasClipboardEvents();
+    bool handleJoystick(uint32_t sdlScanCode, bool pressed);
 };
 
 #endif // VC64_EMU_CINPUT_H

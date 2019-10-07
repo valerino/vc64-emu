@@ -132,6 +132,7 @@ void usage(char **argv) {
     printf("usage: %s -f <file> [-dsh]\n"
            "\t-f: file to be loaded (PRG only is supported as now)\n"
            "\t-t: run cpu test in test/6502_functional_test.bin\n"
+           "\t-j: 1|2, joystick in port 1 or 2 (default is 0, no joystick)"
            "\t-d: debugger\n"
            "\t-s: fullscreen\n"
            "\t-h: this help\n",
@@ -183,14 +184,22 @@ int main(int argc, char **argv) {
     banner();
     bool fullScreen = false;
     bool isTestCpu = false;
+    int joyNum = 0;
 
     // parse commandline
     while (1) {
-        int option = getopt(argc, argv, "dshtf:");
+        int option = getopt(argc, argv, "dshtf:j:");
         if (option == -1) {
             break;
         }
         switch (option) {
+        case 'j':
+            joyNum = atoi(optarg);
+            if (joyNum < 1 || joyNum > 2) {
+                // default, no joystick
+                joyNum = 0;
+            }
+            break;
         case '?':
         case 'h':
             usage(argv);
@@ -260,7 +269,7 @@ int main(int argc, char **argv) {
                          ex.what());
             break;
         }
-        input = new CInput(cia1);
+        input = new CInput(cia1, joyNum);
         audio = new CAudio(sid);
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "display initialized OK!");
 
@@ -295,9 +304,10 @@ int main(int argc, char **argv) {
             // (23 vs 63)
             int c = vic->update(totalCycles);
             cycles += c;
-            
-            // @fixme: this is wrong, cycles should be added .... but doing it screws all (probably vic cycle counting is wrong)
-            // totalCycles += c;
+
+            // @fixme: this is wrong, cycles should be added .... but doing it
+            // screws all (probably vic cycle counting is wrong) totalCycles +=
+            // c;
 
             // update other chips
             cia1->update(totalCycles);
