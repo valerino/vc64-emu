@@ -24,11 +24,11 @@ make
 #### usage
 ~~~
 vc64 - a c64 emulator
-(c)opyleft, valerino, y2k19
-
-[x] usage: ./vc64 -f <file> [-dsh]
+        (c)opyleft, valerino, y2k19
+usage: ./vc64-emu -f <file> [-dsh]
         -f: file to be loaded (PRG only is supported as now)
-        -t: just run the cpu test, everything else is ignored
+        -t: run cpu test in test/6502_functional_test.bin
+        -j: 1|2, joystick in port 1 or 2 (default is 0, no joystick)    
         -d: debugger
         -s: fullscreen
         -h: this help
