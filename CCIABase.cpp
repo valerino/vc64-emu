@@ -11,6 +11,20 @@ CCIABase::CCIABase(CMOS65xx *cpu, uint16_t baseAddress, int connectedTo) {
 
 CCIABase::~CCIABase() {}
 
+uint8_t CCIABase::readPRA() {
+    uint8_t bt;
+    CCIABase::read(_baseAddress, &bt);
+    return bt;
+}
+uint8_t CCIABase::readPRB() {
+    uint8_t bt;
+    CCIABase::read(_baseAddress + 1, &bt);
+    return bt;
+}
+
+void CCIABase::writePRA(uint8_t pra) { CCIABase::write(_baseAddress, pra); }
+void CCIABase::writePRB(uint8_t prb) { CCIABase::write(_baseAddress + 1, prb); }
+
 void CCIABase::read(uint16_t address, uint8_t *bt) {
     int offset = address - _baseAddress;
     switch (offset) {

@@ -65,6 +65,30 @@ class CCIABase {
      */
     virtual void write(uint16_t address, uint8_t bt);
 
+    /**
+     * @brief read PORT A register
+     * @return
+     */
+    uint8_t readPRA();
+
+    /**
+     * @brief read PORT B register
+     * @return
+     */
+    uint8_t readPRB();
+
+    /**
+     * @brief write PORT A register
+     * @param a PRA value
+     */
+    void writePRA(uint8_t pra);
+
+    /**
+     * @brief write PORT B register
+     * @param a PRB value
+     */
+    void writePRB(uint8_t prb);
+
   protected:
     CMOS65xx *_cpu = nullptr;
     int _timerALatch = 0;

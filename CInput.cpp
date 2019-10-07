@@ -16,6 +16,9 @@ CInput::CInput(CCIA1 *cia1, int joyConfiguration) {
     case 2:
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
                     "joystick port #2 connected!");
+
+        // enable reading joystick 2 through keyboard
+        _cia1->enableJoy2Hack(true);
         break;
     default:
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "no joystick connected!");
@@ -221,6 +224,7 @@ void CInput::checkClipboard(int64_t totalCycles, int cyclesPerFrame,
  */
 bool CInput::handleJoystick(uint32_t sdlScanCode, bool pressed) {
     uint8_t c64ScanCode = 0;
+    uint8_t pra = 0;
     switch (sdlScanCode) {
     case SDL_SCANCODE_LEFT:
         switch (_joyNum) {
@@ -304,7 +308,7 @@ bool CInput::handleJoystick(uint32_t sdlScanCode, bool pressed) {
             return true;
         case 2:
             // space + M
-            SDL_Log("fire, pressed=%d\n", pressed);
+            // SDL_Log("fire, pressed=%d\n", pressed);
             c64ScanCode = 0x3c;
             _cia1->setKeyState(c64ScanCode, pressed);
             c64ScanCode = 0x24;

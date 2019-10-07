@@ -31,15 +31,16 @@ class CCIA1 : public CCIABase {
      */
     void setKeyState(uint8_t scancode, bool pressed);
 
-    uint8_t readPRA();
-    uint8_t readPRB();
-
-    void writePRA(uint8_t pra);
-    void writePRB(uint8_t prb);
+    /**
+     * @brief enable reading joystick port 2 through keyboard, based on info
+     * from https://www.c64-wiki.com/wiki/Joystick
+     * @param enable enable/disable the hack
+     */
+    void enableJoy2Hack(bool enable);
 
   private:
     void readKeyboardMatrixColumn(uint8_t *bt, uint8_t pra);
     uint16_t checkShadowAddress(uint16_t address);
-
+    bool _joy2Hack = false;
     bool _kbMatrix[0x40] = {false};
 };

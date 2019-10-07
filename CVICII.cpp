@@ -574,7 +574,8 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
     case 0xd016:
         // CR2
         // bit 6,7 are always set
-        *bt = (_regCR2 | 0xc0);
+        _regCR2 |= 0xc0;
+        *bt = _regCR2;
         break;
 
     case 0xd017:
@@ -585,20 +586,23 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
     case 0xd018:
         // memory pointers
         // bit 0 is always set
-        *bt = (_regMemoryPointers | 1);
+        _regMemoryPointers |= 1;
+        *bt = _regMemoryPointers;
         break;
 
     case 0xd019:
         // interrupt latch
         // bit 4,5,6 are always set
         // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
-        *bt = (_regInterrupt | 0x70);
+        _regInterrupt |= 0x70;
+        *bt = _regInterrupt;
         break;
     case 0xd01a:
         // interrupt enable register
         // bit 4,5,6 are always set
         // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
-        *bt = (_regInterruptEnabled | 0x70);
+        _regInterruptEnabled |= 0x70;
+        *bt = _regInterruptEnabled;
         break;
 
     case 0xd01b:

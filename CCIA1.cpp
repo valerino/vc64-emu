@@ -43,16 +43,33 @@ void CCIA1::readKeyboardMatrixColumn(uint8_t *bt, uint8_t pra) {
     *bt = columnByte;
 }
 
+void CCIA1::enableJoy2Hack(bool enable) { _joy2Hack = enable; }
+
 void CCIA1::read(uint16_t address, uint8_t *bt) {
     // in CIA1 some addresses d010-d0ff are repeated every 16 bytes
     uint16_t addr = checkShadowAddress(address);
+    uint8_t pra;
 
     switch (addr) {
+    case 0xdc00:
+        // PRA
+        if (_joy2Hack) {
+            // read keyboard matrix row in data port A, thus emulating joy 2
+            // (keyboard may got deactivated by code)
+            pra = readPRA();
+
+            // read column
+            readKeyboardMatrixColumn(bt, pra);
+        } else {
+            // default
+            CCIABase::read(addr, bt); //_cpu->memory()->readByte(0xdc00, &pra);
+        }
+        break;
+
     case 0xdc01:
         // PRB
-        // read keyboard matrix row in data port A (PRA=$dc00)
-        uint8_t pra;
-        _cpu->memory()->readByte(0xdc00, &pra);
+        // read keyboard matrix row in data port A
+        pra = readPRA();
 
         // read column
         readKeyboardMatrixColumn(bt, pra);
@@ -63,20 +80,6 @@ void CCIA1::read(uint16_t address, uint8_t *bt) {
         CCIABase::read(addr, bt);
     }
 }
-
-uint8_t CCIA1::readPRA() {
-    uint8_t bt;
-    read(0xdc00, &bt);
-    return bt;
-}
-uint8_t CCIA1::readPRB() {
-    uint8_t bt;
-    read(0xdc01, &bt);
-    return bt;
-}
-
-void CCIA1::writePRA(uint8_t pra) { write(0xdc00, pra); }
-void CCIA1::writePRB(uint8_t prb) { write(0xdc01, prb); }
 
 void CCIA1::write(uint16_t address, uint8_t bt) {
     // in CIA1 some addresses d010-d0ff are repeated every 16 bytes

@@ -28,7 +28,7 @@ vc64 - a c64 emulator
 usage: ./vc64-emu -f <file> [-dsh]
         -f: file to be loaded (PRG only is supported as now)
         -t: run cpu test in test/6502_functional_test.bin
-        -j: 1|2, joystick in port 1 or 2 (default is 0, no joystick)
+        -j: 1|2, joystick in port 1 or 2 emulated through cursor + leftshift (default is 0, no joystick)
         -d: debugger
         -s: fullscreen
         -h: this help
