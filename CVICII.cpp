@@ -56,14 +56,11 @@ void CVICII::blit(int x, int y, RgbStruct *rgb) {
 }
 
 uint16_t CVICII::getSpriteDataAddress(int idx) {
-    uint16_t screenAddress;
-    getScreenAddress(&screenAddress);
-
     // https://www.c64-wiki.com/wiki/Sprite#Sprite_pointers
     // https://dustlayer.com/vic-ii
 
     // read sprite pointer for sprite idx
-    uint16_t spP = screenAddress + 0x3f8 + idx;
+    uint16_t spP = _screenAddress + 0x3f8 + idx;
     uint8_t ptr;
     _cpu->memory()->readByte(spP, &ptr);
 
@@ -407,19 +404,19 @@ void CVICII::drawBitmapMode(int rasterLine) {
     // get screen mode
     int screenMode = getScreenMode();
 
-    // draw bitmaps
+    // draw bitmap
     int columns = 40;
     for (int c = 0; c < columns; c++) {
         // this is the display window line
         int line = rasterLine - limits.firstVisibleY;
 
-        // this is the first display window column of the bitmap to display
+        // this is the first display window column for this this block
         int x = limits.firstVisibleX + (c * 8);
 
-        // this is the first display window row of the bitmap to display
+        // this is the first displaywindow row for this block
         int row = line / 8;
 
-        // this is the row of the bitmap itself (8x8)
+        // this is the row of thebitmap block itself (8x8)
         int bitmapRow = line % 8;
 
         // read screencode for standard color
@@ -1005,29 +1002,6 @@ bool CVICII::checkUnusedAddress(int type, uint16_t address, uint8_t *bt) {
         return true;
     }
     return false;
-}
-
-void CVICII::getScreenAddress(uint16_t *screenAddress, uint16_t *charsetAddress,
-                              int *bank) {
-    // read base register
-    uint8_t d018;
-    _cpu->memory()->readByte(0xd018, &d018);
-
-    // get screen address
-    uint16_t base = _cia2->vicAddress();
-
-    if (bank) {
-        // get bank
-        *bank = _cia2->vicBank();
-    }
-
-    if (charsetAddress) {
-        // get charset address
-        *charsetAddress = ((((d018 & 0xf) >> 1) & 0x7) * 2048) + base;
-    }
-
-    // get screen address
-    *screenAddress = ((d018 >> 4) & 0xf) * 1024;
 }
 
 void CVICII::getBitmapModeScreenAddress(uint16_t *colorInfoAddress,
