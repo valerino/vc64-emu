@@ -166,8 +166,6 @@ class CVICII {
     void setBackgoundColor(int idx, uint8_t val);
 
     bool checkUnusedAddress(int type, uint16_t address, uint8_t *bt);
-    void getBitmapModeScreenAddress(uint16_t *colorInfoAddress,
-                                    uint16_t *bitmapAddress);
 
     uint16_t getSpriteXCoordinate(int idx);
     uint8_t getSpriteYCoordinate(int idx);

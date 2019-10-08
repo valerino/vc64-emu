@@ -1004,11 +1004,6 @@ bool CVICII::checkUnusedAddress(int type, uint16_t address, uint8_t *bt) {
     return false;
 }
 
-void CVICII::getBitmapModeScreenAddress(uint16_t *colorInfoAddress,
-                                        uint16_t *bitmapAddress) {
-    // TODO: implement
-}
-
 /**
  * @brief get X coordinate of sprite at idx, combining value of the MnX with
  * the corresponding bit of $d010 as MSB
