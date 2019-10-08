@@ -222,13 +222,14 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
             // 11
             _timerBMode = CIA_TIMER_COUNT_TIMERA_UNDERFLOW_IF_CNT_HI;
         }
+
         break;
 
     default:
         break;
     }
 
-    // finally write value
+    // write the value anyway
     _cpu->memory()->writeByte(address, bt);
 }
 void CCIABase::updateTimer(int cycleCount, int timerType) {

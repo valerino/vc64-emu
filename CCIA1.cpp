@@ -90,7 +90,7 @@ void CCIA1::write(uint16_t address, uint8_t bt) {
         break;
     }
 
-    // finally write
+    // write anyway
     CCIABase::write(address, bt);
 }
 

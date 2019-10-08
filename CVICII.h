@@ -143,9 +143,10 @@ class CVICII {
     BlitCallback _cb = nullptr;
     CCIA2 *_cia2 = nullptr;
     RgbStruct _palette[16] = {0};
-    uint16_t _charAddress = 0xd000;
-    uint16_t _screenAddress = 0x400;
+    uint16_t _charsetAddress = 0;
+    uint16_t _screenAddress = 0;
     uint16_t _bitmapAddress = 0;
+
     uint16_t checkShadowAddress(uint16_t address);
 
     bool isSpriteEnabled(int idx);

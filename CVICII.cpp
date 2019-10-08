@@ -32,6 +32,11 @@ CVICII::CVICII(CMOS65xx *cpu, CCIA2 *cia2) {
     _cpu = cpu;
     _cia2 = cia2;
     initPalette();
+
+    // init default addresses
+    _bitmapAddress = MEMORY_BITMAP_ADDRESS;
+    _screenAddress = MEMORY_SCREEN_ADDRESS;
+    _charsetAddress = MEMORY_CHARSET_ADDRESS;
 }
 
 void CVICII::setBlitCallback(void *display, BlitCallback cb) {
@@ -430,7 +435,7 @@ void CVICII::drawBitmapMode(int rasterLine) {
 
         // draw bitmap
         if (screenMode == VIC_SCREEN_MODE_BITMAP_STANDARD) {
-            SDL_Log("drawing bitmap");
+            // SDL_Log("drawing bitmap");
             // standard bitmap
             RgbStruct fgColor = _palette[(screenChar >> 4) & 0xf];
             RgbStruct bgColor = _palette[screenChar & 0xf];
@@ -449,7 +454,7 @@ void CVICII::drawBitmapMode(int rasterLine) {
             }
         } else {
             // multicolor bitmap
-            SDL_Log("drawing multicolor bitmap");
+            // SDL_Log("drawing multicolor bitmap");
 
             for (int i = 0; i < 8; i++) {
                 // only the last 3 bits count
@@ -660,8 +665,6 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
 
     case 0xd016:
         // CR2
-        // bit 6,7 are always set
-        _regCR2 |= 0xc0;
         *bt = _regCR2;
         break;
 
@@ -677,16 +680,11 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
 
     case 0xd019:
         // interrupt latch
-        // bit 4,5,6 are always set
-        // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
-        _regInterrupt |= 0x70;
         *bt = _regInterrupt;
         break;
+
     case 0xd01a:
         // interrupt enable register
-        // bit 4,5,6 are always set
-        // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
-        _regInterruptEnabled |= 0x70;
         *bt = _regInterruptEnabled;
         break;
 
@@ -703,6 +701,11 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
     case 0xd01d:
         // MnXE: sprite X expanded
         *bt = _regSpriteXExpansion;
+        break;
+
+    case 0xd020:
+        // EC
+        *bt = _regBorderColor;
         break;
 
     case 0xd021:
@@ -796,7 +799,6 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         if (IS_BIT_SET(bt, 7)) {
             BIT_SET(_rasterIrqLine, 8);
         }
-
         break;
 
     case 0xd012:
@@ -821,6 +823,8 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
     case 0xd016:
         // CR2
+        // bit 6, 7 are always set
+        bt |= 0xc0;
         _regCR2 = bt;
 
         // XSCROLL (bit 0,1,2)
@@ -836,23 +840,32 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         break;
 
     case 0xd018:
-        // memory pointers
+        // memory pointers (bit 0 is always set)
+        bt |= 1;
         _regMemoryPointers = bt;
 
-        // bit 0 is always set
-        BIT_SET(_regMemoryPointers, 0);
-        _charAddress = (_regMemoryPointers & 0xe) << 10;
+        // set addresses (https://www.c64-wiki.com/wiki/Page_208-211)
+        // CB11, CB12, CB13 = character set address
+        _charsetAddress = (_regMemoryPointers & 0xe) << 10;
+
+        // VM10,VM11,VM12,VM13 = character set address
         _screenAddress = (_regMemoryPointers & 0xf0) << 6;
+
+        // CB13 = bitmap address
         _bitmapAddress = (_regMemoryPointers & 0x8) << 10;
         break;
 
     case 0xd019:
         // interrupt latch
+        // bit 4,5,6 are always set
+        bt |= 0x70;
         _regInterrupt = bt;
         break;
 
     case 0xd01a:
         // interrupt enabled
+        // bit 4,5,6 are always set
+        bt |= 0x70;
         _regInterruptEnabled = bt;
         break;
 
@@ -873,7 +886,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
     case 0xd020:
         // EC
-        _regBorderColor = bt & 0xf;
+        _regBorderColor = (bt & 0xf);
         break;
 
     case 0xd021:
@@ -881,6 +894,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     case 0xd023:
     case 0xd024: {
         // BnC = background color 0-3
+        bt &= 0xf;
         int bcIdx = addr - 0xd021;
         setBackgoundColor(bcIdx, bt);
         break;
@@ -889,6 +903,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     case 0xd025:
     case 0xd026: {
         // MMn = sprite multicolor 0-1
+        bt &= 0xf;
         int mmIdx = addr - 0xd025;
         setSpriteMulticolor(mmIdx, bt);
         break;
@@ -903,6 +918,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     case 0xd02d:
     case 0xd02e: {
         // MnC = sprite color 0-7
+        bt &= 0xf;
         int mIdx = addr - 0xd027;
         setSpriteColor(mIdx, bt);
         break;
@@ -912,7 +928,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         break;
     }
 
-    // finally write
+    // write anyway
     _cpu->memory()->writeByte(addr, bt);
 }
 
@@ -951,7 +967,7 @@ void CVICII::setBackgoundColor(int idx, uint8_t val) {
  * @param idx register index in the sprite color registers array
  * @param val the color to set
  */
-void CVICII::setSpriteColor(int idx, uint8_t val) { _regM[idx] = (val & 0xf); }
+void CVICII::setSpriteColor(int idx, uint8_t val) { _regM[idx] = val; }
 
 /**
  * @brief get color of sprite n from the MnC register
@@ -964,9 +980,7 @@ uint8_t CVICII::getSpriteColor(int idx) { return _regM[idx]; }
  * @param idx register index in the sprite multicolor registers array
  * @param val the color to set
  */
-void CVICII::setSpriteMulticolor(int idx, uint8_t val) {
-    _regMM[idx] = (val & 0xf);
-}
+void CVICII::setSpriteMulticolor(int idx, uint8_t val) { _regMM[idx] = val; }
 
 uint8_t CVICII::getSpriteMulticolor(int idx) { return _regMM[idx]; }
 
@@ -1180,13 +1194,15 @@ uint8_t CVICII::getCharacterData(int screenCode, int charRow) {
     // (https://www.c64-wiki.com/wiki/VIC_bank)
     int bank = _cia2->vicBank();
     uint8_t *cAddr = nullptr;
-    if (bank == 0 && _charAddress == 0x1000) {
+
+    cAddr = _cpu->memory()->raw() + _charsetAddress;
+    if (bank == 0 && _charsetAddress == 0x1000) {
         cAddr = ((CMemory *)_cpu->memory())->charset();
-    } else if (bank == 2 && _charAddress == 0x9000) {
+    } else if (bank == 2 && _charsetAddress == 0x9000) {
         cAddr = ((CMemory *)_cpu->memory())->charset();
     } else {
         // default
-        cAddr = _cpu->memory()->raw() + _charAddress;
+        cAddr = _cpu->memory()->raw() + _charsetAddress;
     }
 
     // read the character data and color
