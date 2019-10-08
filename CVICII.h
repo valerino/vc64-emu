@@ -189,6 +189,10 @@ class CVICII {
     int getCurrentRasterLine();
     void setCurrentRasterLine(int line);
     void drawBitmapMode(int rasterLine);
+    uint8_t getScreenCode(int x, int y);
+    uint8_t getScreenColor(int x, int y);
+    uint8_t getCharacterData(int screenCode, int charRow);
+    uint8_t getBitmapData(int x, int y, int bitmapRow);
 };
 
 #endif // VC64_EMU_CVICII_H
