@@ -233,6 +233,7 @@ bool CInput::handleJoystick(uint32_t sdlScanCode, bool pressed) {
             c64ScanCode = 0x3a;
             _cia1->setKeyState(c64ScanCode, pressed);
             return true;
+
         case 2:
             // space + C
             c64ScanCode = 0x3c;
@@ -240,10 +241,12 @@ bool CInput::handleJoystick(uint32_t sdlScanCode, bool pressed) {
             c64ScanCode = 0x14;
             _cia1->setKeyState(c64ScanCode, pressed);
             return true;
+
         default:
             break;
         }
         break;
+
     case SDL_SCANCODE_RIGHT:
         switch (_joyNum) {
         case 1:
@@ -251,6 +254,7 @@ bool CInput::handleJoystick(uint32_t sdlScanCode, bool pressed) {
             c64ScanCode = 0x3b;
             _cia1->setKeyState(c64ScanCode, pressed);
             return true;
+
         case 2:
             // space + B
             c64ScanCode = 0x3c;
@@ -258,10 +262,12 @@ bool CInput::handleJoystick(uint32_t sdlScanCode, bool pressed) {
             c64ScanCode = 0x1c;
             _cia1->setKeyState(c64ScanCode, pressed);
             return true;
+
         default:
             break;
         }
         break;
+
     case SDL_SCANCODE_UP:
         switch (_joyNum) {
         case 1:
@@ -269,6 +275,7 @@ bool CInput::handleJoystick(uint32_t sdlScanCode, bool pressed) {
             c64ScanCode = 0x38;
             _cia1->setKeyState(c64ScanCode, pressed);
             return true;
+
         case 2:
             // space + f1/f2
             c64ScanCode = 0x3c;
@@ -276,10 +283,12 @@ bool CInput::handleJoystick(uint32_t sdlScanCode, bool pressed) {
             c64ScanCode = 0x04;
             _cia1->setKeyState(c64ScanCode, pressed);
             return true;
+
         default:
             break;
         }
         break;
+
     case SDL_SCANCODE_DOWN:
         switch (_joyNum) {
         case 1:
@@ -287,6 +296,7 @@ bool CInput::handleJoystick(uint32_t sdlScanCode, bool pressed) {
             c64ScanCode = 0x39;
             _cia1->setKeyState(c64ScanCode, pressed);
             return true;
+
         case 2:
             // space + Z
             c64ScanCode = 0x3c;
@@ -294,10 +304,12 @@ bool CInput::handleJoystick(uint32_t sdlScanCode, bool pressed) {
             c64ScanCode = 0x0c;
             _cia1->setKeyState(c64ScanCode, pressed);
             return true;
+
         default:
             break;
         }
         break;
+
     case SDL_SCANCODE_LSHIFT:
         // fire button
         switch (_joyNum) {
@@ -306,6 +318,7 @@ bool CInput::handleJoystick(uint32_t sdlScanCode, bool pressed) {
             c64ScanCode = 0x3c;
             _cia1->setKeyState(c64ScanCode, pressed);
             return true;
+
         case 2:
             // space + M
             // SDL_Log("fire, pressed=%d\n", pressed);
@@ -314,6 +327,7 @@ bool CInput::handleJoystick(uint32_t sdlScanCode, bool pressed) {
             c64ScanCode = 0x24;
             _cia1->setKeyState(c64ScanCode, pressed);
             return true;
+
         default:
             break;
         }
@@ -322,6 +336,7 @@ bool CInput::handleJoystick(uint32_t sdlScanCode, bool pressed) {
     default:
         break;
     }
+
     return false;
 }
 
