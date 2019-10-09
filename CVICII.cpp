@@ -1251,8 +1251,8 @@ uint8_t CVICII::getCharacterData(int screenCode, int charRow) {
     int bank = _cia2->vicBank();
     uint8_t *cAddr = nullptr;
     uint8_t data = 0;
-    // SDL_Log("bank=%d, charsetAddress=$%x, vicAddress=$%x", bank,
-    //      _charsetAddress, _cia2->vicAddress());
+    // SDL_Log("bank=%d, charsetAddress=$%x, vicMemoryAddress=$%x", bank,
+    //      _charsetAddress, _cia2->vicMemoryAddress());
     if ((bank == 0 && _charsetAddress == 0x1000) ||
         (bank == 2 && _charsetAddress == 0x9000)) {
         // ROM address
@@ -1262,7 +1262,7 @@ uint8_t CVICII::getCharacterData(int screenCode, int charRow) {
         data = cAddr[(screenCode * 8) + charRow];
     } else {
         // default
-        uint16_t addr = _cia2->vicAddress() + _charsetAddress;
+        uint16_t addr = _cia2->vicMemoryAddress() + _charsetAddress;
         addr += ((screenCode * 8) + charRow);
 
         // raw memory read
