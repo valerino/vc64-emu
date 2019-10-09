@@ -1184,10 +1184,10 @@ int CVICII::getScreenMode() {
         IS_BIT_SET(_regCR2, 4)) {
         // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "selecting multicolor
         // character mode");
-        // @todo: here returning VIC_SCREEN_MODE_CHARACTER_STANDARD fix some
-        // displays..... but it's wrong
-        // return VIC_SCREEN_MODE_CHARACTER_STANDARD;
-        return VIC_SCREEN_MODE_CHARACTER_MULTICOLOR;
+        // @fixme: here returning VIC_SCREEN_MODE_CHARACTER_STANDARD fix some
+        // displays..... but it's wrong, there's some bug somewhere else!
+        return VIC_SCREEN_MODE_CHARACTER_STANDARD;
+        // return VIC_SCREEN_MODE_CHARACTER_MULTICOLOR;
     }
     if (!IS_BIT_SET(_regCR1, 6) && IS_BIT_SET(_regCR1, 5) &&
         !IS_BIT_SET(_regCR2, 4)) {

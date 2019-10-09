@@ -52,24 +52,24 @@ void CCIA1::read(uint16_t address, uint8_t *bt) {
 
     switch (addr) {
     case 0xdc00:
-        // PRA
-        if (_joy2Hack) {
-            // read keyboard matrix row in data port A, thus emulating joy 2
-            // (keyboard may got deactivated by code)
-            pra = readPRA();
-
-            // read column
-            readKeyboardMatrixColumn(bt, pra);
-        } else {
-            // default
-            CCIABase::read(addr, bt); //_cpu->memory()->readByte(0xdc00, &pra);
-        }
-        break;
-
     case 0xdc01:
-        // PRB
+        // PRA ($dc00) and PRB ($dc01)
         // read keyboard matrix row in data port A
         pra = readPRA();
+        if (addr == 0xdc00) {
+            if (_joy2Hack) {
+                // clear joy2 bits (1=not pressed)
+                BIT_SET(pra, 0);
+                BIT_SET(pra, 1);
+                BIT_SET(pra, 2);
+                BIT_SET(pra, 3);
+                BIT_SET(pra, 4);
+            } else {
+                // default PRA read
+                CCIABase::read(addr, bt);
+                return;
+            }
+        }
 
         // read column
         readKeyboardMatrixColumn(bt, pra);
