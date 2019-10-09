@@ -1255,8 +1255,10 @@ uint8_t CVICII::getCharacterData(int screenCode, int charRow) {
     //      _charsetAddress, _cia2->vicAddress());
     if ((bank == 0 && _charsetAddress == 0x1000) ||
         (bank == 2 && _charsetAddress == 0x9000)) {
-        // read from ROM
+        // ROM address
         cAddr = ((CMemory *)_cpu->memory())->charset();
+
+        // read char data
         data = cAddr[(screenCode * 8) + charRow];
     } else {
         // default
@@ -1267,9 +1269,6 @@ uint8_t CVICII::getCharacterData(int screenCode, int charRow) {
         uint8_t *raw = _cpu->memory()->raw();
         data = raw[addr];
     }
-
-    // read the character data and color
-    // uint8_t data = cAddr[(screenCode * 8) + charRow];
     return data;
 }
 
@@ -1283,6 +1282,6 @@ uint8_t CVICII::getCharacterData(int screenCode, int charRow) {
 uint8_t CVICII::getBitmapData(int x, int y, int bitmapRow) {
     uint16_t bitmapAddr = _bitmapAddress + (((y * 40) + x) * 8) + bitmapRow;
     uint8_t data;
-    _cpu->memory()->readByte(bitmapAddr, &data);    
+    _cpu->memory()->readByte(bitmapAddr, &data);
     return data;
 }
