@@ -1247,20 +1247,29 @@ uint8_t CVICII::getScreenColor(int x, int y) {
 uint8_t CVICII::getCharacterData(int screenCode, int charRow) {
     // get character set address, handling character ROM shadow
     // (https://www.c64-wiki.com/wiki/VIC_bank)
+    // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt 2.4.2
     int bank = _cia2->vicBank();
     uint8_t *cAddr = nullptr;
-
-    if (bank == 0 && _charsetAddress == 0x1000) {
+    uint8_t data = 0;
+    // SDL_Log("bank=%d, charsetAddress=$%x, vicAddress=$%x", bank,
+    //      _charsetAddress, _cia2->vicAddress());
+    if ((bank == 0 && _charsetAddress == 0x1000) ||
+        (bank == 2 && _charsetAddress == 0x9000)) {
+        // read from ROM
         cAddr = ((CMemory *)_cpu->memory())->charset();
-    } else if (bank == 2 && _charsetAddress == 0x9000) {
-        cAddr = ((CMemory *)_cpu->memory())->charset();
+        data = cAddr[(screenCode * 8) + charRow];
     } else {
         // default
-        cAddr = _cpu->memory()->raw() + _charsetAddress;
+        uint16_t addr = _cia2->vicAddress() + _charsetAddress;
+        addr += ((screenCode * 8) + charRow);
+
+        // raw memory read
+        uint8_t *raw = _cpu->memory()->raw();
+        data = raw[addr];
     }
 
     // read the character data and color
-    uint8_t data = cAddr[(screenCode * 8) + charRow];
+    // uint8_t data = cAddr[(screenCode * 8) + charRow];
     return data;
 }
 
@@ -1274,6 +1283,6 @@ uint8_t CVICII::getCharacterData(int screenCode, int charRow) {
 uint8_t CVICII::getBitmapData(int x, int y, int bitmapRow) {
     uint16_t bitmapAddr = _bitmapAddress + (((y * 40) + x) * 8) + bitmapRow;
     uint8_t data;
-    _cpu->memory()->readByte(bitmapAddr, &data);
+    _cpu->memory()->readByte(bitmapAddr, &data);    
     return data;
 }
