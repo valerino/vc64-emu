@@ -306,8 +306,8 @@ int main(int argc, char **argv) {
             cycles += c;
 
             // @fixme: this is wrong, cycles should be added .... but doing it
-            // screws all (probably vic cycle counting is wrong) totalCycles +=
-            // c;
+            // screws all (probably vic cycle counting is wrong)
+            // totalCycles += c;
 
             // update other chips
             cia1->update(totalCycles);

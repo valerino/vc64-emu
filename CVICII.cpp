@@ -7,8 +7,10 @@
 #include "CMemory.h"
 #include "bitutils.h"
 
+/**
+ * @brief initialize color palette
+ */
 void CVICII::initPalette() {
-    // initialize color palette
     // https://www.c64-wiki.com/wiki/Color
     _palette[0] = {0, 0, 0};
     _palette[1] = {0xff, 0xff, 0xff};
@@ -43,6 +45,7 @@ void CVICII::setBlitCallback(void *display, BlitCallback cb) {
     _cb = cb;
     _displayObj = display;
 }
+
 /**
  * blit into the framebuffer
  * @param x x coordinate
@@ -60,6 +63,11 @@ void CVICII::blit(int x, int y, RgbStruct *rgb) {
     _cb(_displayObj, rgb, pos);
 }
 
+/**
+ * @brief get address of a sprite
+ * @param idx the sprite index 0-7
+ * @return
+ */
 uint16_t CVICII::getSpriteDataAddress(int idx) {
     // https://www.c64-wiki.com/wiki/Sprite#Sprite_pointers
     // https://dustlayer.com/vic-ii
@@ -77,6 +85,8 @@ uint16_t CVICII::getSpriteDataAddress(int idx) {
 
 /**
  * @brief check if while drawing sprite we're hitting borders
+ * @param x x screen coordinate
+ * @param y y screen coordinate
  * @return
  */
 bool CVICII::isSpriteDrawingOnBorder(int x, int y) {
@@ -105,7 +115,7 @@ bool CVICII::isSpriteDrawingOnBorder(int x, int y) {
 /**
  * @brief draw sprite row (multicolor sprite)
  * @param rasterLine the rasterline index to draw
- * @param idx the sprite index
+ * @param idx the sprite index 0-7
  * @param x x screen coordinates
  * @param row sprite row number
  */
@@ -157,9 +167,9 @@ void CVICII::drawSpriteMulticolor(int rasterLine, int idx, int x, int row) {
 }
 
 /**
- * @brief draw sprite row (mono sprite)
+ * @brief draw sprite row (standard sprite)
  * @param rasterLine the rasterline index to draw
- * @param idx the sprite index
+ * @param idx the sprite index 0-7
  * @param x x screen coordinates
  * @param row sprite row number
  */
@@ -260,18 +270,13 @@ void CVICII::drawSprites(int rasterLine) {
 }
 
 /**
- * @brief draw a character mode line
+ * @brief draw screen in character mode (standard or multicolor)
  * @param rasterLine the rasterline index to draw
  */
 void CVICII::drawCharacterMode(int rasterLine) {
     // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
     Rect limits;
     getScreenLimits(&limits);
-
-    // SDL_Log("first visible x=%d", limits.firstVisibleX);
-    // @fixme: this is wrong, adjusted manually. should be the firstVisibleX
-    // taken from documentation.....
-    limits.firstVisibleX = 42;
 
     // check if we're within the display window
     if (rasterLine < limits.firstVisibleY || rasterLine > limits.lastVisibleY) {
@@ -282,6 +287,9 @@ void CVICII::drawCharacterMode(int rasterLine) {
         // display enabled bit must be set
         return;
     }
+
+    // draw background
+    // drawBackground(rasterLine);
 
     // get screen mode
     int screenMode = getScreenMode();
@@ -379,6 +387,12 @@ void CVICII::drawCharacterMode(int rasterLine) {
             data = (data >> _scrollX);
             for (int i = 0; i < 8; i++) {
                 int pixelX = x + 8 - i;
+                if (pixelX > (320 + limits.firstVisibleX)) {
+                    // do not draw off screen
+                    blit(pixelX, line, &backgroundRgb);
+                    continue;
+                }
+
                 if (IS_BIT_SET(data, i)) {
                     // put pixel in foreground color
                     blit(pixelX, rasterLine, &charRgb);
@@ -391,14 +405,14 @@ void CVICII::drawCharacterMode(int rasterLine) {
     }
 }
 
+/**
+ * @brief draw screen in bitmap mode (standard or multicolor)
+ * @param rasterLine the rasterline index to draw
+ */
 void CVICII::drawBitmapMode(int rasterLine) {
     // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt 3.7.3.3
     Rect limits;
     getScreenLimits(&limits);
-
-    // @fixme: this is wrong, adjusted manually. should be the firstVisibleX
-    // taken from documentation.....
-    limits.firstVisibleX = 42;
 
     if (rasterLine < limits.firstVisibleY || rasterLine > limits.lastVisibleY) {
         // out of display window
@@ -408,6 +422,9 @@ void CVICII::drawBitmapMode(int rasterLine) {
         // display enabled bit must be set
         return;
     }
+
+    // draw background
+    // drawBackground(rasterLine);
 
     // get screen mode
     int screenMode = getScreenMode();
@@ -444,8 +461,9 @@ void CVICII::drawBitmapMode(int rasterLine) {
             RgbStruct bgColor = _palette[screenChar & 0xf];
             for (int i = 0; i < 8; i++) {
                 int pixelX = x + 8 - i + _scrollX;
-                if (pixelX > (limits.firstVisibleX + 320)) {
+                if (pixelX > (320 + limits.firstVisibleX)) {
                     // do not draw off screen
+                    blit(pixelX, line, &bgColor);
                     continue;
                 }
 
@@ -457,7 +475,7 @@ void CVICII::drawBitmapMode(int rasterLine) {
             }
         } else {
             // multicolor bitmap
-            SDL_Log("drawing multicolor bitmap");
+            // SDL_Log("drawing multicolor bitmap");
 
             for (int i = 0; i < 8; i++) {
                 // only the last 3 bits count
@@ -523,9 +541,16 @@ void CVICII::getScreenLimits(Rect *limits) {
     }
 
     limits->firstVisibleX = 24;
+    // @fixme: this is wrong, adjusted manually (+18). should be the
+    // firstVisibleX taken from documentation.....
+    limits->firstVisibleX = 42;
+
     limits->lastVisibleX = 343;
     if (!_CSEL) {
         limits->firstVisibleX = 31;
+        // @fixme: this is wrong, adjusted manually (+18). should be the
+        // firstVisibleX taken from documentation.....
+        limits->firstVisibleX = 49;
         limits->lastVisibleX = 334;
     }
 
@@ -536,11 +561,11 @@ void CVICII::getScreenLimits(Rect *limits) {
 int CVICII::update(long cycleCount) {
     if (IS_BIT_SET(_regInterrupt, 7)) {
         // IRQ bit is set, trigger an interrupt
-        _cpu->irq();
 
         // and clear the bit
         // https://dustlayer.com/vic-ii
         BIT_CLEAR(_regInterrupt, 7);
+        _cpu->irq();
     }
 
     // check for badline
@@ -592,8 +617,8 @@ int CVICII::update(long cycleCount) {
         if (IS_BIT_SET(_regInterruptEnabled, 0)) {
             // trigger irq if bits in $d01a is set for the raster
             // interrupt
-            BIT_SET(_regInterrupt, 0);
             _cpu->irq();
+            BIT_SET(_regInterrupt, 0);
         } else {
             BIT_CLEAR(_regInterrupt, 0);
         }
@@ -1233,6 +1258,13 @@ uint8_t CVICII::getScreenColor(int x, int y) {
     return screenColor;
 }
 
+/**
+ * @brief get a row (8x8) of a character from character set
+ * @param x x screen coordinate
+ * @param y y screen coordinate
+ * @param charRow the row inside the character bitmap, 0-8
+ * @return
+ */
 uint8_t CVICII::getCharacterData(int screenCode, int charRow) {
     // get character set address, handling character ROM shadow
     // (https://www.c64-wiki.com/wiki/VIC_bank)
@@ -1254,6 +1286,13 @@ uint8_t CVICII::getCharacterData(int screenCode, int charRow) {
     return data;
 }
 
+/**
+ * @brief get a row (8x8) of bitmap
+ * @param x x screen coordinate
+ * @param y y screen coordinate
+ * @param bitmapRow the row inside bitmap, 0-8
+ * @return
+ */
 uint8_t CVICII::getBitmapData(int x, int y, int bitmapRow) {
     uint16_t bitmapAddr = _bitmapAddress + (((y * 40) + x) * 8) + bitmapRow;
     uint8_t data;
