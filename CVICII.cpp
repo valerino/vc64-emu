@@ -572,6 +572,10 @@ int CVICII::update(long cycleCount) {
 
     // drawing a line always happens every 63 cycles on a PAL c64
     int elapsedCycles = cycleCount - _prevCycles;
+    if (elapsedCycles < VIC_PAL_CYCLES_PER_LINE) {
+        return 0;
+    }
+
     if (isBadLine) {
         if (elapsedCycles < VIC_PAL_CYCLES_PER_BADLINE) {
             return 0;
@@ -876,18 +880,37 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
     case 0xd018:
         // memory pointers (bit 0 is always set)
+        // https://www.c64-wiki.com/wiki/53272
         bt |= 1;
         _regMemoryPointers = bt;
 
         // set addresses (https://www.c64-wiki.com/wiki/Page_208-211)
-        // CB11, CB12, CB13 = character set address
-        _charsetAddress = (_regMemoryPointers & 0xe) << 10;
-
         // VM10,VM11,VM12,VM13 = character set address
-        _screenAddress = (_regMemoryPointers & 0xf0) << 6;
+        // The four most significant bits form a 4-bit number in the range 0
+        // thru 15 Multiplied with 1024 this gives the start address for the
+        // screen character RAM.
+        _screenAddress = (_regMemoryPointers >> 4);
+        _screenAddress *= 1024;
+
+        // CB11, CB12, CB13 = character set address
+        // Bits 1 thru 3 (weights 2 thru 8) form a 3-bit number in the range 0
+        // thru 7: Multiplied with 2048 this gives the start address for the
+        // character set.
+        _charsetAddress = (_regMemoryPointers & 0xe) >> 1;
+        _charsetAddress *= 2048;
 
         // CB13 = bitmap address
-        _bitmapAddress = (_regMemoryPointers & 0x8) << 10;
+        // The four most significant bits form a 4-bit number in the range 0
+        // thru 15: Multiplied with 1024 this gives the start address for the
+        // color information.
+        // Bit 3 indicates whether the bitmap begins at start address 0 / $0(bit
+        // set to "0"),or at 8192 / $2000(bit set to "1").
+        //_bitmapAddress =
+        if (IS_BIT_SET(_regMemoryPointers, 3)) {
+            _bitmapAddress += 0x2000;
+        } else {
+            _bitmapAddress = 0;
+        }
         break;
 
     case 0xd019:
@@ -991,6 +1014,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     default:
         break;
     }
+
     // write anyway
     _cpu->memory()->writeByte(addr, bt);
 }
