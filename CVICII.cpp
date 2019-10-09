@@ -1147,8 +1147,8 @@ int CVICII::getScreenMode() {
         // character mode");
         // @fixme: here returning VIC_SCREEN_MODE_CHARACTER_STANDARD fix some
         // displays..... but it's wrong, there's some bug somewhere else!
-        return VIC_SCREEN_MODE_CHARACTER_STANDARD;
-        // return VIC_SCREEN_MODE_CHARACTER_MULTICOLOR;
+        // return VIC_SCREEN_MODE_CHARACTER_STANDARD;
+        return VIC_SCREEN_MODE_CHARACTER_MULTICOLOR;
     }
     if (!IS_BIT_SET(_regCR1, 6) && IS_BIT_SET(_regCR1, 5) &&
         !IS_BIT_SET(_regCR2, 4)) {
