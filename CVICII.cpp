@@ -1250,7 +1250,6 @@ uint8_t CVICII::getCharacterData(int screenCode, int charRow) {
     int bank = _cia2->vicBank();
     uint8_t *cAddr = nullptr;
 
-    cAddr = _cpu->memory()->raw() + _charsetAddress;
     if (bank == 0 && _charsetAddress == 0x1000) {
         cAddr = ((CMemory *)_cpu->memory())->charset();
     } else if (bank == 2 && _charsetAddress == 0x9000) {
