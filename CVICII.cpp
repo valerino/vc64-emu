@@ -110,7 +110,8 @@ bool CVICII::isSpriteDrawingOnBorder(int x, int y) {
  * @param row sprite row number
  */
 void CVICII::drawSpriteMulticolor(int rasterLine, int idx, int x, int row) {
-    int currentLine = rasterLine; // - VIC_PAL_FIRST_VISIBLE_LINE;
+    // SDL_Log("drawing multicolor sprite");
+    int currentLine = rasterLine;
     uint16_t addr = getSpriteDataAddress(idx);
     // draw sprite row
     for (int i = 0; i < 3; i++) {
@@ -163,7 +164,8 @@ void CVICII::drawSpriteMulticolor(int rasterLine, int idx, int x, int row) {
  * @param row sprite row number
  */
 void CVICII::drawSprite(int rasterLine, int idx, int x, int row) {
-    int currentLine = rasterLine; // - VIC_PAL_FIRST_VISIBLE_LINE;
+    // SDL_Log("drawing sprite");
+    int currentLine = rasterLine;
 
     // get sprite data address
     uint16_t addr = getSpriteDataAddress(idx);
@@ -217,7 +219,8 @@ void CVICII::drawSprites(int rasterLine) {
 
     int defaultSpriteH = 21;
     int defaultSpriteW = 24;
-    int currentLine = rasterLine;
+
+    // loop for the 8 hardware sprites
     for (int idx = 0; idx < 8; idx++) {
         bool spriteEnabled = isSpriteEnabled(idx);
         if (!spriteEnabled) {
@@ -454,7 +457,7 @@ void CVICII::drawBitmapMode(int rasterLine) {
             }
         } else {
             // multicolor bitmap
-            // SDL_Log("drawing multicolor bitmap");
+            SDL_Log("drawing multicolor bitmap");
 
             for (int i = 0; i < 8; i++) {
                 // only the last 3 bits count
@@ -927,7 +930,8 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
     case 0xd020:
         // EC
-        _regBorderColor = (bt & 0xf);
+        bt &= 0xf;
+        _regBorderColor = bt;
         break;
 
     case 0xd021:
@@ -968,7 +972,6 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     default:
         break;
     }
-
     // write anyway
     _cpu->memory()->writeByte(addr, bt);
 }
@@ -1008,13 +1011,13 @@ void CVICII::setBackgoundColor(int idx, uint8_t val) {
  * @param idx register index in the sprite color registers array
  * @param val the color to set
  */
-void CVICII::setSpriteColor(int idx, uint8_t val) { _regM[idx] = val; }
+void CVICII::setSpriteColor(int idx, uint8_t val) { _regMC[idx] = val; }
 
 /**
  * @brief get color of sprite n from the MnC register
  * @param idx register index in the sprite color registers array
  */
-uint8_t CVICII::getSpriteColor(int idx) { return _regM[idx]; }
+uint8_t CVICII::getSpriteColor(int idx) { return _regMC[idx]; }
 
 /**
  * @brief get color from sprite multicolor register MMn

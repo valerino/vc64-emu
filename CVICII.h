@@ -138,8 +138,8 @@ class CVICII {
     uint8_t _regBorderColor = 0;
     uint8_t _regBC[4] = {0}; // 4 background colors (registers B0C ... B3C)
     uint8_t _regMM[2] = {0}; // sprite multicolor (registers MM0-MM1)
-    uint8_t
-        regMC[8]; // sprite colors for hw sprites 0..7 (registers M0C ... M7C)
+    uint8_t _regMC[8] = {
+        0}; // sprite colors for hw sprites 0..7 (registers M0C ... M7C)
     BlitCallback _cb = nullptr;
     CCIA2 *_cia2 = nullptr;
     RgbStruct _palette[16] = {0};
