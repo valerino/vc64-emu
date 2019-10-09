@@ -288,9 +288,6 @@ void CVICII::drawCharacterMode(int rasterLine) {
         return;
     }
 
-    // draw background
-    // drawBackground(rasterLine);
-
     // get screen mode
     int screenMode = getScreenMode();
 
@@ -389,7 +386,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
                 int pixelX = x + 8 - i;
                 if (pixelX > (320 + limits.firstVisibleX)) {
                     // do not draw off screen
-                    blit(pixelX, line, &backgroundRgb);
+                    blit(pixelX, rasterLine, &backgroundRgb);
                     continue;
                 }
 
@@ -422,9 +419,6 @@ void CVICII::drawBitmapMode(int rasterLine) {
         // display enabled bit must be set
         return;
     }
-
-    // draw background
-    // drawBackground(rasterLine);
 
     // get screen mode
     int screenMode = getScreenMode();
@@ -463,7 +457,7 @@ void CVICII::drawBitmapMode(int rasterLine) {
                 int pixelX = x + 8 - i + _scrollX;
                 if (pixelX > (320 + limits.firstVisibleX)) {
                     // do not draw off screen
-                    blit(pixelX, line, &bgColor);
+                    blit(pixelX, rasterLine, &bgColor);
                     continue;
                 }
 
