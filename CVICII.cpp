@@ -681,7 +681,7 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
     case 0xd013:
     case 0xd014: {
         // lightpen X/Y coordinate
-        int lp = 0xd013 - addr;
+        int lp = addr - 0xd013;
         *bt = _regLP[lp];
         break;
     }
@@ -851,7 +851,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     case 0xd013:
     case 0xd014: {
         // lightpen X/Y coordinate
-        int lp = 0xd013 - addr;
+        int lp = addr - 0xd013;
         _regLP[lp] = bt;
         break;
     }
