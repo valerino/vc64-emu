@@ -23,11 +23,11 @@ class CCIA2 : public CCIABase {
     void read(uint16_t address, uint8_t *bt);
     void write(uint16_t address, uint8_t bt);
     int vicBank() { return _vicBank;}
-    uint16_t vicAddress() { return _vicAddress; }
+    uint16_t vicAddress() { return _vicMemory; }
   
   private:
     int _vicBank = 0;
-    uint16_t _vicAddress = 0;
+    uint16_t _vicMemory = 0;
     void setVicBank(uint8_t pra);
 
 };
