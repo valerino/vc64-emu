@@ -468,9 +468,9 @@ void CVICII::drawBitmapMode(int rasterLine) {
                 }
 
                 if (IS_BIT_SET(bitmapData, i)) {
-                    blit(pixelX, line, &fgColor);
+                    blit(pixelX, rasterLine, &fgColor);
                 } else {
-                    blit(pixelX, line, &bgColor);
+                    blit(pixelX, rasterLine, &bgColor);
                 }
             }
         } else {
@@ -502,8 +502,8 @@ void CVICII::drawBitmapMode(int rasterLine) {
                     break;
                 }
                 int pixelX = x + 8 - i + _scrollX;
-                blit(pixelX, line, &rgb);
-                blit(pixelX + 1, line, &rgb);
+                blit(pixelX, rasterLine, &rgb);
+                blit(pixelX + 1, rasterLine, &rgb);
 
                 // each pixel is doubled
                 i++;
