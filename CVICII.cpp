@@ -835,6 +835,11 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
         // also set the line at which the raster irq happens (bit 0-7)
         _rasterIrqLine = bt;
+        if (IS_BIT_SET(_regCR1, 7)) {
+            BIT_SET(_rasterIrqLine, 8);
+        } else {
+            BIT_CLEAR(_rasterIrqLine, 8);
+        }
         break;
 
     case 0xd013:
