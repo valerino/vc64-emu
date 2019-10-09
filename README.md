@@ -8,9 +8,6 @@ my attempt at a portable Commodore64 emulator.
 ### vc64 (the actual emulator)
 * needs [BIOS files](./bios/README_bios.md)
 * targets PAL c64
-* CIA1 and CIA2 partially implemented
-* VIC-II partially implemented (character and multicolor mode only)
-* timers completely wrong :)
 
 #### build
 ~~~bash
