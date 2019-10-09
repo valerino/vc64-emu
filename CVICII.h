@@ -133,8 +133,6 @@ class CVICII {
     uint8_t _regSpriteDataPriority = 0;
     uint8_t _regSpriteMultiColor = 0;
     uint8_t _regSpriteXExpansion = 0;
-    uint8_t _regSpriteSpriteCollision = 0;
-    uint8_t _regSpriteDataCollision = 0;
     uint8_t _regBorderColor = 0;
     uint8_t _regBC[4] = {0}; // 4 background colors (registers B0C ... B3C)
     uint8_t _regMM[2] = {0}; // sprite multicolor (registers MM0-MM1)
