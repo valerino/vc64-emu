@@ -5,11 +5,6 @@
 #pragma once
 #include "CCIABase.h"
 
-#ifndef NDEBUG
-// debug-only flag
-//#define DEBUG_CIA2
-#endif
-
 #define CIA2_REGISTERS_START 0xdd00
 #define CIA2_REGISTERS_END 0xddff
 
@@ -22,12 +17,11 @@ class CCIA2 : public CCIABase {
     CCIA2(CMOS65xx *cpu);
     void read(uint16_t address, uint8_t *bt);
     void write(uint16_t address, uint8_t bt);
-    int vicBank() { return _vicBank;}
+    int vicBank() { return _vicBank; }
     uint16_t vicMemoryAddress() { return _vicMemory; }
-  
+
   private:
     int _vicBank = 0;
     uint16_t _vicMemory = 0;
     void setVicBank(uint8_t pra);
-
 };

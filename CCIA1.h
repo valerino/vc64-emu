@@ -4,11 +4,6 @@
 #pragma once
 #include "CCIABase.h"
 
-#ifndef NDEBUG
-// debug-only flag
-//#define DEBUG_CIA1
-#endif
-
 #define CIA1_REGISTERS_START 0xdc00
 #define CIA1_REGISTERS_END 0xdcff
 

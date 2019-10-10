@@ -8,10 +8,8 @@
 #include <CMOS65xx.h>
 #include "CCIA2.h"
 
-#ifndef NDEBUG
-// debug-only flag
-//#define DEBUG_VIC
-#endif
+// disabled (not working yet)
+// #define VIC_SPRITE_SPRITE_COLLISION_ENABLED
 
 /**
  * screen modes
@@ -133,6 +131,8 @@ class CVICII {
     uint8_t _regSpriteDataPriority = 0;
     uint8_t _regSpriteMultiColor = 0;
     uint8_t _regSpriteXExpansion = 0;
+    uint8_t _regSpriteSpriteCollision = 0;
+    uint8_t _regSpriteBckCollision = 0;
     uint8_t _regBorderColor = 0;
     uint8_t _regBC[4] = {0}; // 4 background colors (registers B0C ... B3C)
     uint8_t _regMM[2] = {0}; // sprite multicolor (registers MM0-MM1)
@@ -144,7 +144,7 @@ class CVICII {
     uint16_t _charsetAddress = 0;
     uint16_t _screenAddress = 0;
     uint16_t _bitmapAddress = 0;
-
+    int _pixelMask = 0;
     uint16_t checkShadowAddress(uint16_t address);
 
     bool isSpriteEnabled(int idx);
@@ -187,6 +187,7 @@ class CVICII {
     uint8_t getScreenColor(int x, int y);
     uint8_t getCharacterData(int screenCode, int charRow);
     uint8_t getBitmapData(int x, int y, int bitmapRow);
+    void checkSpriteSpriteCollision(int idx, int x, int y);
 };
 
 #endif // VC64_EMU_CVICII_H

@@ -9,11 +9,6 @@
 #include <SDL.h>
 #include <queue>
 
-#ifndef NDEBUG
-// debug-only flag
-//#define DEBUG_INPUT
-#endif
-
 /**
  * @brief pressing ctrl-d enters the debugger, softice style :)
  */

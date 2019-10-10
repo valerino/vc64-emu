@@ -7,17 +7,12 @@
 
 #include <CMOS65xx.h>
 
-#ifndef NDEBUG
-// debug-only flag
-//#define DEBUG_SID
-#endif
-
 /**
  * implements the SID 6581 audio chip
  */
 class CSID {
-public:
-    CSID(CMOS65xx* cpu);
+  public:
+    CSID(CMOS65xx *cpu);
     ~CSID();
 
     /**
@@ -27,9 +22,8 @@ public:
      */
     int update(int cycleCount);
 
-private:
-    CMOS65xx* _cpu;
+  private:
+    CMOS65xx *_cpu;
 };
 
-
-#endif //VC64_EMU_CSID_H
+#endif // VC64_EMU_CSID_H
