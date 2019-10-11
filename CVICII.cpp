@@ -103,7 +103,7 @@ bool CVICII::isSpriteDrawingOnBorder(int x, int y) {
     if (y < limits.firstVisibleY) {
         return true;
     }
-    if (x > limits.lastVisibleX) {
+    if (x > limits.lastVisibleX + limits.firstSpriteX) {
         return true;
     }
     if (y > limits.lastVisibleY) {
@@ -121,6 +121,8 @@ bool CVICII::isSpriteDrawingOnBorder(int x, int y) {
  * @param y drawing x coordinates
  */
 void CVICII::checkSpriteSpriteCollision(int idx, int x, int y) {
+    Rect limits;
+    getScreenLimits(&limits);
     for (int i = 0; i < 8; i++) {
         if (!isSpriteEnabled(i)) {
             continue;
@@ -128,17 +130,31 @@ void CVICII::checkSpriteSpriteCollision(int idx, int x, int y) {
         if (i == idx) {
             continue;
         }
-        int sprX = getSpriteCoordinate(i);
-        int sprY = getSpriteCoordinate(i + 1);
-        if ((x > sprX) && (x < (sprX + 24)) && (y > sprY) &&
-            (y < (sprY + 21))) {
+        int xMultiplier = isSpriteXExpanded(i) ? 2 : 1;
+        int yMultiplier = isSpriteYExpanded(i) ? 2 : 1;
+        int sprX = (getSpriteCoordinate(i) + limits.firstSpriteX) * xMultiplier;
+        int sprY = getSpriteCoordinate(i + 1) * yMultiplier;
+        if ((x >= sprX && (x <= (sprX + 24 * xMultiplier)) && (y >= sprY) &&
+             (y <= sprY + 21 * yMultiplier))) {
             /*SDL_Log("collision sprite-%d(x=%d,y=%d) with "
                     "sprite-%d(x=%d,y=%d)",
                     idx, x, y, i, sprX, sprY);*/
+
+            if (!_regSpriteSpriteCollision) {
+                // only the first collision triggers an irq
+                if (IS_BIT_SET(_regInterruptEnabled, 2)) {
+                    BIT_SET(_regInterrupt, 2);
+                    _cpu->irq();
+                }
+            }
             BIT_SET(_regSpriteSpriteCollision, i);
             BIT_SET(_regSpriteSpriteCollision, idx);
+
+        } else {
+            BIT_CLEAR(_regInterrupt, 2);
         }
     }
+    return;
 }
 
 /**
@@ -154,6 +170,7 @@ void CVICII::drawSpriteMulticolor(int rasterLine, int idx, int x, int row) {
     int currentLine = rasterLine;
     uint16_t addr = getSpriteDataAddress(idx);
     bool checkSpriteSpriteColl = true;
+
     // draw sprite row
     for (int i = 0; i < 3; i++) {
         // get sprite byte
@@ -170,7 +187,6 @@ void CVICII::drawSpriteMulticolor(int rasterLine, int idx, int x, int row) {
             uint8_t bits = ((spByte >> j * 2) & 0x3);
             switch (bits) {
             case 0:
-                // 00 = transparent
                 break;
             case 1:
                 // 01 = multicolor register 0
@@ -184,15 +200,23 @@ void CVICII::drawSpriteMulticolor(int rasterLine, int idx, int x, int row) {
                 // 11 = multicolor register 1
                 color = getSpriteMulticolor(1);
                 break;
+            default:
+                break;
             }
 
             if (bits != 0) {
-                // blit
+                // non-transparent, blit
                 RgbStruct rgb = _palette[color];
                 int pixelX = x + (i * 8) + (8 - (j * 2));
                 blit(pixelX, currentLine, &rgb);
                 blit(pixelX + 1, currentLine, &rgb);
-                checkSpriteSpriteCollision(idx, pixelX, currentLine);
+
+                // also check sprite-sprite collision
+                Rect limits;
+                getScreenLimits(&limits);
+                checkSpriteSpriteCollision(
+                    idx, pixelX,
+                    currentLine); // - limits.firstVisibleY);
             }
         }
     }
@@ -211,8 +235,6 @@ void CVICII::drawSprite(int rasterLine, int idx, int x, int row) {
 
     // get sprite data address
     uint16_t addr = getSpriteDataAddress(idx);
-
-    bool checkSpriteSpriteColl = true;
 
     // a sprite is 24x21, each row is 3 bytes
     for (int i = 0; i < 3; i++) {
@@ -235,12 +257,19 @@ void CVICII::drawSprite(int rasterLine, int idx, int x, int row) {
                     // blit pixel
                     int color = getSpriteColor(idx);
                     if (isSpriteDrawingOnBorder(pixelX, currentLine)) {
-                        // draw using border color
+                        // draw using border color, transparent
                         color = _regBorderColor;
+                    } else {
+                        // if we're not drawing transparent, also check
+                        // sprite-sprite collision
+                        Rect limits;
+                        getScreenLimits(&limits);
+                        checkSpriteSpriteCollision(
+                            idx, pixelX,
+                            currentLine); // - limits.firstVisibleY);
                     }
                     RgbStruct rgb = _palette[color & 0xf];
                     blit(pixelX, currentLine, &rgb);
-                    checkSpriteSpriteCollision(idx, pixelX, currentLine);
                 }
             }
         }
@@ -256,7 +285,6 @@ void CVICII::drawSprites(int rasterLine) {
         // no sprites enabled
         return;
     }
-
     if (!_DEN) {
         // display enabled bit must be set
         return;
@@ -264,6 +292,8 @@ void CVICII::drawSprites(int rasterLine) {
 
     int defaultSpriteH = 21;
     int defaultSpriteW = 24;
+    Rect limits;
+    getScreenLimits(&limits);
 
     // loop for the 8 hardware sprites
     for (int idx = 0; idx < 8; idx++) {
@@ -282,18 +312,14 @@ void CVICII::drawSprites(int rasterLine) {
         if (rasterLine >= spriteYCoord && (rasterLine < spriteYCoord + h)) {
             // draw sprite row at the current scanline
             int row = rasterLine - spriteYCoord;
-            // @todo i don't know why this works...... probably has
-            // something to do with LP registers as explained at
-            // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt ???
-            // apparently, the x coordinate is not enough and must be
+            // @fixme apparently, the x coordinate is not enough and must be
             // 'shifted' some pixels to the right ....
-            int spriteFirstX = 18;
-            int x = spriteFirstX + spriteXCoord;
-            // SDL_Log("LPX=%d, xcoord=%d, x=%d", _regLP[0], spriteXCoord,
+            int x = limits.firstSpriteX + spriteXCoord;
+            // SDL_Log("xscroll=%d, xcoord=%d, x=%d", _scrollX, spriteXCoord,
             // x);
             if (isSpriteHExpanded) {
                 // handle Y expansion
-                row = (rasterLine - spriteYCoord) / 2;
+                row /= 2;
             }
 
             if (multicolor) {
@@ -571,14 +597,19 @@ void CVICII::getScreenLimits(Rect *limits) {
         limits->lastVisibleY = 246;
     }
 
-    limits->firstVisibleX = 24;
+    // @fixme the following X coordinates are merely found around in other
+    // emulators..... but it's just a dirty hack
+
+    // limits->firstVisibleX = 24;
     // @fixme: this is wrong, adjusted manually (+18). should be the
     // firstVisibleX taken from documentation.....
     limits->firstVisibleX = 42;
 
+    limits->firstSpriteX = 18;
+
     limits->lastVisibleX = 343;
     if (!_CSEL) {
-        limits->firstVisibleX = 31;
+        // limits->firstVisibleX = 31;
         // @fixme: this is wrong, adjusted manually (+18). should be the
         // firstVisibleX taken from documentation.....
         limits->firstVisibleX = 49;
@@ -643,38 +674,27 @@ int CVICII::update(long cycleCount) {
             // draw bitmap
             drawBitmapMode(currentRaster - limits.firstVblankLine);
         }
+
         // draw sprites
         drawSprites(currentRaster - limits.firstVblankLine);
-
-#ifdef VIC_SPRITE_SPRITE_COLLISION_ENABLED
-        // handle collisions on first drawn line
-        if (currentRaster == limits.firstVblankLine + 1) {
-            if (_regSpriteSpriteCollision) {
-                // SDL_Log("sprite collision");
-                BIT_SET(_regInterrupt, 2);
-                _cpu->irq();
-                _regSpriteSpriteCollision = 0;
-            } else {
-                BIT_CLEAR(_regInterrupt, 2);
-            }
-        }
-#endif
     }
 
-    // handle raster interrupt if needed
-    if (currentRaster == _rasterIrqLine) {
-        if (IS_BIT_SET(_regInterruptEnabled, 0)) {
-            // trigger irq if bits in $d01a is set for the raster
-            // interrupt
-            BIT_SET(_regInterrupt, 0);
-            _cpu->irq();
+    if (IS_BIT_SET(_regInterruptEnabled, 0)) {
+        // handle raster interrupt
+        if (currentRaster == _rasterIrqLine) {
+            if (IS_BIT_SET(_regInterruptEnabled, 0)) {
+                // trigger irq if bits in $d01a is set for the raster
+                // interrupt
+                BIT_SET(_regInterrupt, 0);
+                _cpu->irq();
+            } else {
+                BIT_CLEAR(_regInterrupt, 0);
+            }
         } else {
             BIT_CLEAR(_regInterrupt, 0);
         }
-    } else {
-        // raster interrupt not happened
-        BIT_CLEAR(_regInterrupt, 0);
     }
+
     // update registers accordingly
     currentRaster++;
     setCurrentRasterLine(currentRaster);
@@ -785,11 +805,17 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
     case 0xd01e:
         // sprite-sprite collision
         *bt = _regSpriteSpriteCollision;
+
+        // reset on read
+        _regSpriteSpriteCollision = 0;
         break;
 
     case 0xd01f:
         // sprite-background collision
         *bt = _regSpriteBckCollision;
+
+        // reset on read
+        _regSpriteBckCollision = 0;
         break;
 
     case 0xd020:
@@ -993,10 +1019,12 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         break;
 
     case 0xd01e:
+        // sprite-sprite collision
         _regSpriteSpriteCollision = bt;
         break;
 
     case 0xd01f:
+        // sprite-background collision
         _regSpriteBckCollision = bt;
         break;
 

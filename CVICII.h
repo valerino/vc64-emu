@@ -8,9 +8,6 @@
 #include <CMOS65xx.h>
 #include "CCIA2.h"
 
-// disabled (not working yet)
-// #define VIC_SPRITE_SPRITE_COLLISION_ENABLED
-
 /**
  * screen modes
  * https://www.c64-wiki.com/wiki/Standard_Bitmap_Mode
@@ -50,12 +47,13 @@ typedef struct _rgbStruct {
  * @brief defines a rectangle
  */
 typedef struct _rect {
-    int firstVisibleX;
-    int firstVisibleY;
-    int lastVisibleX;
-    int lastVisibleY;
-    int firstVblankLine;
-    int lastVblankLine;
+    int firstVisibleX;   // first display window column
+    int firstVisibleY;   // first display window row
+    int lastVisibleX;    // last display window column
+    int lastVisibleY;    // last display window row
+    int firstVblankLine; // first row drawn at all, from the beam perspective
+    int lastVblankLine;  // last row at all, from the beam perspective
+    int firstSpriteX;    // this is the first column to start displaying sprites
 } Rect;
 
 /**
