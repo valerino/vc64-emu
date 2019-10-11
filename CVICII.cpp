@@ -967,13 +967,15 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         // screen character RAM.
         _screenAddress = (_regMemoryPointers >> 4);
         _screenAddress *= 1024;
+        SDL_Log("screen memory address=$%x", _screenAddress);
 
         // CB11, CB12, CB13 = character set address
         // Bits 1 thru 3 (weights 2 thru 8) form a 3-bit number in the range
         // 0 thru 7: Multiplied with 2048 this gives the start address for
         // the character set.
-        _charsetAddress = (_regMemoryPointers & 0xe) >> 1;
+        _charsetAddress = (_regMemoryPointers >> 1) & 0x7;
         _charsetAddress *= 2048;
+        SDL_Log("charset address=$%x", _charsetAddress);
 
         // CB13 = bitmap address
         // The four most significant bits form a 4-bit number in the range 0
@@ -987,6 +989,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         } else {
             _bitmapAddress = 0;
         }
+        SDL_Log("bitmap address=$%x", _screenAddress);
         break;
 
     case 0xd019:
@@ -1245,8 +1248,8 @@ int CVICII::getScreenMode() {
         // multicolor character mode");
         // @fixme: here returning VIC_SCREEN_MODE_CHARACTER_STANDARD fix
         // some displays..... but it's wrong, there's some bug somewhere
-        // else! return VIC_SCREEN_MODE_CHARACTER_STANDARD;
-        return VIC_SCREEN_MODE_CHARACTER_MULTICOLOR;
+        return VIC_SCREEN_MODE_CHARACTER_STANDARD;
+        // return VIC_SCREEN_MODE_CHARACTER_MULTICOLOR;
     }
     if (!IS_BIT_SET(_regCR1, 6) && IS_BIT_SET(_regCR1, 5) &&
         !IS_BIT_SET(_regCR2, 4)) {
@@ -1353,14 +1356,20 @@ uint8_t CVICII::getCharacterData(int screenCode, int charRow) {
     // bank,
     //      _charsetAddress, _cia2->vicMemoryAddress());
     if ((bank == 0 && _charsetAddress == 0x1000) ||
-        (bank == 2 && _charsetAddress == 0x9000)) {
+        (bank == 0 && _charsetAddress == 0x1800) ||
+        (bank == 2 && _charsetAddress == 0x9000) ||
+        (bank == 2 && _charsetAddress == 0x9800)) {
         // ROM address
         cAddr = ((CMemory *)_cpu->memory())->charset();
+        if (IS_BIT_SET(_charsetAddress, 11)) {
+            // select the alternate character set in rom
+            cAddr += 0x800;
+        }
 
         // read char data
         data = cAddr[(screenCode * 8) + charRow];
     } else {
-        // default
+        // ram address (own character set)
         uint16_t addr = _cia2->vicMemoryAddress() + _charsetAddress;
         addr += ((screenCode * 8) + charRow);
 
