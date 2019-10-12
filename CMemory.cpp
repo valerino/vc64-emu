@@ -18,8 +18,19 @@ CMemory::CMemory() {
     _charRom = (uint8_t *)calloc(1, MEMORY_CHARSET_SIZE);
 }
 
-CMemory::~CMemory(){SAFE_FREE(_mem) SAFE_FREE(_charRom) SAFE_FREE(_basicRom)
-                        SAFE_FREE(_kernalRom)}
+CMemory::~CMemory() {
+    SAFE_FREE(_mem)
+    SAFE_FREE(_charRom) SAFE_FREE(_basicRom) SAFE_FREE(_kernalRom)
+}
+
+int CMemory::readRawByte(uint16_t addr, uint8_t *bt) {
+    if (!bt) {
+        return EINVAL;
+    }
+    uint8_t b = _mem[addr];
+    *bt = b;
+    return 0;
+}
 
 uint8_t CMemory::readByte(uint32_t address, uint8_t *b) {
     if (!b) {

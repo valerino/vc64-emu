@@ -1374,8 +1374,7 @@ uint8_t CVICII::getCharacterData(int screenCode, int charRow) {
         addr += ((screenCode * 8) + charRow);
 
         // raw memory read
-        uint8_t *raw = _cpu->memory()->raw();
-        data = raw[addr];
+        ((CMemory *)_cpu->memory())->readRawByte(addr, &data);
     }
     return data;
 }

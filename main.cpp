@@ -159,24 +159,21 @@ void testCpuMain(bool debugger) {
 }
 
 /**
- * @brief once the cpu has reached enough cycles to have loaded the BASIC
- * interpreter, issue a load of our prg. this trigger only once!
+ * @brief load .PRG in memory and inject RUN in the keyboard buffer
  */
 void handlePrgLoading() {
-    if (totalCycles > 2570000 && path) {
-        // enough cycles passed....
-        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
-                     "cycle=%lld, loading prg at %s", totalCycles, path);
-        // TODO: determine if it's a prg, either fail....
-        int res = mem->loadPrg(path);
-        if (res == 0) {
-            // inject run in the keyboard buffer
-            input->injectKeyboardBuffer("RUN\r");
-        }
-
-        // we don't need this to trigger anymore
-        path = nullptr;
+    // enough cycles passed....
+    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "cycle=%lld, loading prg at %s",
+                 totalCycles, path);
+    // TODO: determine if it's a prg, either fail....
+    int res = mem->loadPrg(path);
+    if (res == 0) {
+        // inject run in the keyboard buffer
+        input->injectKeyboardBuffer("RUN\r");
     }
+
+    // we don't need this to trigger anymore
+    path = nullptr;
 }
 
 int main(int argc, char **argv) {
@@ -300,19 +297,21 @@ int main(int argc, char **argv) {
             // reset hotkey-dbgbreak status if any (for the debugger)
             hotkeyDbgBreak = false;
 
+            // update i/o chips
+            cia1->update(totalCycles);
+            cia2->update(totalCycles);
+
             // updating vic takes into account the less scanlines for badlines
             // (23 vs 63)
             int c = vic->update(totalCycles);
             cycles += c;
 
+            // update audio chip
+            sid->update(totalCycles);
+
             // @fixme: this is wrong, cycles should be added .... but doing it
             // screws all (probably vic cycle counting is wrong)
             // totalCycles += c;
-
-            // update other chips
-            cia1->update(totalCycles);
-            cia2->update(totalCycles);
-            sid->update(totalCycles);
 
             // update cyclecounter
             cycleCounter -= cycles;
@@ -336,9 +335,12 @@ int main(int argc, char **argv) {
                 input->checkClipboard(totalCycles, cyclesPerFrame, 5);
             }
 
-            // handle prg loading, if any and if enough cycles has passed, only
-            // once
-            handlePrgLoading();
+            // once the cpu has reached enough cycles to have loaded the BASIC
+            // interpreter, issue a load of our prg. this trigger only once!
+            if (totalCycles > 2570000 && path) {
+                handlePrgLoading();
+                path = nullptr;
+            }
         }
     } while (0);
 
