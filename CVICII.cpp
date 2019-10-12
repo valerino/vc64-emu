@@ -1226,45 +1226,42 @@ void CVICII::setScreenMode() {
     // https://www.c64-wiki.com/wiki/Standard_Character_Mode
     if (!IS_BIT_SET(_regCR1, 6) && !IS_BIT_SET(_regCR1, 5) &&
         !IS_BIT_SET(_regCR2, 4)) {
-        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
-                    "selecting standard character mode");
+        /*SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+                    "selecting standard character mode");*/
         _screenMode = VIC_SCREEN_MODE_CHARACTER_STANDARD;
         return;
     }
     if (!IS_BIT_SET(_regCR1, 6) && !IS_BIT_SET(_regCR1, 5) &&
         IS_BIT_SET(_regCR2, 4)) {
-        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
-                    "selecting multicolor character mode");
-        // @fixme: here returning VIC_SCREEN_MODE_CHARACTER_STANDARD fix
-        // some displays..... but it's wrong, there's some bug somewhere
-        //_screenMode = VIC_SCREEN_MODE_CHARACTER_STANDARD;
+        /*SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+                    "selecting multicolor character mode");*/
         _screenMode = VIC_SCREEN_MODE_CHARACTER_MULTICOLOR;
         return;
     }
     if (!IS_BIT_SET(_regCR1, 6) && IS_BIT_SET(_regCR1, 5) &&
         !IS_BIT_SET(_regCR2, 4)) {
-        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
-                    "selecting standard bitmap mode");
+        /*SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+                    "selecting standard bitmap mode");*/
         _screenMode = VIC_SCREEN_MODE_BITMAP_STANDARD;
         return;
     }
     if (!IS_BIT_SET(_regCR1, 6) && IS_BIT_SET(_regCR1, 5) &&
         IS_BIT_SET(_regCR2, 4)) {
-        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
-                    "selecting multicolor bitmap mode");
+        /*SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+                    "selecting multicolor bitmap mode");*/
         _screenMode = VIC_SCREEN_MODE_BITMAP_MULTICOLOR;
         return;
     }
     if (IS_BIT_SET(_regCR1, 6) && !IS_BIT_SET(_regCR1, 5) &&
         !IS_BIT_SET(_regCR2, 4)) {
-        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
-                    "selecting extended background color mode");
+        /*SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+                    "selecting extended background color mode");*/
         _screenMode = VIC_SCREEN_MODE_EXTENDED_BACKGROUND_COLOR;
         return;
     }
 
-    SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
-                "invalid color mode!! CR1=%x, CR2=%x", _regCR1, _regCR2);
+    /*SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
+                "invalid color mode!! CR1=%x, CR2=%x", _regCR1, _regCR2);*/
 }
 
 /**
