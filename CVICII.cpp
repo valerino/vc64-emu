@@ -350,9 +350,6 @@ void CVICII::drawCharacterMode(int rasterLine) {
         return;
     }
 
-    // get screen mode
-    int screenMode = getScreenMode();
-
     // draw characters
     int columns = 40;
     for (int c = 0; c < columns; c++) {
@@ -381,7 +378,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
 
         // background color
         RgbStruct backgroundRgb;
-        if (screenMode == VIC_SCREEN_MODE_EXTENDED_BACKGROUND_COLOR) {
+        if (_screenMode == VIC_SCREEN_MODE_EXTENDED_BACKGROUND_COLOR) {
             // determine which background color register to be used
             // https://www.c64-wiki.com/wiki/Extended_color_mode
             if (!IS_BIT_SET(screenCode, 7) && !IS_BIT_SET(screenCode, 6)) {
@@ -408,10 +405,11 @@ void CVICII::drawCharacterMode(int rasterLine) {
         RgbStruct charRgb = _palette[charColor & 0xf];
 
         // draw character bit by bit
-        if (screenMode == VIC_SCREEN_MODE_CHARACTER_MULTICOLOR) {
+        if (_screenMode == VIC_SCREEN_MODE_CHARACTER_MULTICOLOR) {
             for (int i = 0; i < 8; i++) {
                 // only the last 3 bits count
                 uint8_t bits = data & 3;
+                int pixelX = x + 8 - i;
                 switch (bits) {
                 case 0:
                     // 00
@@ -429,12 +427,9 @@ void CVICII::drawCharacterMode(int rasterLine) {
                     break;
 
                 case 3:
-                    // 11, default (use background color, doc says use
-                    // character color ??)
-                    charRgb = _palette[getBackgoundColor(0)];
+                    // 11, default (use default screen matrix color)
                     break;
                 }
-                int pixelX = x + 8 - i;
                 blit(pixelX, rasterLine, &charRgb);
                 blit(pixelX + 1, rasterLine, &charRgb);
 
@@ -483,9 +478,6 @@ void CVICII::drawBitmapMode(int rasterLine) {
         return;
     }
 
-    // get screen mode
-    int screenMode = getScreenMode();
-
     // draw bitmap
     int columns = 40;
     for (int c = 0; c < columns; c++) {
@@ -511,7 +503,7 @@ void CVICII::drawBitmapMode(int rasterLine) {
         uint8_t bitmapData = getBitmapData(c, row, bitmapRow);
 
         // draw bitmap
-        if (screenMode == VIC_SCREEN_MODE_BITMAP_STANDARD) {
+        if (_screenMode == VIC_SCREEN_MODE_BITMAP_STANDARD) {
             // SDL_Log("drawing bitmap");
             // standard bitmap
             RgbStruct fgColor = _palette[(screenChar >> 4) & 0xf];
@@ -662,15 +654,14 @@ int CVICII::update(long cycleCount) {
         currentRaster < limits.lastVblankLine) {
         drawBorder(currentRaster - limits.firstVblankLine);
 
-        int screenMode = getScreenMode();
-        if (screenMode == VIC_SCREEN_MODE_CHARACTER_STANDARD ||
-            screenMode == VIC_SCREEN_MODE_CHARACTER_MULTICOLOR ||
-            screenMode == VIC_SCREEN_MODE_EXTENDED_BACKGROUND_COLOR) {
+        if (_screenMode == VIC_SCREEN_MODE_CHARACTER_STANDARD ||
+            _screenMode == VIC_SCREEN_MODE_CHARACTER_MULTICOLOR ||
+            _screenMode == VIC_SCREEN_MODE_EXTENDED_BACKGROUND_COLOR) {
             // draw screen line in character mode
             drawCharacterMode(currentRaster - limits.firstVblankLine);
 
-        } else if (screenMode == VIC_SCREEN_MODE_BITMAP_STANDARD ||
-                   screenMode == VIC_SCREEN_MODE_BITMAP_MULTICOLOR) {
+        } else if (_screenMode == VIC_SCREEN_MODE_BITMAP_STANDARD ||
+                   _screenMode == VIC_SCREEN_MODE_BITMAP_MULTICOLOR) {
             // draw bitmap
             drawBitmapMode(currentRaster - limits.firstVblankLine);
         }
@@ -914,6 +905,9 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         if (IS_BIT_SET(bt, 7)) {
             BIT_SET(_rasterIrqLine, 8);
         }
+
+        // set screen mode (ECM/BMM bits)
+        setScreenMode();
         break;
 
     case 0xd012:
@@ -947,6 +941,9 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
         // CSEL
         _CSEL = IS_BIT_SET(bt, 3);
+
+        // set screen mode (MCM bit)
+        setScreenMode();
         break;
 
     case 0xd017:
@@ -1229,50 +1226,52 @@ bool CVICII::isSpriteXExpanded(int idx) {
 }
 
 /**
- * @brief get the screen mode and return one of the VIC_SCREEN_MODE_*
- * values
- * @return int one of the VIC_SCREEN_MODE_x, or -1 on error
+ * @brief set the screen mode depending on CR1 and CR2
  */
-int CVICII::getScreenMode() {
+void CVICII::setScreenMode() {
     // refers to bitmasks at
     // https://www.c64-wiki.com/wiki/Standard_Character_Mode
     if (!IS_BIT_SET(_regCR1, 6) && !IS_BIT_SET(_regCR1, 5) &&
         !IS_BIT_SET(_regCR2, 4)) {
-        // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "selecting standard
-        // character mode");
-        return VIC_SCREEN_MODE_CHARACTER_STANDARD;
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+                    "selecting standard character mode");
+        _screenMode = VIC_SCREEN_MODE_CHARACTER_STANDARD;
+        return;
     }
     if (!IS_BIT_SET(_regCR1, 6) && !IS_BIT_SET(_regCR1, 5) &&
         IS_BIT_SET(_regCR2, 4)) {
-        // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "selecting
-        // multicolor character mode");
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+                    "selecting multicolor character mode");
         // @fixme: here returning VIC_SCREEN_MODE_CHARACTER_STANDARD fix
         // some displays..... but it's wrong, there's some bug somewhere
-        return VIC_SCREEN_MODE_CHARACTER_STANDARD;
-        // return VIC_SCREEN_MODE_CHARACTER_MULTICOLOR;
+        //_screenMode = VIC_SCREEN_MODE_CHARACTER_STANDARD;
+        _screenMode = VIC_SCREEN_MODE_CHARACTER_MULTICOLOR;
+        return;
     }
     if (!IS_BIT_SET(_regCR1, 6) && IS_BIT_SET(_regCR1, 5) &&
         !IS_BIT_SET(_regCR2, 4)) {
-        // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "selecting standard
-        // bitmap mode");
-        return VIC_SCREEN_MODE_BITMAP_STANDARD;
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+                    "selecting standard bitmap mode");
+        _screenMode = VIC_SCREEN_MODE_BITMAP_STANDARD;
+        return;
     }
     if (!IS_BIT_SET(_regCR1, 6) && IS_BIT_SET(_regCR1, 5) &&
         IS_BIT_SET(_regCR2, 4)) {
-        // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "selecting
-        // multicolor bitmap mode");
-        return VIC_SCREEN_MODE_BITMAP_MULTICOLOR;
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+                    "selecting multicolor bitmap mode");
+        _screenMode = VIC_SCREEN_MODE_BITMAP_MULTICOLOR;
+        return;
     }
     if (IS_BIT_SET(_regCR1, 6) && !IS_BIT_SET(_regCR1, 5) &&
         !IS_BIT_SET(_regCR2, 4)) {
-        // SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "selecting extended
-        // background color mode");
-        return VIC_SCREEN_MODE_EXTENDED_BACKGROUND_COLOR;
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+                    "selecting extended background color mode");
+        _screenMode = VIC_SCREEN_MODE_EXTENDED_BACKGROUND_COLOR;
+        return;
     }
-    // SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "invalid color mode!!
-    // CR1=%x, CR2=%x", _regCR1, _regCR2);
 
-    return -1;
+    SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
+                "invalid color mode!! CR1=%x, CR2=%x", _regCR1, _regCR2);
 }
 
 /**

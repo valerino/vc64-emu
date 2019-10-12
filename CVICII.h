@@ -142,7 +142,7 @@ class CVICII {
     uint16_t _charsetAddress = 0;
     uint16_t _screenAddress = 0;
     uint16_t _bitmapAddress = 0;
-    int _pixelMask = 0;
+    int _screenMode = VIC_SCREEN_MODE_CHARACTER_STANDARD;
     uint16_t checkShadowAddress(uint16_t address);
 
     bool isSpriteEnabled(int idx);
@@ -173,7 +173,7 @@ class CVICII {
     void drawSpriteMulticolor(int rasterLine, int idx, int x, int row);
     void blit(int x, int y, RgbStruct *rgb);
     void initPalette();
-    int getScreenMode();
+    void setScreenMode();
     void drawSprite(int rasterLine, int idx, int x, int row);
     bool isSpriteDrawingOnBorder(int x, int y);
     uint16_t getSpriteDataAddress(int idx);
