@@ -159,6 +159,7 @@ void CVICII::checkSpriteSpriteCollision(int idx, int x, int y) {
 
 /**
  * @brief draw sprite row (multicolor sprite)
+ * @see http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt 3.7.3.2
  * @param rasterLine the rasterline index to draw
  * @param idx the sprite index 0-7
  * @param x x screen coordinates
@@ -208,15 +209,17 @@ void CVICII::drawSpriteMulticolor(int rasterLine, int idx, int x, int row) {
                 // non-transparent, blit
                 RgbStruct rgb = _palette[color];
                 int pixelX = x + (i * 8) + (8 - (j * 2));
-                blit(pixelX, currentLine, &rgb);
-                blit(pixelX + 1, currentLine, &rgb);
+                if (!isSpriteDrawingOnBorder(pixelX, currentLine)) {
+                    blit(pixelX, currentLine, &rgb);
+                    blit(pixelX + 1, currentLine, &rgb);
 
-                // also check sprite-sprite collision
-                Rect limits;
-                getScreenLimits(&limits);
-                checkSpriteSpriteCollision(
-                    idx, pixelX,
-                    currentLine); // - limits.firstVisibleY);
+                    // also check sprite-sprite collision
+                    Rect limits;
+                    getScreenLimits(&limits);
+                    checkSpriteSpriteCollision(
+                        idx, pixelX,
+                        currentLine); // - limits.firstVisibleY);
+                }
             }
         }
     }
@@ -402,7 +405,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
         // read the character data and color
         uint8_t data = getCharacterData(screenCode, charRow);
         uint8_t charColor = getScreenColor(c, row);
-        RgbStruct charRgb = _palette[charColor];
+        RgbStruct charRgb;
 
         // draw character bit by bit
         if (_screenMode == VIC_SCREEN_MODE_CHARACTER_MULTICOLOR) {
@@ -428,6 +431,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
 
                 case 3:
                     // 11, default (use default screen matrix color)
+                    charRgb = _palette[charColor & 7];
                     break;
                 }
                 blit(pixelX, rasterLine, &charRgb);
@@ -450,6 +454,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
 
                 if (IS_BIT_SET(data, i)) {
                     // put pixel in foreground color
+                    charRgb = _palette[charColor];
                     blit(pixelX, rasterLine, &charRgb);
                 } else {
                     // put pixel in background color
