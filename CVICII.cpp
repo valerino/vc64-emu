@@ -298,8 +298,11 @@ void CVICII::drawSprites(int rasterLine) {
     Rect limits;
     getScreenLimits(&limits);
 
-    // loop for the 8 hardware sprites
-    for (int idx = 0; idx < 8; idx++) {
+    // loop for the 8 hardware sprites, in reverse order to respect sprite
+    // priorities (sprite 0 has higher priority than 7)
+    // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
+    // 3.8.2. Priority and collision detection
+    for (int idx = 7; idx >= 0; idx--) {
         bool spriteEnabled = isSpriteEnabled(idx);
         if (!spriteEnabled) {
             // this sprite is not enabled
