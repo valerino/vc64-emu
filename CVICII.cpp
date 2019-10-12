@@ -383,7 +383,8 @@ void CVICII::drawCharacterMode(int rasterLine) {
         RgbStruct backgroundRgb;
         if (_screenMode == VIC_SCREEN_MODE_EXTENDED_BACKGROUND_COLOR) {
             // determine which background color register to be used
-            // https://www.c64-wiki.com/wiki/Extended_color_mode
+            // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
+            // 3.7.3.5. ECM text mode (ECM/BMM/MCM=1/0/0)
             if (!IS_BIT_SET(screenCode, 7) && !IS_BIT_SET(screenCode, 6)) {
                 backgroundRgb = _palette[getBackgoundColor(0)];
             } else if (!IS_BIT_SET(screenCode, 7) &&
@@ -409,6 +410,8 @@ void CVICII::drawCharacterMode(int rasterLine) {
 
         // draw character bit by bit
         if (_screenMode == VIC_SCREEN_MODE_CHARACTER_MULTICOLOR) {
+            // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
+            // 3.7.3.2. Multicolor text mode (ECM/BMM/MCM=0/0/1)
             for (int i = 0; i < 8; i++) {
                 // only the last 3 bits count
                 uint8_t bits = data & 3;
@@ -434,6 +437,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
                     charRgb = _palette[charColor & 7];
                     break;
                 }
+                // avoid transparent
                 blit(pixelX, rasterLine, &charRgb);
                 blit(pixelX + 1, rasterLine, &charRgb);
 
@@ -443,6 +447,8 @@ void CVICII::drawCharacterMode(int rasterLine) {
             }
         } else {
             // default text mode or extended background mode
+            // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
+            // 3.7.3.1. Standard text mode (ECM/BMM/MCM=0/0/0)
             data = (data >> _scrollX);
             for (int i = 0; i < 8; i++) {
                 int pixelX = x + 8 - i;
@@ -470,7 +476,6 @@ void CVICII::drawCharacterMode(int rasterLine) {
  * @param rasterLine the rasterline index to draw
  */
 void CVICII::drawBitmapMode(int rasterLine) {
-    // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt 3.7.3.3
     Rect limits;
     getScreenLimits(&limits);
 
@@ -509,6 +514,8 @@ void CVICII::drawBitmapMode(int rasterLine) {
 
         // draw bitmap
         if (_screenMode == VIC_SCREEN_MODE_BITMAP_STANDARD) {
+            // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
+            // 3.7.3.3. Standard bitmap mode (ECM/BMM/MCM=0/1/0)
             // SDL_Log("drawing bitmap");
             // standard bitmap
             RgbStruct fgColor = _palette[(screenChar >> 4) & 0xf];
@@ -528,9 +535,10 @@ void CVICII::drawBitmapMode(int rasterLine) {
                 }
             }
         } else {
+            // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
+            // 3.7.3.4. Multicolor bitmap mode (ECM/BMM/MCM=0/1/1)
             // multicolor bitmap
             // SDL_Log("drawing multicolor bitmap");
-
             for (int i = 0; i < 8; i++) {
                 // only the last 3 bits count
                 uint8_t bits = bitmapData & 3;
