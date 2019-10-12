@@ -402,7 +402,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
         // read the character data and color
         uint8_t data = getCharacterData(screenCode, charRow);
         uint8_t charColor = getScreenColor(c, row);
-        RgbStruct charRgb = _palette[charColor & 0xf];
+        RgbStruct charRgb = _palette[charColor];
 
         // draw character bit by bit
         if (_screenMode == VIC_SCREEN_MODE_CHARACTER_MULTICOLOR) {
@@ -672,15 +672,12 @@ int CVICII::update(long cycleCount) {
 
     if (IS_BIT_SET(_regInterruptEnabled, 0)) {
         // handle raster interrupt
-        if (currentRaster == _rasterIrqLine) {
-            if (IS_BIT_SET(_regInterruptEnabled, 0)) {
-                // trigger irq if bits in $d01a is set for the raster
-                // interrupt
-                BIT_SET(_regInterrupt, 0);
-                _cpu->irq();
-            } else {
-                BIT_CLEAR(_regInterrupt, 0);
-            }
+        if ((currentRaster - limits.firstVblankLine) ==
+            _rasterIrqLine - limits.firstVblankLine) {
+            // trigger irq if bits in $d01a is set for the raster
+            // interrupt
+            BIT_SET(_regInterrupt, 0);
+            _cpu->irq();
         } else {
             BIT_CLEAR(_regInterrupt, 0);
         }
@@ -893,16 +890,16 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         _regCR1 = bt;
 
         // display enable (DEN)
-        _DEN = IS_BIT_SET(bt, 4);
+        _DEN = IS_BIT_SET(_regCR1, 4);
 
         // YSCROLL
-        _scrollY = bt & 0x7;
+        _scrollY = _regCR1 & 0x7;
 
         // RSEL
-        _RSEL = IS_BIT_SET(bt, 3);
+        _RSEL = IS_BIT_SET(_regCR1, 3);
 
         // bit 7 also sets bit 8 of the raster irq compare line (bit 8)
-        if (IS_BIT_SET(bt, 7)) {
+        if (IS_BIT_SET(_regCR1, 7)) {
             BIT_SET(_rasterIrqLine, 8);
         }
 
@@ -933,14 +930,13 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     case 0xd016:
         // CR2
         // bit 6, 7 are always set
-        bt |= 0xc0;
-        _regCR2 = bt;
+        _regCR2 = bt | 0xc0;
 
         // XSCROLL (bit 0,1,2)
-        _scrollX = bt & 0x7;
+        _scrollX = _regCR2 & 0x7;
 
         // CSEL
-        _CSEL = IS_BIT_SET(bt, 3);
+        _CSEL = IS_BIT_SET(_regCR2, 3);
 
         // set screen mode (MCM bit)
         setScreenMode();
@@ -992,15 +988,13 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     case 0xd019:
         // interrupt latch
         // bit 4,5,6 are always set
-        bt |= 0x70;
-        _regInterrupt = bt;
+        _regInterrupt = bt | 0x70;
         break;
 
     case 0xd01a:
         // interrupt enabled
-        // bit 4,5,6 are always set
-        bt |= 0x70;
-        _regInterruptEnabled = bt;
+        // bit 4,5,6,7 are always set
+        _regInterruptEnabled = bt | 0xf0;
         break;
 
     case 0xd01b:
@@ -1030,8 +1024,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
     case 0xd020:
         // EC
-        bt &= 0xf;
-        _regBorderColor = bt;
+        _regBorderColor = bt & 0xf;
         break;
 
     case 0xd021:
@@ -1039,7 +1032,6 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     case 0xd023:
     case 0xd024: {
         // BnC = background color 0-3
-        bt &= 0xf;
         int bcIdx = addr - 0xd021;
         setBackgoundColor(bcIdx, bt);
         break;
@@ -1048,9 +1040,8 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     case 0xd025:
     case 0xd026: {
         // MMn = sprite multicolor 0-1
-        bt &= 0xf;
         int mmIdx = addr - 0xd025;
-        setSpriteMulticolor(mmIdx, bt);
+        setSpriteMulticolor(mmIdx, bt & 0xf);
         break;
     }
 
@@ -1063,9 +1054,8 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     case 0xd02d:
     case 0xd02e: {
         // MnC = sprite color 0-7
-        bt &= 0xf;
         int mIdx = addr - 0xd027;
-        setSpriteColor(mIdx, bt);
+        setSpriteColor(mIdx, bt & 0xf);
         break;
     }
 
@@ -1103,9 +1093,7 @@ uint8_t CVICII::getBackgoundColor(int idx) { return _regBC[idx]; }
  * @param idx register index in the background color registers array
  * @param val the color to set
  */
-void CVICII::setBackgoundColor(int idx, uint8_t val) {
-    _regBC[idx] = (val & 0xf);
-}
+void CVICII::setBackgoundColor(int idx, uint8_t val) { _regBC[idx] = val; }
 
 /**
  * @brief set color of sprite n in the MnC register (4 bits)
