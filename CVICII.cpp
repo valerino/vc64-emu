@@ -95,8 +95,6 @@ bool CVICII::isSpriteDrawingOnBorder(int x, int y) {
     getScreenLimits(&limits);
 
     // check if we're drawing sprites on border
-    // @todo this will obviously prevent to draw sprites on border. .... but
-    // leave it as is for now
     if (x < limits.firstVisibleX) {
         return true;
     }
@@ -233,7 +231,7 @@ void CVICII::drawSpriteMulticolor(int rasterLine, int idx, int x, int row) {
  * @param row sprite row number
  */
 void CVICII::drawSprite(int rasterLine, int idx, int x, int row) {
-    // SDL_Log("drawing sprite");
+    // SDL_Log("drawing standard sprite");
     int currentLine = rasterLine;
 
     // get sprite data address
@@ -250,9 +248,11 @@ void CVICII::drawSprite(int rasterLine, int idx, int x, int row) {
         // draw sprite row bit by bit, take into account sprite X expansion
         // (2x multiplier)
         int multiplier = isSpriteXExpanded(idx) ? 2 : 1;
-        for (int m = 0; m < multiplier; m++) {
-            for (int j = 0; j < 8; j++) {
-                if (IS_BIT_SET(spByte, j)) {
+        for (int j = 0; j < 8; j++) {
+            if (IS_BIT_SET(spByte, j)) {
+                // draw 2 adjacent pixels if the sprite is x-expanded
+                // (multiplier=2), either just one pixel
+                for (int m = 0; m < multiplier; m++) {
                     // x to screen coordinate
                     int pixelX = x + m + (i * 8 * multiplier) +
                                  (8 * multiplier) - (j * multiplier);
@@ -469,6 +469,9 @@ void CVICII::drawCharacterMode(int rasterLine) {
             // default text mode or extended background mode or alternative
             // multicolor mode http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
             // 3.7.3.1. Standard text mode (ECM/BMM/MCM=0/0/0)
+            // (c-data here is referred as a 12bit value, the lower 8 bits are
+            // the character data, the higher 4 bits the color read from color
+            // memory)
             for (int i = 0; i < 8; i++) {
                 int pixelX = x + 8 - i;
                 if (pixelX > (320 + limits.firstVisibleX)) {
@@ -480,7 +483,8 @@ void CVICII::drawCharacterMode(int rasterLine) {
                 if (IS_BIT_SET(data, i)) {
                     // put pixel in foreground color
                     if (altMultiColor) {
-                        // alternative multicolor mode, use only colors 0-7
+                        // bit 3 is set in color read from color memory, use
+                        // only colors 0-7
                         charColor &= 7;
                     }
                     charRgb = _palette[charColor];
@@ -539,8 +543,7 @@ void CVICII::drawBitmapMode(int rasterLine) {
         if (_screenMode == VIC_SCREEN_MODE_BITMAP_STANDARD) {
             // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
             // 3.7.3.3. Standard bitmap mode (ECM/BMM/MCM=0/1/0)
-            // SDL_Log("drawing bitmap");
-            // standard bitmap
+            // SDL_Log("drawing standard bitmap");
             RgbStruct fgColor = _palette[(screenChar >> 4) & 0xf];
             RgbStruct bgColor = _palette[screenChar & 0xf];
             for (int i = 0; i < 8; i++) {
@@ -560,7 +563,6 @@ void CVICII::drawBitmapMode(int rasterLine) {
         } else {
             // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
             // 3.7.3.4. Multicolor bitmap mode (ECM/BMM/MCM=0/1/1)
-            // multicolor bitmap
             // SDL_Log("drawing multicolor bitmap");
             for (int i = 0; i < 8; i++) {
                 // only the last 3 bits count

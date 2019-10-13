@@ -169,6 +169,7 @@ class CVICII {
 
     void drawBorder(int rasterLine);
     void drawCharacterMode(int rasterLine);
+
     void drawSprites(int rasterLine);
     void drawSpriteMulticolor(int rasterLine, int idx, int x, int row);
     void blit(int x, int y, RgbStruct *rgb);
