@@ -408,11 +408,23 @@ void CVICII::drawCharacterMode(int rasterLine) {
 
         // read the character data and color
         uint8_t data = getCharacterData(screenCode, charRow);
+        data = (data >> _scrollX);
         uint8_t charColor = getScreenColor(c, row);
         RgbStruct charRgb;
 
         // draw character bit by bit
-        if (_screenMode == VIC_SCREEN_MODE_CHARACTER_MULTICOLOR) {
+        int sMode = _screenMode;
+        bool altMultiColor = false;
+
+        // if bit 3 in color memory is set for the character, set standard
+        // character mode BUT we will use only lower 4 bits of the color
+        if ((charColor & 0x8) == 0 &&
+            _screenMode == VIC_SCREEN_MODE_CHARACTER_MULTICOLOR) {
+            sMode = VIC_SCREEN_MODE_CHARACTER_STANDARD;
+            altMultiColor = true;
+        }
+
+        if (sMode == VIC_SCREEN_MODE_CHARACTER_MULTICOLOR) {
             // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
             // 3.7.3.2. Multicolor text mode (ECM/BMM/MCM=0/0/1)
             for (int i = 0; i < 8; i++) {
@@ -440,6 +452,11 @@ void CVICII::drawCharacterMode(int rasterLine) {
                     charRgb = _palette[charColor & 7];
                     break;
                 }
+                if (pixelX > (320 + limits.firstVisibleX)) {
+                    // off screen -> background color
+                    charRgb = _palette[getBackgoundColor(0)];
+                }
+
                 // avoid transparent
                 blit(pixelX, rasterLine, &charRgb);
                 blit(pixelX + 1, rasterLine, &charRgb);
@@ -449,10 +466,9 @@ void CVICII::drawCharacterMode(int rasterLine) {
                 data >>= 2;
             }
         } else {
-            // default text mode or extended background mode
-            // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
+            // default text mode or extended background mode or alternative
+            // multicolor mode http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
             // 3.7.3.1. Standard text mode (ECM/BMM/MCM=0/0/0)
-            data = (data >> _scrollX);
             for (int i = 0; i < 8; i++) {
                 int pixelX = x + 8 - i;
                 if (pixelX > (320 + limits.firstVisibleX)) {
@@ -463,6 +479,10 @@ void CVICII::drawCharacterMode(int rasterLine) {
 
                 if (IS_BIT_SET(data, i)) {
                     // put pixel in foreground color
+                    if (altMultiColor) {
+                        // alternative multicolor mode, use only colors 0-7
+                        charColor &= 7;
+                    }
                     charRgb = _palette[charColor];
                     blit(pixelX, rasterLine, &charRgb);
                 } else {
