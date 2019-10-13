@@ -408,7 +408,6 @@ void CVICII::drawCharacterMode(int rasterLine) {
 
         // read the character data and color
         uint8_t data = getCharacterData(screenCode, charRow);
-        data = (data >> _scrollX);
         uint8_t charColor = getScreenColor(c, row);
         RgbStruct charRgb;
 
@@ -430,7 +429,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
             for (int i = 0; i < 8; i++) {
                 // only the last 3 bits count
                 uint8_t bits = data & 3;
-                int pixelX = x + 8 - i;
+                int pixelX = x + 8 - i + _scrollX;
                 switch (bits) {
                 case 0:
                     // 00
@@ -456,8 +455,6 @@ void CVICII::drawCharacterMode(int rasterLine) {
                     // off screen -> background color
                     charRgb = _palette[getBackgoundColor(0)];
                 }
-
-                // avoid transparent
                 blit(pixelX, rasterLine, &charRgb);
                 blit(pixelX + 1, rasterLine, &charRgb);
 
@@ -473,9 +470,9 @@ void CVICII::drawCharacterMode(int rasterLine) {
             // the character data, the higher 4 bits the color read from color
             // memory)
             for (int i = 0; i < 8; i++) {
-                int pixelX = x + 8 - i;
+                int pixelX = x + 8 - i + _scrollX;
                 if (pixelX > (320 + limits.firstVisibleX)) {
-                    // do not draw off screen
+                    // off screen -> background color
                     blit(pixelX, rasterLine, &backgroundRgb);
                     continue;
                 }
@@ -486,6 +483,9 @@ void CVICII::drawCharacterMode(int rasterLine) {
                         // bit 3 is set in color read from color memory, use
                         // only colors 0-7
                         charColor &= 7;
+                    } else {
+                        // full range
+                        charColor &= 0xf;
                     }
                     charRgb = _palette[charColor];
                     blit(pixelX, rasterLine, &charRgb);
