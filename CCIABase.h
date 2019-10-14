@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CMOS65xx.h>
+#include "CPLA.h"
 
 /**
  * timer modes
@@ -38,10 +39,11 @@ class CCIABase {
     /**
      * @brief constructor
      * @param cpu the cpu instance
+     * @param pla the PLA chip
      * @param baseAddress CIA base address
      * @param connectedTo CIA_TRIGGERS_IRQ or CIA_TRIGGERS_NMI
      */
-    CCIABase(CMOS65xx *cpu, uint16_t baseAddress, int connectedTo);
+    CCIABase(CMOS65xx *cpu, CPLA *pla, uint16_t baseAddress, int connectedTo);
     virtual ~CCIABase();
 
     /**
@@ -91,6 +93,7 @@ class CCIABase {
 
   protected:
     CMOS65xx *_cpu = nullptr;
+    CPLA *_pla = nullptr;
     int _timerALatch = 0;
     int _timerBLatch = 0;
     int _timerA = 0;

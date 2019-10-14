@@ -14,7 +14,7 @@
  */
 class CCIA2 : public CCIABase {
   public:
-    CCIA2(CMOS65xx *cpu);
+    CCIA2(CMOS65xx *cpu, CPLA* pla);
     void read(uint16_t address, uint8_t *bt);
     void write(uint16_t address, uint8_t bt);
     int vicBank() { return _vicBank; }

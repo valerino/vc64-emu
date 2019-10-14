@@ -5,6 +5,7 @@
 #pragma once
 #include <cstdint>
 #include <IMemory.h>
+#include "CPLA.h"
 
 // the whole 64k size
 #define MEMORY_SIZE 0x10000
@@ -25,8 +26,6 @@
 #define BASIC_PRG_START_ADDRESS 0x801
 
 // zeropage
-#define ZEROPAGE_REG_DATA_DIRECTION 0
-#define ZEROPAGE_REG_IO_PORT 1
 #define ZEROPAGE_BASIC_PROGRAM_START                                           \
     0x2b // 0x2b-0x2c, this contains the address of the basic program, usually
          // BASIC_PRG_START_ADDRESS
@@ -55,7 +54,15 @@ class CMemory : public IMemory {
     uint8_t *_kernalRom = nullptr;
     uint8_t *_basicRom = nullptr;
 
+    CPLA *_pla = nullptr;
+
     int loadBios();
+
+    uint8_t pageZero00();
+    uint8_t pageZero01();
+
+    void setPageZero00(uint8_t bt);
+    void setPageZero01(uint8_t bt);
 
   public:
     uint8_t readByte(uint32_t address, uint8_t *b) override;
@@ -88,12 +95,6 @@ class CMemory : public IMemory {
      */
     int loadPrg(const char *path);
 
-    /**
-     * get pointer to ram memory
-     * @return
-     */
-    uint8_t *ram();
-
     uint8_t *raw(uint32_t *size = nullptr) override;
 
     /**
@@ -101,6 +102,6 @@ class CMemory : public IMemory {
      * @return the memory pointer
      */
     uint8_t *charset();
-    CMemory();
+    CMemory(CPLA *pla);
     ~CMemory();
 };

@@ -3,8 +3,10 @@
 #include <SDL.h>
 #include "CCIABase.h"
 
-CCIABase::CCIABase(CMOS65xx *cpu, uint16_t baseAddress, int connectedTo) {
+CCIABase::CCIABase(CMOS65xx *cpu, CPLA *pla, uint16_t baseAddress,
+                   int connectedTo) {
     _cpu = cpu;
+    _pla = pla;
     _baseAddress = baseAddress;
     _connectedTo = connectedTo;
 }

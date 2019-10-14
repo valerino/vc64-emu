@@ -10,12 +10,14 @@
 #include <string.h>
 #include "bitutils.h"
 
-CMemory::CMemory() {
+CMemory::CMemory(CPLA *pla) {
     // allocate main memory and the shadows
     _mem = (uint8_t *)calloc(1, MEMORY_SIZE);
     _kernalRom = (uint8_t *)calloc(1, MEMORY_KERNAL_SIZE);
     _basicRom = (uint8_t *)calloc(1, MEMORY_BASIC_SIZE);
     _charRom = (uint8_t *)calloc(1, MEMORY_CHARSET_SIZE);
+
+    _pla = pla;
 }
 
 CMemory::~CMemory() {
@@ -27,6 +29,8 @@ int CMemory::readRawByte(uint16_t addr, uint8_t *bt) {
     if (!bt) {
         return EINVAL;
     }
+
+    // read from raw ram
     uint8_t b = _mem[addr];
     *bt = b;
     return 0;
@@ -37,47 +41,46 @@ uint8_t CMemory::readByte(uint32_t address, uint8_t *b) {
         return EINVAL;
     }
 
-    // check addresses
-    if (address >= MEMORY_BASIC_ADDRESS &&
-        address < MEMORY_BASIC_ADDRESS + MEMORY_BASIC_SIZE) {
-        // $a000 (basic rom)
-        if (IS_BIT_SET(_mem[ZEROPAGE_REG_IO_PORT], 0)) {
-            *b = _basicRom[address - MEMORY_BASIC_ADDRESS];
-        } else {
-            // basic rom is masked, returning ram
-            *b = _mem[address];
-        }
-    } else if (address >= MEMORY_KERNAL_ADDRESS &&
-               address < MEMORY_KERNAL_ADDRESS + MEMORY_KERNAL_SIZE) {
-        // $e000 (kernal rom)
-        if (IS_BIT_SET(_mem[ZEROPAGE_REG_IO_PORT], 1)) {
-            *b = _kernalRom[address - MEMORY_KERNAL_ADDRESS];
-        } else {
-            // kernal rom is masked, returning ram
-            *b = _mem[address];
-        }
-    } else if (address >= MEMORY_CHARSET_ADDRESS &&
-               address < MEMORY_CHARSET_ADDRESS + MEMORY_CHARSET_SIZE) {
-        // $d000 (charset rom)
-        if (IS_BIT_SET(_mem[ZEROPAGE_REG_IO_PORT], 2)) {
-            // access the IO registers
-            *b = _mem[address];
-        } else {
-            *b = _charRom[address - MEMORY_CHARSET_ADDRESS];
-        }
-    } else {
-        // ram
+    // get mapping with PLA
+    int mapType = _pla->mapAddressToType(address);
+
+    // and map different addresses
+    switch (mapType) {
+    case PLA_MAP_BASIC_ROM:
+        // map basic rom
+        *b = _basicRom[address - MEMORY_BASIC_ADDRESS];
+        break;
+    case PLA_MAP_CHARSET_ROM:
+        // map character rom
+        *b = _charRom[address - MEMORY_CHARSET_ADDRESS];
+        break;
+    case PLA_MAP_KERNAL_ROM:
+        // map kernal rom
+        *b = _kernalRom[address - MEMORY_KERNAL_ADDRESS];
+        break;
+
+    default:
+        // map ram
         *b = _mem[address];
     }
-
-    // TODO: handle other bankswitching types (see
-    // https://www.c64-wiki.com/wiki/Bank_Switching)
     return 0;
 }
 
 int CMemory::writeByte(uint32_t address, uint8_t b) {
-    // TODO: all writes to ram, is this right ?
-    _mem[address] = b;
+    // check zeropage addresses
+    switch (address) {
+    case 0:
+        setPageZero00(b);
+        // SDL_Log("writing %x to $0", b);
+        break;
+    case 1:
+        setPageZero01(b);
+        // SDL_Log("writing %x to $1", b);
+        break;
+    default:
+        // write to ram
+        _mem[address] = b;
+    }
     return 0;
 }
 
@@ -184,24 +187,71 @@ int CMemory::loadBios() {
     return 0;
 }
 
+/**
+ * @brief get on-chip port $00 (data direction)
+ * @return
+ */
+uint8_t CMemory::pageZero00() { return _mem[0]; }
+
+/**
+ * @brief get on-chip port $01 (controls mapping)
+ * @return
+ */
+uint8_t CMemory::pageZero01() { return _mem[1]; }
+
+/**
+ * @brief set on-chip port $01 (data direction)
+ * @return
+ */
+void CMemory::setPageZero00(uint8_t bt) { _mem[0] = bt; }
+
+/**
+ * @brief set on-chip port $00 (controls mapping)
+ * @return
+ */
+void CMemory::setPageZero01(uint8_t bt) {
+    _mem[1] = bt;
+
+    // setup memory mapping
+    _pla->setupMemoryMapping(bt);
+}
+
 int CMemory::init() {
     memset(_mem, 0, MEMORY_SIZE);
 
-    // initialize zeropage data direction
-    BIT_SET(_mem[ZEROPAGE_REG_DATA_DIRECTION], 0);
-    BIT_SET(_mem[ZEROPAGE_REG_DATA_DIRECTION], 1);
-    BIT_SET(_mem[ZEROPAGE_REG_DATA_DIRECTION], 2);
+    // setup zeropage
+    // http: // unusedino.de/ec64/technical/aay/c64/zpmain.htm
 
-    // and io/port
-    BIT_SET(_mem[ZEROPAGE_REG_IO_PORT], 0);
-    BIT_SET(_mem[ZEROPAGE_REG_IO_PORT], 1);
-    BIT_SET(_mem[ZEROPAGE_REG_IO_PORT], 2);
+    /*
+    $00/0:   6510 On-chip Data Direction Register
+
+   +----------+---------------------------------------------------+
+   | Bit  7   |   Undefined                                       |
+   | Bit  6   |   Only available on C128, otherwise undefined     |
+   | Bits 0-5 |   1 = Output, 0 = Input (see $01 for description) |
+   +----------+---------------------------------------------------+
+   Default Value is $2F/47 (%00101111).
+    */
+    setPageZero00(0x2f);
+
+    /*
+     $01/1:   6510 On-chip 8-bit Input/Output Register
+   +----------+---------------------------------------------------+
+   | Bits 7-6 |   Undefined                                       |
+   | Bit  5   |   Cassette Motor Control (0 = On, 1 = Off)        |
+   | Bit  4   |   Cassette Switch Sense: 1 = Switch Closed        |
+   | Bit  3   |   Cassette Data Output Line                       |
+   | Bit  2   |   /CharEn-Signal (see Memory Configuration)       |
+   | Bit  1   |   /HiRam-Signal  (see Memory Configuration)       |
+   | Bit  0   |   /LoRam-Signal  (see Memory Configuration)       |
+   +----------+---------------------------------------------------+
+   Default Value is $37/55 (%00110111).
+    */
+    setPageZero01(0x37);
 
     // load bios
     return loadBios();
 }
-
-uint8_t *CMemory::ram() { return raw(); }
 
 uint8_t *CMemory::raw(uint32_t *size) {
     if (size) {
@@ -245,7 +295,8 @@ int CMemory::loadPrg(const char *path) {
     }
 
     if (address == BASIC_PRG_START_ADDRESS) {
-        // set basic informations in the zeropage
+        // set basic informations in the zeropage, so to be able to start the
+        // loaded program
         uint16_t end = address + size;
         writeWord(ZEROPAGE_BASIC_PROGRAM_START, address);
         writeWord(ZEROPAGE_BASIC_VARTAB, end);

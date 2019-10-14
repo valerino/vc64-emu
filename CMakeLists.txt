@@ -24,8 +24,8 @@ add_executable(${PROJECT_NAME}
         CCIA1.cpp
         CCIA2.cpp
         CVICII.cpp
-        CSID.cpp
-        CIACommon.h)
+        CPLA.cpp
+        CSID.cpp)
 
 # needs sdsl2
 find_package(SDL2 REQUIRED)

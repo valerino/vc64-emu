@@ -6,8 +6,8 @@
 #include <SDL.h>
 #include "bitutils.h"
 
-CCIA1::CCIA1(CMOS65xx *cpu)
-    : CCIABase::CCIABase(cpu, CIA1_REGISTERS_START, CIA_TRIGGERS_IRQ) {}
+CCIA1::CCIA1(CMOS65xx *cpu, CPLA *pla)
+    : CCIABase::CCIABase(cpu, pla, CIA1_REGISTERS_START, CIA_TRIGGERS_IRQ) {}
 
 /**
  * read keyboard matrix column
@@ -87,11 +87,10 @@ void CCIA1::write(uint16_t address, uint8_t bt) {
     switch (addr) {
 
     default:
+        // write anyway
+        CCIABase::write(address, bt);
         break;
     }
-
-    // write anyway
-    CCIABase::write(address, bt);
 }
 
 void CCIA1::setKeyState(uint8_t scancode, bool pressed) {

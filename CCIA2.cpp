@@ -6,8 +6,8 @@
 #include <SDL.h>
 #include "bitutils.h"
 
-CCIA2::CCIA2(CMOS65xx *cpu)
-    : CCIABase::CCIABase(cpu, CIA2_REGISTERS_START, CIA_TRIGGERS_NMI) {}
+CCIA2::CCIA2(CMOS65xx *cpu, CPLA *pla)
+    : CCIABase::CCIABase(cpu, pla, CIA2_REGISTERS_START, CIA_TRIGGERS_NMI) {}
 
 void CCIA2::setVicBank(uint8_t pra) {
     if (!IS_BIT_SET(pra, 0) && !IS_BIT_SET(pra, 1)) {
@@ -66,8 +66,8 @@ void CCIA2::write(uint16_t address, uint8_t bt) {
         break;
 
     default:
+        // write anyway
+        CCIABase::write(address, bt);
         break;
     }
-    // write anyway
-    CCIABase::write(address, bt);
 }

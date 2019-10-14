@@ -30,9 +30,10 @@ void CVICII::initPalette() {
     _palette[15] = {0xbb, 0xbb, 0xbb};
 }
 
-CVICII::CVICII(CMOS65xx *cpu, CCIA2 *cia2) {
+CVICII::CVICII(CMOS65xx *cpu, CCIA2 *cia2, CPLA *pla) {
     _cpu = cpu;
     _cia2 = cia2;
+    _pla = pla;
     initPalette();
 
     // init default addresses
@@ -75,7 +76,7 @@ uint16_t CVICII::getSpriteDataAddress(int idx) {
     // read sprite pointer for sprite idx
     uint16_t spP = _screenAddress + 0x3f8 + idx;
     uint8_t ptr;
-    _cpu->memory()->readByte(spP, &ptr);
+    ((CMemory *)_cpu->memory())->readRawByte(spP, &ptr);
 
     // get sprite data address from sprite pointer
     uint16_t addr = 64 * ptr;
@@ -176,7 +177,7 @@ void CVICII::drawSpriteMulticolor(int rasterLine, int idx, int x, int row) {
         uint8_t spByte;
         uint16_t a = addr + (row * 3) + i;
         // SDL_Log("reading multicolor sprite byte at $%x", a);
-        _cpu->memory()->readByte(a, &spByte);
+        ((CMemory *)_cpu->memory())->readRawByte(a, &spByte);
 
         // read sprite data considering double-wide pixels
         for (int j = 0; j < 4; j++) {
@@ -243,7 +244,7 @@ void CVICII::drawSprite(int rasterLine, int idx, int x, int row) {
         uint8_t spByte;
         uint16_t a = addr + (row * 3) + i;
         // SDL_Log("reading sprite byte at $%x", a);
-        _cpu->memory()->readByte(a, &spByte);
+        ((CMemory *)_cpu->memory())->readRawByte(a, &spByte);
 
         // draw sprite row bit by bit, take into account sprite X expansion
         // (2x multiplier)
@@ -883,7 +884,7 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
 
     default:
         // read memory
-        _cpu->memory()->readByte(addr, bt);
+        ((CMemory *)_cpu->memory())->readRawByte(addr, bt);
     }
 }
 
@@ -1098,11 +1099,9 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     }
 
     default:
-        break;
+        // write anyway
+        _cpu->memory()->writeByte(addr, bt);
     }
-
-    // write anyway
-    _cpu->memory()->writeByte(addr, bt);
 }
 
 /**
@@ -1342,7 +1341,7 @@ void CVICII::setCurrentRasterLine(int line) {
 uint8_t CVICII::getScreenCode(int x, int y) {
     uint16_t screenCodeAddr = _screenAddress + (y * 40) + x;
     uint8_t screenCode;
-    _cpu->memory()->readByte(screenCodeAddr, &screenCode);
+    ((CMemory *)_cpu->memory())->readRawByte(screenCodeAddr, &screenCode);
     return screenCode;
 }
 
@@ -1368,6 +1367,7 @@ uint8_t CVICII::getScreenColor(int x, int y) {
  * @return
  */
 uint8_t CVICII::getCharacterData(int screenCode, int charRow) {
+
     // get character set address, handling character ROM shadow
     // (https://www.c64-wiki.com/wiki/VIC_bank)
     // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt 2.4.2
@@ -1387,11 +1387,13 @@ uint8_t CVICII::getCharacterData(int screenCode, int charRow) {
             // select the alternate character set in rom
             cAddr += 0x800;
         }
+        // SDL_Log("read character rom");
 
         // read char data
         data = cAddr[(screenCode * 8) + charRow];
     } else {
         // ram address (own character set)
+        // SDL_Log("read ram characterset");
         uint16_t addr = _cia2->vicMemoryAddress() + _charsetAddress;
         addr += ((screenCode * 8) + charRow);
 
@@ -1411,6 +1413,6 @@ uint8_t CVICII::getCharacterData(int screenCode, int charRow) {
 uint8_t CVICII::getBitmapData(int x, int y, int bitmapRow) {
     uint16_t bitmapAddr = _bitmapAddress + (((y * 40) + x) * 8) + bitmapRow;
     uint8_t data;
-    _cpu->memory()->readByte(bitmapAddr, &data);
+    ((CMemory *)_cpu->memory())->readRawByte(bitmapAddr, &data);
     return data;
 }

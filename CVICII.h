@@ -5,6 +5,7 @@
 #pragma once
 #include <CMOS65xx.h>
 #include "CCIA2.h"
+#include "CPLA.h"
 
 /**
  * screen modes
@@ -70,8 +71,9 @@ class CVICII {
      * constructor
      * @param cpu the cpu
      * @param cia2 the CIA-2 chip
+     * @param pla the PLA chip
      */
-    CVICII(CMOS65xx *cpu, CCIA2 *cia2);
+    CVICII(CMOS65xx *cpu, CCIA2 *cia2, CPLA *pla);
 
     /**
      * update the internal state
@@ -141,6 +143,8 @@ class CVICII {
     uint16_t _screenAddress = 0;
     uint16_t _bitmapAddress = 0;
     int _screenMode = VIC_SCREEN_MODE_CHARACTER_STANDARD;
+    CPLA *_pla = nullptr;
+
     uint16_t checkShadowAddress(uint16_t address);
 
     bool isSpriteEnabled(int idx);

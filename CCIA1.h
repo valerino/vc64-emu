@@ -15,7 +15,7 @@ class CCIA1 : public CCIABase {
     friend class CInput;
 
   public:
-    CCIA1(CMOS65xx *cpu);
+    CCIA1(CMOS65xx *cpu, CPLA* pla);
     void read(uint16_t address, uint8_t *bt);
     void write(uint16_t address, uint8_t bt);
 

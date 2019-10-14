@@ -15,6 +15,7 @@
 #include "CCIA2.h"
 #include "CVICII.h"
 #include "CSID.h"
+#include "CPLA.h"
 
 /**
  * globals
@@ -28,6 +29,7 @@ CVICII *vic = nullptr;
 CCIA1 *cia1 = nullptr;
 CCIA2 *cia2 = nullptr;
 CSID *sid = nullptr;
+CPLA *pla = nullptr;
 bool running = true;
 bool debugger = false;
 bool hotkeyDbgBreak = false;
@@ -46,46 +48,70 @@ void banner() {
  * a callback for memory writes
  */
 void cpuCallbackWrite(uint16_t address, uint8_t val) {
+    // get mapping configuration
+    int mapType = pla->mapAddressToType(address);
+
+    // write to ram or chips
     if (address >= VIC_REGISTERS_START && address <= VIC_REGISTERS_END) {
-        // accessing vic registers
-        vic->write(address, val);
+        if (mapType == PLA_MAP_IO_DEVICES) {
+            // access VIC registers
+            vic->write(address, val);
+            return;
+        }
     } else if (address >= CIA2_REGISTERS_START &&
                address <= CIA2_REGISTERS_END) {
-        // accessing cia-2 registers
-        cia2->write(address, val);
+        if (mapType == PLA_MAP_IO_DEVICES) {
+            // access CIA2 registers
+            cia2->write(address, val);
+            return;
+        }
     } else if (address >= CIA1_REGISTERS_START &&
                address <= CIA1_REGISTERS_END) {
-        // accessing cia-1 registers
-        cia1->write(address, val);
-    } else {
-        // default
-        cpu->memory()->writeByte(address, val);
+        if (mapType == PLA_MAP_IO_DEVICES) {
+            // access CIA1 registers
+            cia1->write(address, val);
+            return;
+        }
     }
+
+    // default, write to ram
+    mem->writeByte(address, val);
 }
 
 /**
  * a callback for memory reads
  */
 void cpuCallbackRead(uint16_t address, uint8_t *val) {
+    // get mapping configuration
+    int mapType = pla->mapAddressToType(address);
+
+    // read from ram or chips
     if (address >= VIC_REGISTERS_START && address <= VIC_REGISTERS_END) {
-        // accessing vic registers
-        vic->read(address, val);
+        if (mapType == PLA_MAP_IO_DEVICES) {
+            // access VIC registers
+            vic->read(address, val);
+        }
     } else if (address >= CIA2_REGISTERS_START &&
                address <= CIA2_REGISTERS_END) {
-        // accessing cia-2 registers
-        cia2->read(address, val);
+        if (mapType == PLA_MAP_IO_DEVICES) {
+            // access CIA2 registers
+            cia2->read(address, val);
+        }
     } else if (address >= CIA1_REGISTERS_START &&
                address <= CIA1_REGISTERS_END) {
-        // accessing cia-1 registers
-        cia1->read(address, val);
-    } else {
-        // default
-        cpu->memory()->readByte(address, val);
+        if (mapType == PLA_MAP_IO_DEVICES) {
+            // access CIA1 registers
+            cia1->read(address, val);
+        }
     }
+
+    // default, read from ram
+    mem->readByte(address, val);
 }
 
 /**
- * @brief poll for SDL events (input, etc...) and takes the appropriate action
+ * @brief poll for SDL events (input, etc...) and takes the appropriate
+ * action
  */
 void pollSdlEvents() {
     SDL_Event ev;
@@ -236,7 +262,8 @@ int main(int argc, char **argv) {
         SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
 
         // create memory
-        mem = new CMemory();
+        pla = new CPLA();
+        mem = new CMemory(pla);
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "memory initialized OK!");
 
         // create cpu
@@ -253,10 +280,10 @@ int main(int argc, char **argv) {
         }
 
         // create additional chips
-        cia1 = new CCIA1(cpu);
-        cia2 = new CCIA2(cpu);
+        cia1 = new CCIA1(cpu, pla);
+        cia2 = new CCIA2(cpu, pla);
+        vic = new CVICII(cpu, cia2, pla);
         sid = new CSID(cpu);
-        vic = new CVICII(cpu, cia2);
 
         // create the subsystems (display, input, audio)
         try {
@@ -301,16 +328,16 @@ int main(int argc, char **argv) {
             cia1->update(totalCycles);
             cia2->update(totalCycles);
 
-            // updating vic takes into account the less scanlines for badlines
-            // (23 vs 63)
+            // updating vic takes into account the less scanlines for
+            // badlines (23 vs 63)
             int c = vic->update(totalCycles);
             cycles += c;
 
             // update audio chip
             sid->update(totalCycles);
 
-            // @fixme: this is wrong, cycles should be added .... but doing it
-            // screws all (probably vic cycle counting is wrong)
+            // @fixme: this is wrong, cycles should be added .... but doing
+            // it screws all (probably vic cycle counting is wrong)
             // totalCycles += c;
 
             // update cyclecounter
@@ -335,8 +362,9 @@ int main(int argc, char **argv) {
                 input->checkClipboard(totalCycles, cyclesPerFrame, 5);
             }
 
-            // once the cpu has reached enough cycles to have loaded the BASIC
-            // interpreter, issue a load of our prg. this trigger only once!
+            // once the cpu has reached enough cycles to have loaded the
+            // BASIC interpreter, issue a load of our prg. this trigger only
+            // once!
             if (totalCycles > 2570000 && path) {
                 handlePrgLoading();
                 path = nullptr;
