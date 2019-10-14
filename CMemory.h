@@ -2,9 +2,7 @@
 // Created by valerino on 10/01/19.
 //
 
-#ifndef VC64_EMU_CMEMORY_H
-#define VC64_EMU_CMEMORY_H
-
+#pragma once
 #include <cstdint>
 #include <IMemory.h>
 
@@ -43,8 +41,8 @@
          // program end
 
 /**
- * implements the emulated memory
- * https://www.c64-wiki.com/wiki/Memory_Map
+ * @brief implements the emulated memory
+ * @see https://www.c64-wiki.com/wiki/Memory_Map
  */
 class CMemory : public IMemory {
   private:
@@ -106,5 +104,3 @@ class CMemory : public IMemory {
     CMemory();
     ~CMemory();
 };
-
-#endif // VC64_EMU_CMEMORY_H

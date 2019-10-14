@@ -2,9 +2,7 @@
 // Created by valerino on 19/01/19.
 //
 
-#ifndef VC64_EMU_CVICII_H
-#define VC64_EMU_CVICII_H
-
+#pragma once
 #include <CMOS65xx.h>
 #include "CCIA2.h"
 
@@ -188,5 +186,3 @@ class CVICII {
     uint8_t getBitmapData(int x, int y, int bitmapRow);
     void checkSpriteSpriteCollision(int idx, int x, int y);
 };
-
-#endif // VC64_EMU_CVICII_H

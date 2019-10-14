@@ -1,10 +1,7 @@
 //
 // Created by valerino on 23/01/19.
 //
-
-#ifndef VC64_EMU_CSID_H
-#define VC64_EMU_CSID_H
-
+#pragma once
 #include <CMOS65xx.h>
 
 /**
@@ -25,5 +22,3 @@ class CSID {
   private:
     CMOS65xx *_cpu;
 };
-
-#endif // VC64_EMU_CSID_H

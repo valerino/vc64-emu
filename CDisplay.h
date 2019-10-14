@@ -1,9 +1,7 @@
 //
 // Created by valerino on 10/01/19.
 //
-
-#ifndef VC64_EMU_CDISPLAY_H
-#define VC64_EMU_CDISPLAY_H
+#pragma once
 
 #include "CVICII.h"
 #include <SDL.h>
@@ -52,5 +50,3 @@ class CDisplay {
     int initializeDisplay(bool fullScreen, const char *wndName,
                           char **errorString);
 };
-
-#endif // VC64_EMU_DISPLAY_H

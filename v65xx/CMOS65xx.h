@@ -1,9 +1,7 @@
 //
 // Created by valerino on 06/01/19.
 //
-
-#ifndef CMOS65XX_H
-#define CMOS65XX_H
+#pragma once
 
 #include <IMemory.h>
 
@@ -554,5 +552,3 @@ class CMOS65xx {
      */
     IMemory *memory();
 };
-
-#endif // CMOS65XX_H

@@ -1,9 +1,7 @@
 //
 // Created by valerino on 23/01/19.
 //
-
-#ifndef VC64_EMU_CINPUT_H
-#define VC64_EMU_CINPUT_H
+#pragma once
 
 #include "CCIA1.h"
 #include <SDL.h>
@@ -100,5 +98,3 @@ class CInput {
     bool hasClipboardEvents();
     bool handleJoystick(uint32_t sdlScanCode, bool pressed);
 };
-
-#endif // VC64_EMU_CINPUT_H

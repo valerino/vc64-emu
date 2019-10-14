@@ -1,9 +1,7 @@
 //
 // Created by valerino on 10/01/19.
 //
-
-#ifndef VC64_EMU_IMEMORY_H
-#define VC64_EMU_IMEMORY_H
+#pragma once
 
 #include <stdint.h>
 #include <errno.h>
@@ -77,5 +75,3 @@ class IMemory {
      */
     virtual int init() = 0;
 };
-
-#endif // VC64_EMU_IMEMORY_H
