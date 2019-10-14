@@ -1364,14 +1364,16 @@ uint8_t CVICII::getScreenColor(int x, int y) {
 }
 
 void CVICII::readVICByte(uint16_t address, uint8_t *bt) {
-    // get bank and handle char rom shadow
-    int bank = _cia2->vicBank();
     uint8_t data = 0;
     // SDL_Log("bank=%d, charsetAddress=$%x, vicMemoryAddress=$%x",
     // bank,
     //      _charsetAddress, _cia2->vicMemoryAddress());
     bool readFromCharsetRom = false;
+
+    // vic addresses 12 bits on read
     int addr = address & 0x3fff;
+
+    // these addresses are shadowed with the rom character set
     if ((addr >= 0x1000 && addr <= 0x1fff) ||
         (addr >= 0x9000 && addr <= 0x9fff)) {
         // shadows ROM address
@@ -1409,41 +1411,6 @@ uint8_t CVICII::getCharacterData(int screenCode, int charRow) {
     int addr = _charsetAddress + ((screenCode * 8) + charRow);
     readVICByte(addr, &data);
     return data;
-    /*
-
-    // get character set address, handling character ROM shadow
-    // (https://www.c64-wiki.com/wiki/VIC_bank)
-    // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt 2.4.2
-    int bank = _cia2->vicBank();
-    uint8_t data = 0;
-    // SDL_Log("bank=%d, charsetAddress=$%x, vicMemoryAddress=$%x",
-    // bank,
-    //      _charsetAddress, _cia2->vicMemoryAddress());
-    if ((bank == 0 && _charsetAddress == 0x1000) ||
-        (bank == 0 && _charsetAddress == 0x1800) ||
-        (bank == 2 && _charsetAddress == 0x9000) ||
-        (bank == 2 && _charsetAddress == 0x9800)) {
-        // ROM address
-        uint8_t *cAddr = ((CMemory *)_cpu->memory())->charset();
-        if (IS_BIT_SET(_charsetAddress, 11)) {
-            // select the alternate character set in rom
-            cAddr += 0x800;
-        }
-        // SDL_Log("read character rom");
-
-        // read char data
-        data = cAddr[(screenCode * 8) + charRow];
-    } else {
-        // ram address (own character set)
-        SDL_Log("read ram characterset");
-        uint16_t addr = _cia2->vicMemoryAddress() + _charsetAddress;
-        addr += ((screenCode * 8) + charRow);
-
-        // raw memory read
-        _cpu->memory()->readByte(addr, &data, true);
-    }
-    return data;
-    */
 }
 
 /**

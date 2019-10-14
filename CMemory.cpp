@@ -33,30 +33,6 @@ uint8_t CMemory::readByte(uint32_t address, uint8_t *b, bool raw) {
         return 0;
     }
 
-    /*
-    // get mapping with PLA
-    int mapType = _pla->mapAddressToType(address);
-
-    // and map different addresses
-    switch (mapType) {
-    case PLA_MAP_BASIC_ROM:
-        // map basic rom
-        *b = _basicRom[address - MEMORY_BASIC_ADDRESS];
-        break;
-    case PLA_MAP_CHARSET_ROM:
-        // map character rom
-        *b = _charRom[address - MEMORY_CHARSET_ADDRESS];
-        break;
-    case PLA_MAP_KERNAL_ROM:
-        // map kernal rom
-        *b = _kernalRom[address - MEMORY_KERNAL_ADDRESS];
-        break;
-
-    default:
-        // map ram
-        *b = _mem[address];
-    }
-    */
     // check addresses
     if (address >= MEMORY_BASIC_ADDRESS &&
         address < MEMORY_BASIC_ADDRESS + MEMORY_BASIC_SIZE) {
