@@ -37,8 +37,10 @@ void CPLA::setupMemoryMapping(uint8_t controlPort) {
         Bit 1 - HIRAM: Configures RAM or ROM at $E000-$FFFF (see bankswitching)
         Bit 2 - CHAREN: Configures I/O or ROM at $D000-$DFFF (see bankswitching)
     */
+    SDL_Log("setting memory map");
     // loram
     if (IS_BIT_SET(controlPort, 0)) {
+        SDL_Log("setting LORAM");
         BIT_SET(_latch, 0);
     } else {
         BIT_CLEAR(_latch, 0);
@@ -46,6 +48,7 @@ void CPLA::setupMemoryMapping(uint8_t controlPort) {
 
     // hiram
     if (IS_BIT_SET(controlPort, 1)) {
+        SDL_Log("setting HIRAM");
         BIT_SET(_latch, 1);
     } else {
         BIT_CLEAR(_latch, 1);
@@ -53,6 +56,7 @@ void CPLA::setupMemoryMapping(uint8_t controlPort) {
 
     // charen
     if (IS_BIT_SET(controlPort, 2)) {
+        SDL_Log("setting CHAREN");
         BIT_SET(_latch, 2);
     } else {
         BIT_CLEAR(_latch, 3);

@@ -87,7 +87,7 @@ void CCIA1::write(uint16_t address, uint8_t bt) {
     switch (addr) {
 
     default:
-        // write anyway
+        // default processing with the base class
         CCIABase::write(address, bt);
         break;
     }

@@ -65,19 +65,11 @@ class CMemory : public IMemory {
     void setPageZero01(uint8_t bt);
 
   public:
-    uint8_t readByte(uint32_t address, uint8_t *b) override;
-
-    /**
-     * @brief read memory raw (disregarding mapping)
-     * @param address the address in the emulated memory
-     * @param bt on successful return, the byte read
-     * @return 0 on success, or errno
-     */
-    int readRawByte(uint16_t addr, uint8_t *bt);
+    uint8_t readByte(uint32_t address, uint8_t *b, bool raw = false) override;
 
     uint16_t readWord(uint32_t address, uint16_t *w) override;
 
-    int writeByte(uint32_t address, uint8_t b) override;
+    int writeByte(uint32_t address, uint8_t b, bool raw = false) override;
 
     int writeWord(uint32_t address, uint16_t w) override;
 

@@ -20,27 +20,20 @@ CMemory::CMemory(CPLA *pla) {
     _pla = pla;
 }
 
-CMemory::~CMemory() {
-    SAFE_FREE(_mem)
-    SAFE_FREE(_charRom) SAFE_FREE(_basicRom) SAFE_FREE(_kernalRom)
-}
+CMemory::~CMemory(){SAFE_FREE(_mem) SAFE_FREE(_charRom) SAFE_FREE(_basicRom)
+                        SAFE_FREE(_kernalRom)}
 
-int CMemory::readRawByte(uint16_t addr, uint8_t *bt) {
-    if (!bt) {
-        return EINVAL;
-    }
-
-    // read from raw ram
-    uint8_t b = _mem[addr];
-    *bt = b;
-    return 0;
-}
-
-uint8_t CMemory::readByte(uint32_t address, uint8_t *b) {
+uint8_t CMemory::readByte(uint32_t address, uint8_t *b, bool raw) {
     if (!b) {
         return EINVAL;
     }
+    if (raw) {
+        // force raw read
+        *b = _mem[address];
+        return 0;
+    }
 
+    /*
     // get mapping with PLA
     int mapType = _pla->mapAddressToType(address);
 
@@ -63,10 +56,50 @@ uint8_t CMemory::readByte(uint32_t address, uint8_t *b) {
         // map ram
         *b = _mem[address];
     }
+    */
+    // check addresses
+    if (address >= MEMORY_BASIC_ADDRESS &&
+        address < MEMORY_BASIC_ADDRESS + MEMORY_BASIC_SIZE) {
+        // $a000 (basic rom)
+        if (IS_BIT_SET(_mem[1], 0)) {
+            *b = _basicRom[address - MEMORY_BASIC_ADDRESS];
+        } else {
+            // basic rom is masked, returning ram
+            *b = _mem[address];
+        }
+    } else if (address >= MEMORY_KERNAL_ADDRESS &&
+               address < MEMORY_KERNAL_ADDRESS + MEMORY_KERNAL_SIZE) {
+        // $e000 (kernal rom)
+        if (IS_BIT_SET(_mem[1], 1)) {
+            *b = _kernalRom[address - MEMORY_KERNAL_ADDRESS];
+        } else {
+            // kernal rom is masked, returning ram
+            *b = _mem[address];
+        }
+    } else if (address >= MEMORY_CHARSET_ADDRESS &&
+               address < MEMORY_CHARSET_ADDRESS + MEMORY_CHARSET_SIZE) {
+        // $d000 (charset rom)
+        if (IS_BIT_SET(_mem[1], 2)) {
+            // access the IO registers
+            *b = _mem[address];
+        } else {
+            *b = _charRom[address - MEMORY_CHARSET_ADDRESS];
+        }
+    } else {
+        // ram
+        *b = _mem[address];
+    }
+
     return 0;
 }
 
-int CMemory::writeByte(uint32_t address, uint8_t b) {
+int CMemory::writeByte(uint32_t address, uint8_t b, bool raw) {
+    if (raw) {
+        // force raw write
+        _mem[address] = b;
+        return 0;
+    }
+
     // check zeropage addresses
     switch (address) {
     case 0:

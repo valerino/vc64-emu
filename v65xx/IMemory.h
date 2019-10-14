@@ -14,10 +14,12 @@ class IMemory {
     /**
      * read byte at address
      * @param address the address in the emulated memory
-     * @param b on successful return, the byte read
+     * @param b on successful return, the byte read+
+     * @param raw if true, perform raw (skip device mapping) RAM read
      * @return 0 on success, or errno
      */
-    virtual uint8_t readByte(uint32_t address, uint8_t *b) = 0;
+    virtual uint8_t readByte(uint32_t address, uint8_t *b,
+                             bool raw = false) = 0;
     /**
      * read word (2 bytes) at address
      * @param address the address in the emulated memory
@@ -30,9 +32,10 @@ class IMemory {
      * write byte at address
      * @param address the address in the emulated memory
      * @param b byte to be written
+     * @param raw if true, perform raw (skip device mapping) RAM write
      * @return 0 on success, or errno
      */
-    virtual int writeByte(uint32_t address, uint8_t b) = 0;
+    virtual int writeByte(uint32_t address, uint8_t b, bool raw = false) = 0;
 
     /**
      * write word (2 bytes) at address

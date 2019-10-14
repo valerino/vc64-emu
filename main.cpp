@@ -75,7 +75,7 @@ void cpuCallbackWrite(uint16_t address, uint8_t val) {
     }
 
     // default, write to ram
-    mem->writeByte(address, val);
+    mem->writeByte(address, val, true);
 }
 
 /**
@@ -90,18 +90,21 @@ void cpuCallbackRead(uint16_t address, uint8_t *val) {
         if (mapType == PLA_MAP_IO_DEVICES) {
             // access VIC registers
             vic->read(address, val);
+            return;
         }
     } else if (address >= CIA2_REGISTERS_START &&
                address <= CIA2_REGISTERS_END) {
         if (mapType == PLA_MAP_IO_DEVICES) {
             // access CIA2 registers
             cia2->read(address, val);
+            return;
         }
     } else if (address >= CIA1_REGISTERS_START &&
                address <= CIA1_REGISTERS_END) {
         if (mapType == PLA_MAP_IO_DEVICES) {
             // access CIA1 registers
             cia1->read(address, val);
+            return;
         }
     }
 

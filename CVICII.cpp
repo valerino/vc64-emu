@@ -76,7 +76,7 @@ uint16_t CVICII::getSpriteDataAddress(int idx) {
     // read sprite pointer for sprite idx
     uint16_t spP = _screenAddress + 0x3f8 + idx;
     uint8_t ptr;
-    ((CMemory *)_cpu->memory())->readRawByte(spP, &ptr);
+    _cpu->memory()->readByte(spP, &ptr, true);
 
     // get sprite data address from sprite pointer
     uint16_t addr = 64 * ptr;
@@ -177,7 +177,7 @@ void CVICII::drawSpriteMulticolor(int rasterLine, int idx, int x, int row) {
         uint8_t spByte;
         uint16_t a = addr + (row * 3) + i;
         // SDL_Log("reading multicolor sprite byte at $%x", a);
-        ((CMemory *)_cpu->memory())->readRawByte(a, &spByte);
+        _cpu->memory()->readByte(a, &spByte, true);
 
         // read sprite data considering double-wide pixels
         for (int j = 0; j < 4; j++) {
@@ -244,7 +244,7 @@ void CVICII::drawSprite(int rasterLine, int idx, int x, int row) {
         uint8_t spByte;
         uint16_t a = addr + (row * 3) + i;
         // SDL_Log("reading sprite byte at $%x", a);
-        ((CMemory *)_cpu->memory())->readRawByte(a, &spByte);
+        _cpu->memory()->readByte(a, &spByte, true);
 
         // draw sprite row bit by bit, take into account sprite X expansion
         // (2x multiplier)
@@ -883,8 +883,9 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
     }
 
     default:
-        // read memory
-        ((CMemory *)_cpu->memory())->readRawByte(addr, bt);
+        // read from memory
+        _cpu->memory()->readByte(addr, bt, true);
+        break;
     }
 }
 
@@ -1097,10 +1098,10 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         setSpriteColor(mIdx, bt & 0xf);
         break;
     }
-
     default:
-        // write anyway
-        _cpu->memory()->writeByte(addr, bt);
+        // write to memory
+        _cpu->memory()->writeByte(address, bt, true);
+        break;
     }
 }
 
@@ -1341,7 +1342,7 @@ void CVICII::setCurrentRasterLine(int line) {
 uint8_t CVICII::getScreenCode(int x, int y) {
     uint16_t screenCodeAddr = _screenAddress + (y * 40) + x;
     uint8_t screenCode;
-    ((CMemory *)_cpu->memory())->readRawByte(screenCodeAddr, &screenCode);
+    _cpu->memory()->readByte(screenCodeAddr, &screenCode, true);
     return screenCode;
 }
 
@@ -1355,7 +1356,7 @@ uint8_t CVICII::getScreenCode(int x, int y) {
 uint8_t CVICII::getScreenColor(int x, int y) {
     uint16_t colorAddr = MEMORY_COLOR_ADDRESS + (y * 40) + x;
     uint8_t screenColor;
-    _cpu->memory()->readByte(colorAddr, &screenColor);
+    _cpu->memory()->readByte(colorAddr, &screenColor, true);
     return screenColor;
 }
 
@@ -1398,7 +1399,7 @@ uint8_t CVICII::getCharacterData(int screenCode, int charRow) {
         addr += ((screenCode * 8) + charRow);
 
         // raw memory read
-        ((CMemory *)_cpu->memory())->readRawByte(addr, &data);
+        _cpu->memory()->readByte(addr, &data, true);
     }
     return data;
 }
@@ -1413,6 +1414,6 @@ uint8_t CVICII::getCharacterData(int screenCode, int charRow) {
 uint8_t CVICII::getBitmapData(int x, int y, int bitmapRow) {
     uint16_t bitmapAddr = _bitmapAddress + (((y * 40) + x) * 8) + bitmapRow;
     uint8_t data;
-    ((CMemory *)_cpu->memory())->readRawByte(bitmapAddr, &data);
+    _cpu->memory()->readByte(bitmapAddr, &data, true);
     return data;
 }
