@@ -189,4 +189,5 @@ class CVICII {
     uint8_t getCharacterData(int screenCode, int charRow);
     uint8_t getBitmapData(int x, int y, int bitmapRow);
     void checkSpriteSpriteCollision(int idx, int x, int y);
+    void readVICByte(uint16_t address, uint8_t *bt);
 };

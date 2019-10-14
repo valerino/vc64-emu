@@ -48,26 +48,23 @@ void banner() {
  * a callback for memory writes
  */
 void cpuCallbackWrite(uint16_t address, uint8_t val) {
-    // get mapping configuration
-    int mapType = pla->mapAddressToType(address);
-
     // write to ram or chips
     if (address >= VIC_REGISTERS_START && address <= VIC_REGISTERS_END) {
-        if (mapType == PLA_MAP_IO_DEVICES) {
+        if (pla->isCharen()) {
             // access VIC registers
             vic->write(address, val);
             return;
         }
     } else if (address >= CIA2_REGISTERS_START &&
                address <= CIA2_REGISTERS_END) {
-        if (mapType == PLA_MAP_IO_DEVICES) {
+        if (pla->isCharen()) {
             // access CIA2 registers
             cia2->write(address, val);
             return;
         }
     } else if (address >= CIA1_REGISTERS_START &&
                address <= CIA1_REGISTERS_END) {
-        if (mapType == PLA_MAP_IO_DEVICES) {
+        if (pla->isCharen()) {
             // access CIA1 registers
             cia1->write(address, val);
             return;
@@ -75,33 +72,30 @@ void cpuCallbackWrite(uint16_t address, uint8_t val) {
     }
 
     // default, write to ram
-    mem->writeByte(address, val, true);
+    mem->writeByte(address, val);
 }
 
 /**
  * a callback for memory reads
  */
 void cpuCallbackRead(uint16_t address, uint8_t *val) {
-    // get mapping configuration
-    int mapType = pla->mapAddressToType(address);
-
     // read from ram or chips
     if (address >= VIC_REGISTERS_START && address <= VIC_REGISTERS_END) {
-        if (mapType == PLA_MAP_IO_DEVICES) {
+        if (pla->isCharen()) {
             // access VIC registers
             vic->read(address, val);
             return;
         }
     } else if (address >= CIA2_REGISTERS_START &&
                address <= CIA2_REGISTERS_END) {
-        if (mapType == PLA_MAP_IO_DEVICES) {
+        if (pla->isCharen()) {
             // access CIA2 registers
             cia2->read(address, val);
             return;
         }
     } else if (address >= CIA1_REGISTERS_START &&
                address <= CIA1_REGISTERS_END) {
-        if (mapType == PLA_MAP_IO_DEVICES) {
+        if (pla->isCharen()) {
             // access CIA1 registers
             cia1->read(address, val);
             return;
