@@ -57,10 +57,6 @@ class CMemory : public IMemory {
     uint8_t *_kernalRom = nullptr;
     uint8_t *_basicRom = nullptr;
 
-    /**
-     * load bios files
-     * @return 0 on success, or errno
-     */
     int loadBios();
 
   public:
