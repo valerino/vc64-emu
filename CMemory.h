@@ -67,16 +67,17 @@ class CMemory : public IMemory {
   public:
     uint8_t readByte(uint32_t address, uint8_t *b, bool raw = false) override;
 
-    uint16_t readWord(uint32_t address, uint16_t *w) override;
+    uint16_t readWord(uint32_t address, uint16_t *w, bool raw = false) override;
 
     int writeByte(uint32_t address, uint8_t b, bool raw = false) override;
 
-    int writeWord(uint32_t address, uint16_t w) override;
+    int writeWord(uint32_t address, uint16_t w, bool raw = false) override;
 
-    int writeBytes(uint32_t address, uint8_t *b, uint32_t size) override;
+    int writeBytes(uint32_t address, uint8_t *b, uint32_t size,
+                   bool raw = false) override;
 
     int readBytes(uint32_t address, uint8_t *b, uint32_t bufferSize,
-                  uint32_t readSize) override;
+                  uint32_t readSize, bool raw = false) override;
 
     int init() override;
 

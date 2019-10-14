@@ -34,6 +34,43 @@ uint8_t CMemory::readByte(uint32_t address, uint8_t *b, bool raw) {
     }
 
     // check addresses
+    int mapType = _pla->mapAddressToType(address);
+    // SDL_Log("address=%x, mapType=%d", address, mapType);
+    if (address >= MEMORY_BASIC_ADDRESS &&
+        address < MEMORY_BASIC_ADDRESS + MEMORY_BASIC_SIZE) {
+        // $a000 (basic rom)
+        if (mapType == PLA_MAP_BASIC_ROM) {
+            // accessing basic rom
+            *b = _basicRom[address - MEMORY_BASIC_ADDRESS];
+        } else {
+            // basic rom is masked, returning ram
+            *b = _mem[address];
+        }
+    } else if (address >= MEMORY_KERNAL_ADDRESS &&
+               address < MEMORY_KERNAL_ADDRESS + MEMORY_KERNAL_SIZE) {
+        // $e000 (kernal rom)
+        if (mapType == PLA_MAP_KERNAL_ROM) {
+            // accessing kernal rom
+            *b = _kernalRom[address - MEMORY_KERNAL_ADDRESS];
+        } else {
+            // kernal rom is masked, returning ram
+            *b = _mem[address];
+        }
+    } else if (address >= MEMORY_CHARSET_ADDRESS &&
+               address < MEMORY_CHARSET_ADDRESS + MEMORY_CHARSET_SIZE) {
+        // $d000 (charset rom)
+        if (mapType == PLA_MAP_CHARSET_ROM) {
+            // access charset rom
+            *b = _charRom[address - MEMORY_CHARSET_ADDRESS];
+        } else {
+            // ram
+            *b = _mem[address];
+        }
+    } else {
+        // ram
+        *b = _mem[address];
+    }
+    /*
     if (address >= MEMORY_BASIC_ADDRESS &&
         address < MEMORY_BASIC_ADDRESS + MEMORY_BASIC_SIZE) {
         // $a000 (basic rom)
@@ -68,17 +105,11 @@ uint8_t CMemory::readByte(uint32_t address, uint8_t *b, bool raw) {
         // ram
         *b = _mem[address];
     }
-
+    */
     return 0;
 }
 
 int CMemory::writeByte(uint32_t address, uint8_t b, bool raw) {
-    if (raw) {
-        // force raw write
-        _mem[address] = b;
-        return 0;
-    }
-
     // check zeropage addresses
     switch (address) {
     case 0:
@@ -89,19 +120,19 @@ int CMemory::writeByte(uint32_t address, uint8_t b, bool raw) {
         setPageZero01(b);
         // SDL_Log("writing %x to $1", b);
         break;
-    default:
-        // write to ram
-        _mem[address] = b;
     }
+
+    // always write to ram anyway
+    _mem[address] = b;
     return 0;
 }
 
-uint16_t CMemory::readWord(uint32_t address, uint16_t *w) {
+uint16_t CMemory::readWord(uint32_t address, uint16_t *w, bool raw) {
     if (w) {
         uint8_t lo;
-        readByte(address, &lo);
+        readByte(address, &lo, raw);
         uint8_t hi;
-        readByte(address + 1, &hi);
+        readByte(address + 1, &hi, raw);
 
         uint16_t ww = (hi << 8) | lo;
         *w = ww;
@@ -110,16 +141,16 @@ uint16_t CMemory::readWord(uint32_t address, uint16_t *w) {
     return EINVAL;
 }
 
-int CMemory::writeWord(uint32_t address, uint16_t w) {
+int CMemory::writeWord(uint32_t address, uint16_t w, bool raw) {
     uint8_t lo = (w & 0xff);
     uint8_t hi = (uint8_t)(w >> 8);
-    writeByte(address, lo);
-    writeByte(address + 1, hi);
+    writeByte(address, lo, raw);
+    writeByte(address + 1, hi, raw);
     return 0;
 }
 
 int CMemory::readBytes(uint32_t address, uint8_t *b, uint32_t bufferSize,
-                       uint32_t readSize) {
+                       uint32_t readSize, bool raw) {
     int res = 0;
     uint32_t s = readSize;
 
@@ -129,15 +160,15 @@ int CMemory::readBytes(uint32_t address, uint8_t *b, uint32_t bufferSize,
     }
     for (uint16_t i = 0; i < s; i++) {
         uint8_t c;
-        readByte(address + i, &c);
+        readByte(address + i, &c, raw);
         b[i] = c;
     }
     return res;
 }
 
-int CMemory::writeBytes(uint32_t address, uint8_t *b, uint32_t size) {
+int CMemory::writeBytes(uint32_t address, uint8_t *b, uint32_t size, bool raw) {
     for (uint32_t i = 0; i < size; i++) {
-        writeByte(address + i, b[i]);
+        writeByte(address + i, b[i], raw);
     }
     return 0;
 }
@@ -300,7 +331,7 @@ int CMemory::loadPrg(const char *path) {
                 address, end, size);
 
     // copy in ram
-    res = writeBytes(address, p, size);
+    res = writeBytes(address, p, size, true);
     free(buf);
     if (res != 0) {
         return res;
@@ -310,10 +341,10 @@ int CMemory::loadPrg(const char *path) {
         // set basic informations in the zeropage, so to be able to start the
         // loaded program
         uint16_t end = address + size;
-        writeWord(ZEROPAGE_BASIC_PROGRAM_START, address);
-        writeWord(ZEROPAGE_BASIC_VARTAB, end);
-        writeWord(ZEROPAGE_BASIC_ARYTAB, end);
-        writeWord(ZEROPAGE_BASIC_STREND, end);
+        writeWord(ZEROPAGE_BASIC_PROGRAM_START, address, true);
+        writeWord(ZEROPAGE_BASIC_VARTAB, end, true);
+        writeWord(ZEROPAGE_BASIC_ARYTAB, end, true);
+        writeWord(ZEROPAGE_BASIC_STREND, end, true);
     }
     return res;
 }
