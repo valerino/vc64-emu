@@ -6,7 +6,7 @@
 #include "CCIABase.h"
 
 #define CIA2_REGISTERS_START 0xdd00
-#define CIA2_REGISTERS_END 0xddff
+#define CIA2_REGISTERS_END 0xdd0f
 
 /**
  * @brief implements the 2nd CIA 6526, which controls serial bus, RS-232, VIC
@@ -14,7 +14,7 @@
  */
 class CCIA2 : public CCIABase {
   public:
-    CCIA2(CMOS65xx *cpu, CPLA* pla);
+    CCIA2(CMOS65xx *cpu, CPLA *pla);
     void read(uint16_t address, uint8_t *bt);
     void write(uint16_t address, uint8_t bt);
     int vicBank() { return _vicBank; }

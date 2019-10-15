@@ -113,8 +113,7 @@ bool CVICII::isSpriteDrawingOnBorder(int x, int y) {
 
 /**
  * @brief detect sprite-sprite collision
- * @todo not yet fully working (seems to partially work, i.e. aztec challenge, x
- * messed up)
+ * @fixme partially working
  * @param idx current drawing sprite idx
  * @param x drawing x coordinates
  * @param y drawing x coordinates
@@ -1024,7 +1023,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         // set to "1").
         //_bitmapAddress =
         if (IS_BIT_SET(_regMemoryPointers, 3)) {
-            _bitmapAddress += 0x2000;
+            _bitmapAddress = 0x2000;
         } else {
             _bitmapAddress = 0;
         }
@@ -1112,7 +1111,8 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     }
 
     // write to memory anyway
-    //_cpu->memory()->writeByte(address, bt, true);
+    // @fixme this is wrong
+    _cpu->memory()->writeByte(address, bt, true);
 }
 
 /**
@@ -1380,12 +1380,9 @@ void CVICII::readVICByte(uint16_t address, uint8_t *bt) {
     //      _charsetAddress, _cia2->vicMemoryAddress());
     bool readFromCharsetRom = false;
 
-    // vic addresses 12 bits on read
-    int addr = address & 0x3fff;
-
     // these addresses are shadowed with the rom character set
-    if ((addr >= 0x1000 && addr <= 0x1fff) ||
-        (addr >= 0x9000 && addr <= 0x9fff)) {
+    if ((address >= 0x1000 && address <= 0x1fff) ||
+        (address >= 0x9000 && address <= 0x9fff)) {
         // shadows ROM address
         readFromCharsetRom = true;
     }
@@ -1403,7 +1400,7 @@ void CVICII::readVICByte(uint16_t address, uint8_t *bt) {
     } else {
         // raw memory read
         // SDL_Log("vic read from RAM");
-        _cpu->memory()->readByte(_cia2->vicMemoryAddress() + addr, bt, true);
+        _cpu->memory()->readByte(_cia2->vicMemoryAddress() + address, bt, true);
     }
 }
 

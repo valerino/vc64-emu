@@ -88,7 +88,8 @@ void cpuCallbackRead(uint16_t address, uint8_t *val) {
         if (mapType == PLA_MAP_IO_DEVICES) {
             // access VIC registers
             vic->read(address, val);
-            return;
+        } else {
+            mem->readByte(address, val);
         }
     } else if (address >= CIA2_REGISTERS_START &&
                address <= CIA2_REGISTERS_END) {
@@ -96,6 +97,8 @@ void cpuCallbackRead(uint16_t address, uint8_t *val) {
             // access CIA2 registers
             cia2->read(address, val);
             return;
+        } else {
+            mem->readByte(address, val);
         }
     } else if (address >= CIA1_REGISTERS_START &&
                address <= CIA1_REGISTERS_END) {
@@ -103,11 +106,13 @@ void cpuCallbackRead(uint16_t address, uint8_t *val) {
             // access CIA1 registers
             cia1->read(address, val);
             return;
+        } else {
+            mem->readByte(address, val);
         }
+    } else {
+        // default, read from ram
+        mem->readByte(address, val);
     }
-
-    // default, read from ram
-    mem->readByte(address, val);
 }
 
 /**

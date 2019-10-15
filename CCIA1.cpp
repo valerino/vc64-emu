@@ -52,7 +52,7 @@ void CCIA1::read(uint16_t address, uint8_t *bt) {
 
     switch (addr) {
     case 0xdc00:
-    case 0xdc01:
+    case 0xdc01: {
         // PRA ($dc00) and PRB ($dc01)
         // read keyboard matrix row in data port A
         pra = readPRA();
@@ -66,7 +66,7 @@ void CCIA1::read(uint16_t address, uint8_t *bt) {
                 BIT_SET(pra, 4);
             } else {
                 // default PRA read
-                CCIABase::read(addr, bt);
+                *bt = pra;
                 return;
             }
         }
@@ -74,6 +74,7 @@ void CCIA1::read(uint16_t address, uint8_t *bt) {
         // read column
         readKeyboardMatrixColumn(bt, pra);
         break;
+    }
 
     default:
         // default processing with the base class
@@ -88,7 +89,7 @@ void CCIA1::write(uint16_t address, uint8_t bt) {
 
     default:
         // default processing with the base class
-        CCIABase::write(address, bt);
+        CCIABase::write(addr, bt);
         break;
     }
 }
@@ -106,8 +107,8 @@ uint16_t CCIA1::checkShadowAddress(uint16_t address) {
     // check for shadow addresses
     if (address >= 0xdc10 && address <= 0xdcff) {
         // these are shadows for $dc00-$dc10
-        return (CIA1_REGISTERS_START +
-                ((address % CIA1_REGISTERS_START) % 0x10));
+        uint8_t offset = address & 0xff;
+        return CIA1_REGISTERS_START + (offset & 0xf);
     }
     return address;
 }

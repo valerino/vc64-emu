@@ -143,5 +143,10 @@ int CPLA::mapAddressToType(uint16_t address) {
             // exit(1);
         }
     }
+    if (type == PLA_MAP_UNDEFINED) {
+        SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION,
+                        "mapping undefined!, address=$%x, latch=%d", address,
+                        _latch);
+    }
     return type;
 }
