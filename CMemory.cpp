@@ -71,42 +71,6 @@ uint8_t CMemory::readByte(uint32_t address, uint8_t *b, bool raw) {
         *b = _mem[address];
     }
 
-    /*
-    if (address >= MEMORY_BASIC_ADDRESS &&
-        address < MEMORY_BASIC_ADDRESS + MEMORY_BASIC_SIZE) {
-        // $a000 (basic rom)
-        if (_pla->isLoram()) {
-            // accessing basic rom
-            *b = _basicRom[address - MEMORY_BASIC_ADDRESS];
-        } else {
-            // basic rom is masked, returning ram
-            *b = _mem[address];
-        }
-    } else if (address >= MEMORY_KERNAL_ADDRESS &&
-               address < MEMORY_KERNAL_ADDRESS + MEMORY_KERNAL_SIZE) {
-        // $e000 (kernal rom)
-        if (_pla->isHiram()) {
-            // accessing kernal rom
-            *b = _kernalRom[address - MEMORY_KERNAL_ADDRESS];
-        } else {
-            // kernal rom is masked, returning ram
-            *b = _mem[address];
-        }
-    } else if (address >= MEMORY_CHARSET_ADDRESS &&
-               address < MEMORY_CHARSET_ADDRESS + MEMORY_CHARSET_SIZE) {
-        // $d000 (charset rom)
-        if (_pla->isCharen()) {
-            // access the IO registers
-            *b = _mem[address];
-        } else {
-            // charen 0, access charset
-            *b = _charRom[address - MEMORY_CHARSET_ADDRESS];
-        }
-    } else {
-        // ram
-        *b = _mem[address];
-    }
-    */
     return 0;
 }
 
