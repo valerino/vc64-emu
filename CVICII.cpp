@@ -884,7 +884,7 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
 
     default:
         // read from memory
-        readVICByte(addr, bt);
+        _cpu->memory()->readByte(addr, bt, true);
         break;
     }
 }
