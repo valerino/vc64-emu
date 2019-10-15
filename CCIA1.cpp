@@ -77,7 +77,7 @@ void CCIA1::read(uint16_t address, uint8_t *bt) {
 
     default:
         // default processing with the base class
-        CCIABase::read(addr, bt);
+        CCIABase::read(address, bt);
     }
 }
 
@@ -88,7 +88,7 @@ void CCIA1::write(uint16_t address, uint8_t bt) {
 
     default:
         // default processing with the base class
-        CCIABase::write(addr, bt);
+        CCIABase::write(address, bt);
         break;
     }
 }

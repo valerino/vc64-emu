@@ -311,7 +311,12 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
                 _connectedTo == CIA_TRIGGERS_IRQ ? 1 : 2, address);
         break;
     }
+
+    // write to memory anyway
+    // @fixme this is wrong
+    //_cpu->memory()->writeByte(address, bt, true);
 }
+
 void CCIABase::updateTimer(int cycleCount, int timerType) {
     // check which timer we're updating
     bool running = false;

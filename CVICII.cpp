@@ -114,9 +114,10 @@ bool CVICII::isSpriteDrawingOnBorder(int x, int y) {
 /**
  * @brief detect sprite-sprite collision
  * @fixme partially working
+ * @see http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt 3.8.2
  * @param idx current drawing sprite idx
- * @param x drawing x coordinates
- * @param y drawing x coordinates
+ * @param x drawing sprite x coordinates
+ * @param y drawing sprite x coordinates
  */
 void CVICII::checkSpriteSpriteCollision(int idx, int x, int y) {
     Rect limits;
@@ -150,6 +151,46 @@ void CVICII::checkSpriteSpriteCollision(int idx, int x, int y) {
 
         } else {
             BIT_CLEAR(_regInterrupt, 2);
+        }
+    }
+    return;
+}
+
+/**
+ * @brief detect sprite-background collision (technically, its
+ * sprite-foreground! :) )
+ * @see http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt 3.8.2
+ * @param x screen drawing x coordinates
+ * @param y screen drawing x coordinates
+ */
+void CVICII::checkSpriteBackgroundCollision(int x, int y) {
+    Rect limits;
+    getScreenLimits(&limits);
+    for (int i = 0; i < 8; i++) {
+        if (!isSpriteEnabled(i)) {
+            continue;
+        }
+        int xMultiplier = isSpriteXExpanded(i) ? 2 : 1;
+        int yMultiplier = isSpriteYExpanded(i) ? 2 : 1;
+        int sprX = (getSpriteCoordinate(i) + limits.firstSpriteX) * xMultiplier;
+        int sprY = getSpriteCoordinate(i + 1) * yMultiplier;
+        if ((x >= sprX && (x <= (sprX + 24 * xMultiplier)) && (y >= sprY) &&
+             (y <= sprY + 21 * yMultiplier))) {
+            /*SDL_Log("collision background(x=%d,y=%d) with "
+                    "sprite-%d(x=%d,y=%d)",
+                    x, y, i, sprX, sprY);*/
+
+            if (!_regSpriteBckCollision) {
+                // only the first collision triggers an irq
+                if (IS_BIT_SET(_regInterruptEnabled, 1)) {
+                    BIT_SET(_regInterrupt, 1);
+                    _cpu->irq();
+                }
+            }
+            BIT_SET(_regSpriteBckCollision, i);
+
+        } else {
+            BIT_CLEAR(_regInterrupt, 1);
         }
     }
     return;
@@ -444,11 +485,17 @@ void CVICII::drawCharacterMode(int rasterLine) {
                 case 2:
                     // 10
                     charRgb = _palette[getBackgoundColor(2)];
+
+                    // drawing foreground, check collisions with sprite
+                    checkSpriteBackgroundCollision(pixelX, rasterLine);
                     break;
 
                 case 3:
                     // 11, default (use default screen matrix color)
                     charRgb = _palette[charColor & 7];
+
+                    // drawing foreground, check collisions with sprite
+                    checkSpriteBackgroundCollision(pixelX, rasterLine);
                     break;
                 }
                 if (pixelX > (320 + limits.firstVisibleX)) {
@@ -489,6 +536,9 @@ void CVICII::drawCharacterMode(int rasterLine) {
                     }
                     charRgb = _palette[charColor];
                     blit(pixelX, rasterLine, &charRgb);
+
+                    // drawing foreground, check collisions with sprite
+                    checkSpriteBackgroundCollision(pixelX, rasterLine);
                 } else {
                     // put pixel in background color
                     blit(pixelX, rasterLine, &backgroundRgb);
@@ -556,6 +606,9 @@ void CVICII::drawBitmapMode(int rasterLine) {
 
                 if (IS_BIT_SET(bitmapData, i)) {
                     blit(pixelX, rasterLine, &fgColor);
+
+                    // drawing foreground, check collisions with sprite
+                    checkSpriteBackgroundCollision(pixelX, rasterLine);
                 } else {
                     blit(pixelX, rasterLine, &bgColor);
                 }
@@ -568,6 +621,8 @@ void CVICII::drawBitmapMode(int rasterLine) {
                 // only the last 3 bits count
                 uint8_t bits = bitmapData & 3;
                 RgbStruct rgb;
+                int pixelX = x + 8 - i + _scrollX;
+
                 switch (bits) {
                 case 0:
                     // 00
@@ -582,13 +637,17 @@ void CVICII::drawBitmapMode(int rasterLine) {
                 case 2:
                     // 10
                     rgb = _palette[screenChar & 0xf];
+                    // drawing foreground, check collisions with sprite
+                    checkSpriteBackgroundCollision(pixelX, rasterLine);
                     break;
 
                 case 3:
+                    // 11
+                    // drawing foreground, check collisions with sprite
+                    checkSpriteBackgroundCollision(pixelX, rasterLine);
                     rgb = _palette[screenColor & 0xf];
                     break;
                 }
-                int pixelX = x + 8 - i + _scrollX;
                 blit(pixelX, rasterLine, &rgb);
                 blit(pixelX + 1, rasterLine, &rgb);
 
@@ -1112,7 +1171,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
     // write to memory anyway
     // @fixme this is wrong
-    //_cpu->memory()->writeByte(address, bt, true);
+    _cpu->memory()->writeByte(address, bt, true);
 }
 
 /**
