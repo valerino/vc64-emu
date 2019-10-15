@@ -13,26 +13,32 @@ CCIABase::CCIABase(CMOS65xx *cpu, CPLA *pla, uint16_t baseAddress,
 
 CCIABase::~CCIABase() {}
 
-uint8_t CCIABase::readPRA() {
-    uint8_t bt;
-    CCIABase::read(_baseAddress, &bt);
-    return bt;
-}
-uint8_t CCIABase::readPRB() {
-    uint8_t bt;
-    CCIABase::read(_baseAddress + 1, &bt);
-    return bt;
-}
-
-void CCIABase::writePRA(uint8_t pra) { CCIABase::write(_baseAddress, pra); }
-void CCIABase::writePRB(uint8_t prb) { CCIABase::write(_baseAddress + 1, prb); }
+uint8_t CCIABase::readPRA() { return _prA; }
+uint8_t CCIABase::readPRB() { return _prB; }
 
 void CCIABase::read(uint16_t address, uint8_t *bt) {
     int offset = address - _baseAddress;
     switch (offset) {
-        /**
-         * @todo 0x02-0x03 (DDRA, DDRB)
-         */
+    case 0:
+        // PRA port A
+        *bt = _prA;
+        break;
+
+    case 1:
+        // PRB port B
+        *bt = _prB;
+        break;
+
+    case 2:
+        // DDRA data direction port A
+        *bt = _ddrA;
+        break;
+
+    case 3:
+        // DDRB data direction port B
+        *bt = _ddrB;
+        break;
+
     case 0x04:
         // TA LO
         *bt = (_timerA & 0xff);
@@ -53,12 +59,33 @@ void CCIABase::read(uint16_t address, uint8_t *bt) {
         *bt = (_timerB & 0xff00) >> 8;
         break;
 
-        /**
-         * @todo 0x08-0x0c (TOD 10THS, TOD SEC, TOD MIN, TOD HR, SDR)
-         */
+    case 0x8:
+        // TOD 10THS (RTC 1/10 seconds)
+        *bt = _tod10Ths;
+        break;
+
+    case 0x9:
+        // TOD SEC (RTC seconds)
+        *bt = _todSec;
+        break;
+
+    case 0xa:
+        // TOD MIN (RTC minutes)
+        *bt = _todMin;
+        break;
+
+    case 0xb:
+        // TOD HR (RTC hours)
+        *bt = _todHr;
+        break;
+
+    case 0xc:
+        // SDR (serial shift register)
+        *bt = _todSdr;
+        break;
 
     case 0x0d: {
-        // ICR
+        // ICR interrupt control
         // @todo: handle other bits
         uint8_t res = 0;
         if (IS_BIT_SET(_timerAStatus,
@@ -87,9 +114,20 @@ void CCIABase::read(uint16_t address, uint8_t *bt) {
         break;
     }
 
+    case 0xe:
+        // CRA (control timer A)
+        *bt = _crA;
+        break;
+
+    case 0xf:
+        // CRB (control timer B)
+        *bt = _crB;
+        break;
+
     default:
         // read from memory
-        _cpu->memory()->readByte(address, bt, true);
+        SDL_Log("unhandled cia%d read at $%0x", CIA_TRIGGERS_IRQ ? 1 : 2,
+                address);
         break;
     }
 }
@@ -97,9 +135,26 @@ void CCIABase::read(uint16_t address, uint8_t *bt) {
 void CCIABase::write(uint16_t address, uint8_t bt) {
     int offset = address - _baseAddress;
     switch (offset) {
-        /**
-         * @todo 0x02-0x03 (DDRA, DDRB)
-         */
+    case 0:
+        // PRA port A
+        _prA = bt;
+        break;
+
+    case 1:
+        // PRB port B
+        _prB = bt;
+        break;
+
+    case 2:
+        // DDRA data direction port A
+        _ddrA = bt;
+        break;
+
+    case 3:
+        // DDRB data direction port B
+        _ddrB = bt;
+        break;
+
     case 0x04:
         // TA LO
         _timerALatch = (_timerALatch & 0xff00) | bt;
@@ -128,9 +183,30 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
         }
         break;
 
-        /**
-         * @todo 0x08-0x0c (TOD 10THS, TOD SEC, TOD MIN, TOD HR, SDR)
-         */
+    case 0x8:
+        // TOD 10THS (RTC 1/10 seconds)
+        _tod10Ths = bt;
+        break;
+
+    case 0x9:
+        // TOD SEC (RTC seconds)
+        _todSec = bt;
+        break;
+
+    case 0xa:
+        // TOD MIN (RTC minutes)
+        _todMin = bt;
+        break;
+
+    case 0xb:
+        // TOD HR (RTC hours)
+        _todHr = bt;
+        break;
+
+    case 0xc:
+        // SDR (serial shift register)
+        _todSdr = bt;
+        break;
 
     case 0x0d: {
         // ICR
@@ -151,9 +227,9 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
                 BIT_CLEAR(_timerBStatus, CIA_TIMER_INTERRUPT_UNDERFLOW_ENABLED);
             }
         }
-        _cpu->memory()->writeByte(address, bt, true);
         break;
     }
+
     case 0x0e:
         // CRA
         // @todo handle other bits
@@ -185,7 +261,7 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
         } else {
             _timerAMode = CIA_TIMER_COUNT_CPU_CYCLES;
         }
-        _cpu->memory()->writeByte(address, bt, true);
+        _crA = bt;
         break;
 
     case 0x0f:
@@ -226,12 +302,13 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
             // 11
             _timerBMode = CIA_TIMER_COUNT_TIMERA_UNDERFLOW_IF_CNT_HI;
         }
-        _cpu->memory()->writeByte(address, bt, true);
+        _crB = bt;
         break;
 
     default:
         // write to memory
-        _cpu->memory()->writeByte(address, bt, true);
+        SDL_Log("unhandled cia%d write at $%0x", CIA_TRIGGERS_IRQ ? 1 : 2,
+                address);
         break;
     }
 }

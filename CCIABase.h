@@ -79,21 +79,20 @@ class CCIABase {
      */
     uint8_t readPRB();
 
-    /**
-     * @brief write PORT A register
-     * @param a PRA value
-     */
-    void writePRA(uint8_t pra);
-
-    /**
-     * @brief write PORT B register
-     * @param a PRB value
-     */
-    void writePRB(uint8_t prb);
-
   protected:
     CMOS65xx *_cpu = nullptr;
     CPLA *_pla = nullptr;
+    uint8_t _prA = 0;
+    uint8_t _prB = 0;
+    uint8_t _ddrA = 0;
+    uint8_t _ddrB = 0;
+    uint8_t _tod10Ths = 0;
+    uint8_t _todSec = 0;
+    uint8_t _todMin = 0;
+    uint8_t _todHr = 0;
+    uint8_t _todSdr = 0;
+    uint8_t _crA = 0;
+    uint8_t _crB = 0;
     int _timerALatch = 0;
     int _timerBLatch = 0;
     int _timerA = 0;

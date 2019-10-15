@@ -884,7 +884,8 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
 
     default:
         // read from memory
-        _cpu->memory()->readByte(addr, bt, true);
+        // readVICByte(addr, bt);
+        SDL_Log("unhandled vic read at $%0x", addr);
         break;
     }
 }
@@ -918,6 +919,8 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         // MmX/Y = sprite n X/Y coordinates
         int spriteCoordIdx = addr - 0xd000;
         setSpriteCoordinate(spriteCoordIdx, bt);
+        //_cpu->memory()->writeByte(address, bt, true);
+
         break;
     }
     case 0xd010:
@@ -962,6 +965,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         _regLP[lp] = bt;
         break;
     }
+
     case 0xd015:
         // MnE: sprite enabled
         _regSpriteEnabled = bt;
@@ -988,10 +992,12 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         break;
 
     case 0xd018:
-        // memory pointers (bit 0 is always set)
+        // memory pointers
         // https://www.c64-wiki.com/wiki/53272
-        bt |= 1;
         _regMemoryPointers = bt;
+
+        // bit 0 is always set
+        BIT_SET(_regMemoryPointers, 0);
 
         // set addresses (https://www.c64-wiki.com/wiki/Page_208-211)
         // VM10,VM11,VM12,VM13 = character set address
@@ -1100,9 +1106,13 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     }
     default:
         // write to memory
-        _cpu->memory()->writeByte(address, bt, true);
+        SDL_Log("unhandled vic write at $%0x", addr);
+        // _cpu->memory()->writeByte(address, bt, true);
         break;
     }
+
+    // write to memory anyway
+    //_cpu->memory()->writeByte(address, bt, true);
 }
 
 /**
@@ -1118,6 +1128,68 @@ void CVICII::setSpriteCoordinate(int idx, uint8_t val) { _regM[idx] = val; }
  * @return x or y coordinate
  */
 uint8_t CVICII::getSpriteCoordinate(int idx) { return _regM[idx]; }
+
+/**
+ * @brief get X coordinate of sprite at idx, combining value of the MnX
+ * with the corresponding bit of $d010 as MSB
+ * @return the effective X coordinate
+ */
+uint16_t CVICII::getSpriteXCoordinate(int idx) {
+    // get MnX
+    uint16_t mnx = _regM[idx * 2];
+
+    // set 8th bit if the corresponding sprite index bit is set in $d010
+    if (IS_BIT_SET(_regMSBX, idx)) {
+        BIT_SET(mnx, 8);
+    }
+    return mnx;
+}
+
+/**
+ * @brief get Y coordinate of sprite at idx
+ * @return
+ */
+uint8_t CVICII::getSpriteYCoordinate(int idx) {
+    // get MnY
+    uint8_t mny = _regM[(idx * 2) + 1];
+    return mny;
+}
+
+/**
+ * @brief check if sprite n is enabled
+ * @return
+ */
+bool CVICII::isSpriteEnabled(int idx) {
+    bool enabled = IS_BIT_SET(_regSpriteEnabled, idx);
+    return enabled;
+}
+
+/**
+ * @brief check if sprite n is Y expanded (Y size * 2)
+ * @return
+ */
+bool CVICII::isSpriteYExpanded(int idx) {
+    bool expanded = IS_BIT_SET(_regSpriteYExpansion, idx);
+    return expanded;
+}
+
+/**
+ * @brief check if the sprite n is multicolor
+ * @return
+ */
+bool CVICII::isSpriteMulticolor(int idx) {
+    bool mc = IS_BIT_SET(_regSpriteMultiColor, idx);
+    return mc;
+}
+
+/**
+ * @brief check if sprite n is Y expanded (Y size * 2)
+ * @return
+ */
+bool CVICII::isSpriteXExpanded(int idx) {
+    bool expanded = IS_BIT_SET(_regSpriteXExpansion, idx);
+    return expanded;
+}
 
 /**
  * @brief get the background color from the BnC register
@@ -1187,68 +1259,6 @@ bool CVICII::checkUnusedAddress(int type, uint16_t address, uint8_t *bt) {
         return true;
     }
     return false;
-}
-
-/**
- * @brief get X coordinate of sprite at idx, combining value of the MnX
- * with the corresponding bit of $d010 as MSB
- * @return the effective X coordinate
- */
-uint16_t CVICII::getSpriteXCoordinate(int idx) {
-    // get MnX
-    uint16_t mnx = _regM[idx * 2];
-
-    // set 8th bit if the bit is set in $d010
-    if (IS_BIT_SET(_regMSBX, idx)) {
-        mnx |= 0x100;
-    }
-    return mnx;
-}
-
-/**
- * @brief get Y coordinate of sprite at idx
- * @return
- */
-uint8_t CVICII::getSpriteYCoordinate(int idx) {
-    // get MnY
-    uint8_t mny = _regM[(idx * 2) + 1];
-    return mny;
-}
-
-/**
- * @brief check if sprite n is enabled
- * @return
- */
-bool CVICII::isSpriteEnabled(int idx) {
-    bool enabled = IS_BIT_SET(_regSpriteEnabled, idx);
-    return enabled;
-}
-
-/**
- * @brief check if sprite n is Y expanded (Y size * 2)
- * @return
- */
-bool CVICII::isSpriteYExpanded(int idx) {
-    bool expanded = IS_BIT_SET(_regSpriteYExpansion, idx);
-    return expanded;
-}
-
-/**
- * @brief check if the sprite n is multicolor
- * @return
- */
-bool CVICII::isSpriteMulticolor(int idx) {
-    bool mc = IS_BIT_SET(_regSpriteMultiColor, idx);
-    return mc;
-}
-
-/**
- * @brief check if sprite n is Y expanded (Y size * 2)
- * @return
- */
-bool CVICII::isSpriteXExpanded(int idx) {
-    bool expanded = IS_BIT_SET(_regSpriteXExpansion, idx);
-    return expanded;
 }
 
 /**
@@ -1359,7 +1369,7 @@ uint8_t CVICII::getScreenColor(int x, int y) {
     uint8_t screenColor;
 
     // read from raw memory
-    _cpu->memory()->readByte(colorAddr, &screenColor, true);
+    _cpu->memory()->readByte(colorAddr, &screenColor);
     return screenColor;
 }
 
