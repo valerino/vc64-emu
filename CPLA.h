@@ -87,8 +87,6 @@ class CPLA {
      */
     int mapAddressToType(uint16_t address);
 
-    int latch() { return _latch; }
-
   private:
     uint8_t _latch = 0;
 };

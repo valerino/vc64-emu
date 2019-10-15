@@ -70,58 +70,71 @@ void CPLA::setupMemoryMapping(uint8_t controlPort) {
 }
 
 int CPLA::mapAddressToType(uint16_t address) {
+    // default is ram
+    int type = PLA_MAP_RAM;
+
     if (address >= 0 && address <= 0x0fff) {
         // page 0-15
-        return PLA_MAP_RAM;
+        type = PLA_MAP_RAM;
     } else if (address >= 0x1000 && address <= 0x07fff) {
         // page 16-127
         if (_latch >= 16 && _latch <= 23) {
-            return PLA_MAP_UNDEFINED;
+            type = PLA_MAP_UNDEFINED;
         }
     } else if (address >= 0x8000 && address <= 0x09fff) {
         // page 128-159
         if ((_latch >= 15 && _latch <= 23) || _latch == 11 || _latch == 7 ||
             _latch == 3) {
-            return PLA_MAP_CART_ROM_LO;
+            // @fixme: exit, just to quickly pinpoint what's happening!
+            SDL_LogCritical(
+                SDL_LOG_CATEGORY_APPLICATION,
+                "cartridge mapping not yet supported!, address=$%0x", address);
+            type = PLA_MAP_CART_ROM_LO;
+            exit(1);
         }
     } else if (address >= 0xa000 && address <= 0x0bfff) {
         // page 160-191
         if (_latch == 31 || _latch == 27 || _latch == 15 || _latch == 11) {
-            // SDL_Log("basic!!!, latch=%d", _latch);
-            return PLA_MAP_BASIC_ROM;
+            type = PLA_MAP_BASIC_ROM;
         } else if (_latch >= 16 && _latch <= 23) {
-            // SDL_Log("und!!!, latch=%d", _latch);
-            return PLA_MAP_UNDEFINED;
+            type = PLA_MAP_UNDEFINED;
         } else if (_latch == 7 || _latch == 6 || _latch == 3 || _latch == 2) {
-            // SDL_Log("cart!!!, latch=%d", _latch);
-            return PLA_MAP_CART_ROM_HI;
+            // @fixme: exit, just to quickly pinpoint what's happening!
+            SDL_LogCritical(
+                SDL_LOG_CATEGORY_APPLICATION,
+                "cartridge mapping not yet supported!, address=$%0x", address);
+            type = PLA_MAP_CART_ROM_HI;
+            exit(1);
         }
     } else if (address >= 0xc000 && address <= 0x0cfff) {
         // page 192-207
         if (_latch >= 16 && _latch <= 23) {
-            return PLA_MAP_UNDEFINED;
+            type = PLA_MAP_UNDEFINED;
         }
     } else if (address >= 0xd000 && address <= 0x0dfff) {
         // page 208-223
         if (_latch == 31 || _latch == 30 || _latch == 29 ||
             (_latch <= 23 && _latch >= 13) || (_latch <= 7 && _latch >= 5)) {
-            return PLA_MAP_IO_DEVICES;
+            type = PLA_MAP_IO_DEVICES;
         } else if ((_latch <= 27 && _latch >= 25) ||
                    (_latch <= 11 && _latch >= 9) || _latch == 3 ||
                    _latch == 2) {
-            return PLA_MAP_CHARSET_ROM;
+            type = PLA_MAP_CHARSET_ROM;
         }
     } else if (address >= 0xe000 && address <= 0x0ffff) {
         // page 224-255
         if (_latch == 31 || _latch == 30 || _latch == 27 || _latch == 26 ||
             _latch == 15 || _latch == 14 || _latch == 11 || _latch == 10 ||
             _latch == 7 || _latch == 6 || _latch == 3 || _latch == 2) {
-            return PLA_MAP_KERNAL_ROM;
+            type = PLA_MAP_KERNAL_ROM;
         } else if (_latch <= 23 && _latch >= 16) {
-            return PLA_MAP_CART_ROM_HI;
+            // @fixme: exit, just to quickly pinpoint what's happening!
+            SDL_LogCritical(
+                SDL_LOG_CATEGORY_APPLICATION,
+                "cartridge mapping not yet supported!, address=$%0x", address);
+            type = PLA_MAP_CART_ROM_HI;
+            exit(1);
         }
     }
-
-    // either, map ram
-    return PLA_MAP_RAM;
+    return type;
 }
