@@ -65,8 +65,12 @@ void CPLA::setupMemoryMapping(uint8_t controlPort) {
         // SDL_Log("setting CHAREN");
         BIT_SET(_latch, 2);
     } else {
-        BIT_CLEAR(_latch, 3);
+        BIT_CLEAR(_latch, 2);
     }
+
+    // @fixme not cartridge emulation at the moment....
+    BIT_SET(_latch, 3);
+    BIT_SET(_latch, 4);
 }
 
 int CPLA::mapAddressToType(uint16_t address) {
@@ -90,8 +94,7 @@ int CPLA::mapAddressToType(uint16_t address) {
                 SDL_LOG_CATEGORY_APPLICATION,
                 "cartridge mapping not yet supported!, address=$%x, latch=%d",
                 address, _latch);
-            // type = PLA_MAP_CART_ROM_LO;
-            type = PLA_MAP_RAM;
+            type = PLA_MAP_CART_ROM_LO;
             // exit(1);
         }
     } else if (address >= 0xa000 && address <= 0xbfff) {
@@ -106,8 +109,7 @@ int CPLA::mapAddressToType(uint16_t address) {
                 SDL_LOG_CATEGORY_APPLICATION,
                 "cartridge mapping not yet supported!, address=$%x, latch=%d",
                 address, _latch);
-            // type = PLA_MAP_CART_ROM_HI;
-            type = PLA_MAP_RAM;
+            type = PLA_MAP_CART_ROM_HI;
             // exit(1);
         }
     } else if (address >= 0xc000 && address <= 0xcfff) {
@@ -137,8 +139,7 @@ int CPLA::mapAddressToType(uint16_t address) {
                 SDL_LOG_CATEGORY_APPLICATION,
                 "cartridge mapping not yet supported!, address=$%x, latch=%d",
                 address, _latch);
-            // type = PLA_MAP_CART_ROM_HI;
-            type = PLA_MAP_RAM;
+            type = PLA_MAP_CART_ROM_HI;
             // exit(1);
         }
     }
