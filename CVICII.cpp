@@ -1375,6 +1375,7 @@ uint8_t CVICII::getScreenColor(int x, int y) {
 
 void CVICII::readVICByte(uint16_t address, uint8_t *bt) {
     bool readFromCharsetRom = false;
+
     uint16_t addr = _cia2->vicMemoryAddress() + (address & 0x3fff);
 
     // these addresses are shadowed with the rom character set
@@ -1394,7 +1395,7 @@ void CVICII::readVICByte(uint16_t address, uint8_t *bt) {
 
         // read char data from rom
         // SDL_Log("vic read character from ROM");
-        *bt = cAddr[addr - _charsetAddress];
+        *bt = cAddr[(addr - _charsetAddress) & 0xfff];
     } else {
         // raw memory read
         // SDL_Log("vic read character from RAM");
