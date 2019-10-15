@@ -70,6 +70,7 @@ uint8_t CMemory::readByte(uint32_t address, uint8_t *b, bool raw) {
         // ram
         *b = _mem[address];
     }
+
     /*
     if (address >= MEMORY_BASIC_ADDRESS &&
         address < MEMORY_BASIC_ADDRESS + MEMORY_BASIC_SIZE) {
