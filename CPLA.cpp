@@ -74,6 +74,10 @@ void CPLA::setupMemoryMapping(uint8_t controlPort) {
 }
 
 int CPLA::mapAddressToType(uint16_t address) {
+    // @fixme not cartridge emulation at the moment....
+    BIT_SET(_latch, 3);
+    BIT_SET(_latch, 4);
+
     // default is ram
     int type = PLA_MAP_RAM;
 

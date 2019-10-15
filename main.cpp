@@ -89,6 +89,9 @@ void cpuCallbackRead(uint16_t address, uint8_t *val) {
             // access VIC registers
             vic->read(address, val);
         } else {
+            if (mapType != PLA_MAP_RAM) {
+                SDL_Log("vic switch mapType=%d", mapType);
+            }
             mem->readByte(address, val);
         }
     } else if (address >= CIA2_REGISTERS_START &&
@@ -98,7 +101,10 @@ void cpuCallbackRead(uint16_t address, uint8_t *val) {
             cia2->read(address, val);
             return;
         } else {
-            mem->readByte(address, val);
+            if (mapType != PLA_MAP_RAM) {
+                SDL_Log("cia2 switch mapType=%d", mapType);
+            }
+            mem->readByte(address, val, true);
         }
     } else if (address >= CIA1_REGISTERS_START &&
                address <= CIA1_REGISTERS_END) {
@@ -107,10 +113,16 @@ void cpuCallbackRead(uint16_t address, uint8_t *val) {
             cia1->read(address, val);
             return;
         } else {
-            mem->readByte(address, val);
+            if (mapType != PLA_MAP_RAM) {
+                SDL_Log("cia1 switch mapType=%d", mapType);
+            }
+            mem->readByte(address, val, true);
         }
     } else {
         // default, read from ram
+        /*if (mapType != PLA_MAP_RAM) {
+            SDL_Log("ram switch mapType=%d", mapType);
+        }*/
         mem->readByte(address, val);
     }
 }

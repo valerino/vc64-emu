@@ -48,14 +48,13 @@ void CCIA1::enableJoy2Hack(bool enable) { _joy2Hack = enable; }
 void CCIA1::read(uint16_t address, uint8_t *bt) {
     // in CIA1 some addresses d010-d0ff are repeated every 16 bytes
     uint16_t addr = checkShadowAddress(address);
-    uint8_t pra;
 
     switch (addr) {
     case 0xdc00:
     case 0xdc01: {
         // PRA ($dc00) and PRB ($dc01)
         // read keyboard matrix row in data port A
-        pra = readPRA();
+        uint8_t pra = readPRA();
         if (addr == 0xdc00) {
             if (_joy2Hack) {
                 // clear joy2 bits (1=not pressed)
@@ -105,10 +104,6 @@ void CCIA1::setKeyState(uint8_t scancode, bool pressed) {
  */
 uint16_t CCIA1::checkShadowAddress(uint16_t address) {
     // check for shadow addresses
-    if (address >= 0xdc10 && address <= 0xdcff) {
-        // these are shadows for $dc00-$dc10
-        uint8_t offset = address & 0xff;
-        return CIA1_REGISTERS_START + (offset & 0xf);
-    }
-    return address;
+    uint16_t addr = CIA1_REGISTERS_START + (address & 0xf);
+    return addr;
 }

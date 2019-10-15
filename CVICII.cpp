@@ -997,6 +997,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
         // bit 0 is always set
         BIT_SET(_regMemoryPointers, 0);
+        SDL_Log("memory pointers=$%x", _regMemoryPointers);
 
         // set addresses (https://www.c64-wiki.com/wiki/Page_208-211)
         // VM10,VM11,VM12,VM13 = character set address
@@ -1021,13 +1022,12 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         // the color information. Bit 3 indicates whether the bitmap begins
         // at start address 0 / $0(bit set to "0"),or at 8192 / $2000(bit
         // set to "1").
-        //_bitmapAddress =
         if (IS_BIT_SET(_regMemoryPointers, 3)) {
             _bitmapAddress = 0x2000;
         } else {
             _bitmapAddress = 0;
         }
-        SDL_Log("bitmap address=$%x", _screenAddress);
+        SDL_Log("bitmap address=$%x", _bitmapAddress);
         break;
 
     case 0xd019:
@@ -1112,7 +1112,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
     // write to memory anyway
     // @fixme this is wrong
-    _cpu->memory()->writeByte(address, bt, true);
+    //_cpu->memory()->writeByte(address, bt, true);
 }
 
 /**
@@ -1369,20 +1369,17 @@ uint8_t CVICII::getScreenColor(int x, int y) {
     uint8_t screenColor;
 
     // read from raw memory
-    _cpu->memory()->readByte(colorAddr, &screenColor);
+    _cpu->memory()->readByte(colorAddr, &screenColor, true);
     return screenColor;
 }
 
 void CVICII::readVICByte(uint16_t address, uint8_t *bt) {
-    uint8_t data = 0;
-    // SDL_Log("bank=%d, charsetAddress=$%x, vicMemoryAddress=$%x",
-    // bank,
-    //      _charsetAddress, _cia2->vicMemoryAddress());
     bool readFromCharsetRom = false;
+    uint16_t addr = _cia2->vicMemoryAddress() + (address & 0x3fff);
 
     // these addresses are shadowed with the rom character set
-    if ((address >= 0x1000 && address <= 0x1fff) ||
-        (address >= 0x9000 && address <= 0x9fff)) {
+    if ((addr >= 0x1000 && addr <= 0x1fff) ||
+        (addr >= 0x9000 && addr <= 0x9fff)) {
         // shadows ROM address
         readFromCharsetRom = true;
     }
@@ -1390,17 +1387,18 @@ void CVICII::readVICByte(uint16_t address, uint8_t *bt) {
     if (readFromCharsetRom) {
         // SDL_Log("vic read from ROM charset");
         uint8_t *cAddr = ((CMemory *)_cpu->memory())->charset();
-        if (IS_BIT_SET(_charsetAddress, 11)) {
+        if (IS_BIT_SET(addr, 11)) {
             // select the alternate character set in rom
             cAddr += 0x800;
         }
 
         // read char data from rom
-        *bt = cAddr[address - _charsetAddress];
+        // SDL_Log("vic read character from ROM");
+        *bt = cAddr[addr - _charsetAddress];
     } else {
         // raw memory read
-        // SDL_Log("vic read from RAM");
-        _cpu->memory()->readByte(_cia2->vicMemoryAddress() + address, bt, true);
+        // SDL_Log("vic read character from RAM");
+        _cpu->memory()->readByte(addr, bt, true);
     }
 }
 
@@ -1414,7 +1412,6 @@ void CVICII::readVICByte(uint16_t address, uint8_t *bt) {
 uint8_t CVICII::getCharacterData(int screenCode, int charRow) {
 
     uint8_t data = 0;
-    // int addr = _charsetAddress + ((screenCode * 8) + charRow);
     int addr = _charsetAddress + ((screenCode * 8) + charRow);
     readVICByte(addr, &data);
     return data;

@@ -61,6 +61,7 @@ uint8_t CMemory::readByte(uint32_t address, uint8_t *b, bool raw) {
         // $d000 (charset rom)
         if (!_pla->isCharen()) {
             // access charset rom
+            // SDL_Log("reading character rom");
             *b = _charRom[address - MEMORY_CHARSET_ADDRESS];
         } else {
             // ram
