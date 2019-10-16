@@ -104,7 +104,7 @@ void cpuCallbackRead(uint16_t address, uint8_t *val) {
             if (mapType != PLA_MAP_RAM) {
                 SDL_Log("cia2 switch mapType=%d", mapType);
             }
-            mem->readByte(address, val, true);
+            mem->readByte(address, val);
         }
     } else if (address >= CIA1_REGISTERS_START &&
                address <= CIA1_REGISTERS_END) {
@@ -116,7 +116,7 @@ void cpuCallbackRead(uint16_t address, uint8_t *val) {
             if (mapType != PLA_MAP_RAM) {
                 SDL_Log("cia1 switch mapType=%d", mapType);
             }
-            mem->readByte(address, val, true);
+            mem->readByte(address, val);
         }
     } else {
         // default, read from ram

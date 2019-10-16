@@ -1841,8 +1841,36 @@ void CMOS65xx::debugger(int addressingMode, int *size) {
             _silenceLog = false;
             break;
 
-        case 'r':
-            // print registers
+        case 'r': {
+            uint32_t rv = 0;
+            // print/edit registers
+            if (line[1] == 'A') {
+                sscanf(line, "rA %x", &rv);
+                _regA = rv & 0xff;
+                printf("\tsetting A to $%x!\n", _regA);
+            } else if (line[1] == 'X') {
+                sscanf(line, "rX %x", &rv);
+                _regX = rv & 0xff;
+                printf("\tsetting X to $%x!\n", _regX);
+            } else if (line[1] == 'Y') {
+                sscanf(line, "rY %x", &rv);
+                _regY = rv & 0xff;
+                printf("\tsetting Y to $x!\n", _regY);
+            } else if (line[1] == 'S') {
+                sscanf(line, "rS %x", &rv);
+                _regS = rv & 0xff;
+                printf("\tsetting S to $%x!\n", _regS);
+            } else if (line[1] == 'P' && line[2] == 'C') {
+                sscanf(line, "rPC %x", &rv);
+                _regPC = rv & 0xffff;
+                printf("\tsetting PC to $%x!\n", _regPC);
+            } else if (line[1] == 'P' && line[2] == ' ') {
+                sscanf(line, "rP %x", &rv);
+                _regP = rv & 0xff;
+                printf("\tsetting P to $%x!\n", _regP);
+            }
+
+            // anyway, print/edit registers
             _silenceLog = true;
             char statusString[128];
             cpuStatusToString(addressingMode, statusString,
@@ -1851,7 +1879,7 @@ void CMOS65xx::debugger(int addressingMode, int *size) {
 
             // do not advance
             *size = 0;
-            break;
+        } break;
 
         case 'g':
             // go
@@ -1998,9 +2026,11 @@ void CMOS65xx::debugger(int addressingMode, int *size) {
                 "\tp:\t\t\t\tstep instruction\n"
                 "\tg:\t\t\t\tgo (resume execution)\n"
                 "\tr:\t\t\t\tdisplay registers\n"
+                "\tr[A|X|Y|P|PC|S] <value>:\t\t\t\tedit registers, value in "
+                "hex without $\n"
                 "\td <$address> <num_bytes>:\tdisplay num_bytes at address\n"
-                "\te <$address> <1a,2b,...>:\twrite given hex bytes at "
-                "address\n"
+                "\te <$address> <value,value,...>:\twrite given bytes at "
+                "address, bytes in hex without $\n"
                 "\tf:\t\t\t\ttoggle force 'd' and 'e' to use raw memory "
                 "disregarding of mapping\n"
                 "\tbp <$address>:\t\t\tbreak at address (overwrite existent)\n"

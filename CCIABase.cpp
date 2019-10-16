@@ -306,7 +306,6 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
         break;
 
     default:
-        // write to memory
         SDL_Log("unhandled cia%d write at $%0x",
                 _connectedTo == CIA_TRIGGERS_IRQ ? 1 : 2, address);
         break;

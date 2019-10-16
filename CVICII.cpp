@@ -164,6 +164,7 @@ void CVICII::checkSpriteSpriteCollision(int idx, int x, int y) {
  * @param y screen drawing x coordinates
  */
 void CVICII::checkSpriteBackgroundCollision(int x, int y) {
+    // return;
     Rect limits;
     getScreenLimits(&limits);
     for (int i = 0; i < 8; i++) {
@@ -1163,15 +1164,13 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         break;
     }
     default:
-        // write to memory
         SDL_Log("unhandled vic write at $%0x", addr);
-        // _cpu->memory()->writeByte(address, bt, true);
         break;
     }
 
     // write to memory anyway
     // @fixme this is wrong
-    _cpu->memory()->writeByte(address, bt, true);
+    //_cpu->memory()->writeByte(address, bt, true);
 }
 
 /**
