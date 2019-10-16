@@ -111,6 +111,12 @@ bool CVICII::isSpriteDrawingOnBorder(int x, int y) {
     return false;
 }
 
+void CVICII::setCollisionHandling(bool enableSpriteSprite,
+                                  bool enableBackgroundSprite) {
+    _sprSprHwCollisionEnabled = enableSpriteSprite;
+    _sprBckHwCollisionEnabled = enableBackgroundSprite;
+}
+
 /**
  * @brief detect sprite-sprite collision
  * @fixme partially working
@@ -120,6 +126,10 @@ bool CVICII::isSpriteDrawingOnBorder(int x, int y) {
  * @param y drawing sprite x coordinates
  */
 void CVICII::checkSpriteSpriteCollision(int idx, int x, int y) {
+    if (!_sprSprHwCollisionEnabled) {
+        // disabled
+        return;
+    }
     Rect limits;
     getScreenLimits(&limits);
     for (int i = 0; i < 8; i++) {
@@ -164,7 +174,10 @@ void CVICII::checkSpriteSpriteCollision(int idx, int x, int y) {
  * @param y screen drawing x coordinates
  */
 void CVICII::checkSpriteBackgroundCollision(int x, int y) {
-    // return;
+    if (!_sprBckHwCollisionEnabled) {
+        // disabled
+        return;
+    }
     Rect limits;
     getScreenLimits(&limits);
     for (int i = 0; i < 8; i++) {
@@ -1057,7 +1070,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
         // bit 0 is always set
         BIT_SET(_regMemoryPointers, 0);
-        SDL_Log("memory pointers=$%x", _regMemoryPointers);
+        // SDL_Log("memory pointers=$%x", _regMemoryPointers);
 
         // set addresses (https://www.c64-wiki.com/wiki/Page_208-211)
         // VM10,VM11,VM12,VM13 = character set address
@@ -1066,7 +1079,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         // screen character RAM.
         _screenAddress = (_regMemoryPointers >> 4);
         _screenAddress *= 1024;
-        SDL_Log("screen memory address=$%x", _screenAddress);
+        // SDL_Log("screen memory address=$%x", _screenAddress);
 
         // CB11, CB12, CB13 = character set address
         // Bits 1 thru 3 (weights 2 thru 8) form a 3-bit number in the range
@@ -1074,7 +1087,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         // the character set.
         _charsetAddress = (_regMemoryPointers >> 1) & 0x7;
         _charsetAddress *= 2048;
-        SDL_Log("charset address=$%x", _charsetAddress);
+        // SDL_Log("charset address=$%x", _charsetAddress);
 
         // CB13 = bitmap address
         // The four most significant bits form a 4-bit number in the range 0
@@ -1087,7 +1100,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         } else {
             _bitmapAddress = 0;
         }
-        SDL_Log("bitmap address=$%x", _bitmapAddress);
+        // SDL_Log("bitmap address=$%x", _bitmapAddress);
         break;
 
     case 0xd019:
@@ -1434,7 +1447,7 @@ uint8_t CVICII::getScreenColor(int x, int y) {
 void CVICII::readVICByte(uint16_t address, uint8_t *bt) {
     bool readFromCharsetRom = false;
 
-    uint16_t addr = _cia2->vicMemoryAddress() + (address & 0x3fff);
+    uint16_t addr = _cia2->vicMemoryAddress() + address;
 
     // these addresses are shadowed with the rom character set
     if ((addr >= 0x1000 && addr <= 0x1fff) ||

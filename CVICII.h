@@ -46,13 +46,13 @@ typedef struct _rgbStruct {
  * @brief defines a rectangle
  */
 typedef struct _rect {
-    int firstVisibleX;   // first display window column
-    int firstVisibleLine;   // first display window row
-    int lastVisibleX;    // last display window column
-    int lastVisibleLine;    // last display window row
-    int firstVblankLine; // first row drawn at all, from the beam perspective
-    int lastVblankLine;  // last row at all, from the beam perspective
-    int firstSpriteX;    // this is the first column to start displaying sprites
+    int firstVisibleX;    // first display window column
+    int firstVisibleLine; // first display window row
+    int lastVisibleX;     // last display window column
+    int lastVisibleLine;  // last display window row
+    int firstVblankLine;  // first row drawn at all, from the beam perspective
+    int lastVblankLine;   // last row at all, from the beam perspective
+    int firstSpriteX; // this is the first column to start displaying sprites
 } Rect;
 
 /**
@@ -95,6 +95,18 @@ class CVICII {
      * @param bt
      */
     void write(uint16_t address, uint8_t bt);
+
+    /**
+     * @brief hack to enable/disable hardware collisions until they're
+     * completely fixed (this prevents some games to work at all, i.e.
+     * hunchback)
+     *
+     * @param enableSpriteSprite enable sprite-sprite collision (default)
+     * @param enableSpriteBackground enable sprite-background collision
+     * (default)
+     */
+    void setCollisionHandling(bool enableSpriteSprite,
+                              bool enableBackgroundSprite);
 
   protected:
     /**
@@ -144,6 +156,8 @@ class CVICII {
     uint16_t _bitmapAddress = 0;
     int _screenMode = VIC_SCREEN_MODE_CHARACTER_STANDARD;
     CPLA *_pla = nullptr;
+    bool _sprSprHwCollisionEnabled = true;
+    bool _sprBckHwCollisionEnabled = true;
 
     uint16_t checkShadowAddress(uint16_t address);
 

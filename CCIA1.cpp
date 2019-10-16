@@ -88,7 +88,9 @@ void CCIA1::write(uint16_t address, uint8_t bt) {
 
     default:
         // default processing with the base class
-        CCIABase::write(addr, bt);
+        // @fixme: i think here is 'addr', but putting 'address' makes gorf
+        // work......
+        CCIABase::write(address, bt);
         break;
     }
 }

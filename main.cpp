@@ -188,9 +188,11 @@ void usage(char **argv) {
     printf("usage: %s -f <file> [-dsh]\n"
            "\t-f: file to be loaded (PRG only is supported as now)\n"
            "\t-t: run cpu test in test/6502_functional_test.bin\n"
-           "\t-j: 1|2, joystick in port 1 or 2 (default is 0, no joystick)"
+           "\t-j: 1|2, joystick in port 1 or 2 (default is 0, no joystick)\n"
            "\t-d: debugger\n"
            "\t-s: fullscreen\n"
+           "\t-c: off|nospr|nobck (to disable hw collisions sprite/sprite, "
+           "sprite/background, all. default is all collisions enabled)\n"
            "\t-h: this help\n",
            argv[0]);
 }
@@ -237,11 +239,12 @@ int main(int argc, char **argv) {
     banner();
     bool fullScreen = false;
     bool isTestCpu = false;
+    char *collisionDisableType = nullptr;
     int joyNum = 0;
 
     // parse commandline
     while (1) {
-        int option = getopt(argc, argv, "dshtf:j:");
+        int option = getopt(argc, argv, "dshtc:f:j:");
         if (option == -1) {
             break;
         }
@@ -262,7 +265,12 @@ int main(int argc, char **argv) {
             break;
         case 'f':
             path = optarg;
-            SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "file path=%s", path);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "file to load=%s", path);
+            break;
+        case 'c':
+            collisionDisableType = optarg;
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "hw collision disable=%s",
+                        collisionDisableType);
             break;
         case 'd':
             debugger = true;
@@ -335,6 +343,24 @@ int main(int argc, char **argv) {
             testCpuMain(debugger);
             res = 0;
             break;
+        }
+
+        // disable collisons in vic if we're told so
+        if (collisionDisableType) {
+            // void setCollisionHandling(bool enableSpriteSprite,
+            // bool enableBackgroundSprite);//
+            bool enableSprSpr = true;
+            bool enableSprBck = true;
+            if (strcmp(collisionDisableType, "off") == 0) {
+                // all off
+                enableSprBck = false;
+                enableSprSpr = false;
+            } else if (strcmp(collisionDisableType, "nospr") == 0) {
+                enableSprSpr = false;
+            } else if (strcmp(collisionDisableType, "nobck") == 0) {
+                enableSprSpr = false;
+            }
+            vic->setCollisionHandling(enableSprSpr, enableSprBck);
         }
 
         // 312 lines * 63 Cycles = 19656
