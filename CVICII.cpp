@@ -788,6 +788,7 @@ int CVICII::update(long cycleCount) {
             // trigger irq if bits in $d01a is set for the raster
             // interrupt
             BIT_SET(_regInterrupt, 0);
+            BIT_SET(_regInterrupt, 7);
             _cpu->irq();
         } else {
             BIT_CLEAR(_regInterrupt, 0);
