@@ -99,13 +99,13 @@ bool CVICII::isSpriteDrawingOnBorder(int x, int y) {
     if (x < limits.firstVisibleX) {
         return true;
     }
-    if (y < limits.firstVisibleY) {
+    if (y < limits.firstVisibleLine) {
         return true;
     }
     if (x > limits.lastVisibleX + limits.firstSpriteX) {
         return true;
     }
-    if (y > limits.lastVisibleY) {
+    if (y > limits.lastVisibleLine) {
         return true;
     }
     return false;
@@ -258,7 +258,7 @@ void CVICII::drawSpriteMulticolor(int rasterLine, int idx, int x, int row) {
                     getScreenLimits(&limits);
                     checkSpriteSpriteCollision(
                         idx, pixelX,
-                        currentLine); // - limits.firstVisibleY);
+                        currentLine); // - limits.firstVisibleLine);
                 }
             }
         }
@@ -311,7 +311,7 @@ void CVICII::drawSprite(int rasterLine, int idx, int x, int row) {
                         getScreenLimits(&limits);
                         checkSpriteSpriteCollision(
                             idx, pixelX,
-                            currentLine); // - limits.firstVisibleY);
+                            currentLine); // - limits.firstVisibleLine);
                     }
                     RgbStruct rgb = _palette[color & 0xf];
                     blit(pixelX, currentLine, &rgb);
@@ -389,7 +389,8 @@ void CVICII::drawCharacterMode(int rasterLine) {
     getScreenLimits(&limits);
 
     // check if we're within the display window
-    if (rasterLine < limits.firstVisibleY || rasterLine > limits.lastVisibleY) {
+    if (rasterLine < limits.firstVisibleLine ||
+        rasterLine > limits.lastVisibleLine) {
         // out of display window
         return;
     }
@@ -409,7 +410,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
         }
 
         // this is the display window line
-        int line = rasterLine - limits.firstVisibleY;
+        int line = rasterLine - limits.firstVisibleLine;
 
         // this is the first display window column of the character to
         // display
@@ -557,7 +558,8 @@ void CVICII::drawBitmapMode(int rasterLine) {
     Rect limits;
     getScreenLimits(&limits);
 
-    if (rasterLine < limits.firstVisibleY || rasterLine > limits.lastVisibleY) {
+    if (rasterLine < limits.firstVisibleLine ||
+        rasterLine > limits.lastVisibleLine) {
         // out of display window
         return;
     }
@@ -570,7 +572,7 @@ void CVICII::drawBitmapMode(int rasterLine) {
     int columns = 40;
     for (int c = 0; c < columns; c++) {
         // this is the display window line
-        int line = rasterLine - limits.firstVisibleY;
+        int line = rasterLine - limits.firstVisibleLine;
 
         // this is the first display window column for this this block
         int x = limits.firstVisibleX + (c * 8);
@@ -680,24 +682,22 @@ void CVICII::drawBorder(int rasterLine) {
 void CVICII::getScreenLimits(Rect *limits) {
     // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
     memset(limits, 0, sizeof(Rect));
-    limits->firstVisibleY = 51;
-    limits->lastVisibleY = 250;
+    limits->firstVisibleLine = 51 - 1;
+    limits->lastVisibleLine = 250 - 1;
     if (!_RSEL) {
-        limits->firstVisibleY = 55;
-        limits->lastVisibleY = 246;
+        limits->firstVisibleLine = 55 - 1;
+        limits->lastVisibleLine = 246 - 1;
     }
 
     // @fixme the following X coordinates are merely found around in other
     // emulators..... but it's just a dirty hack
 
-    // limits->firstVisibleX = 24;
     // @fixme: this is wrong, adjusted manually (+18). should be the
     // firstVisibleX taken from documentation.....
+    // limits->firstVisibleX = 24;
     limits->firstVisibleX = 42;
-
-    limits->firstSpriteX = 18;
-
     limits->lastVisibleX = 343;
+    limits->firstSpriteX = 18;
     if (!_CSEL) {
         // limits->firstVisibleX = 31;
         // @fixme: this is wrong, adjusted manually (+18). should be the
@@ -706,8 +706,8 @@ void CVICII::getScreenLimits(Rect *limits) {
         limits->lastVisibleX = 334;
     }
 
-    limits->firstVblankLine = 15;
-    limits->lastVblankLine = 300;
+    limits->firstVblankLine = 15 - 1;
+    limits->lastVblankLine = 300 - 1;
 }
 
 int CVICII::update(long cycleCount) {
@@ -748,8 +748,8 @@ int CVICII::update(long cycleCount) {
     // drawing the screen) ?
     Rect limits;
     getScreenLimits(&limits);
-    if (currentRaster > limits.firstVblankLine &&
-        currentRaster < limits.lastVblankLine) {
+    if (currentRaster >= limits.firstVblankLine &&
+        currentRaster <= limits.lastVblankLine) {
         drawBorder(currentRaster - limits.firstVblankLine);
 
         if (_screenMode == VIC_SCREEN_MODE_CHARACTER_STANDARD ||
@@ -1170,7 +1170,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
     // write to memory anyway
     // @fixme this is wrong
-    //_cpu->memory()->writeByte(address, bt, true);
+    _cpu->memory()->writeByte(address, bt, true);
 }
 
 /**

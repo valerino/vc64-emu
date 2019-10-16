@@ -55,26 +55,38 @@ void cpuCallbackWrite(uint16_t address, uint8_t val) {
         if (mapType == PLA_MAP_IO_DEVICES) {
             // access VIC registers
             vic->write(address, val);
-            return;
+        } else {
+            if (mapType != PLA_MAP_RAM) {
+                SDL_Log("callback write, vic, mapType=%d", mapType);
+            }
+            mem->writeByte(address, val);
         }
     } else if (address >= CIA2_REGISTERS_START &&
                address <= CIA2_REGISTERS_END) {
         if (mapType == PLA_MAP_IO_DEVICES) {
             // access CIA2 registers
             cia2->write(address, val);
-            return;
+        } else {
+            if (mapType != PLA_MAP_RAM) {
+                SDL_Log("callback write, cia2, mapType=%d", mapType);
+            }
+            mem->writeByte(address, val);
         }
     } else if (address >= CIA1_REGISTERS_START &&
                address <= CIA1_REGISTERS_END) {
         if (mapType == PLA_MAP_IO_DEVICES) {
             // access CIA1 registers
             cia1->write(address, val);
-            return;
+        } else {
+            if (mapType != PLA_MAP_RAM) {
+                SDL_Log("callback write, cia1, mapType=%d", mapType);
+            }
+            mem->writeByte(address, val);
         }
+    } else {
+        // default, write to ram
+        mem->writeByte(address, val, true);
     }
-
-    // default, write to ram
-    mem->writeByte(address, val, true);
 }
 
 /**
@@ -90,7 +102,7 @@ void cpuCallbackRead(uint16_t address, uint8_t *val) {
             vic->read(address, val);
         } else {
             if (mapType != PLA_MAP_RAM) {
-                SDL_Log("vic switch mapType=%d", mapType);
+                SDL_Log("callback read, vic, mapType=%d", mapType);
             }
             mem->readByte(address, val);
         }
@@ -102,7 +114,7 @@ void cpuCallbackRead(uint16_t address, uint8_t *val) {
             return;
         } else {
             if (mapType != PLA_MAP_RAM) {
-                SDL_Log("cia2 switch mapType=%d", mapType);
+                SDL_Log("callback read, cia2, mapType=%d", mapType);
             }
             mem->readByte(address, val);
         }
@@ -114,7 +126,7 @@ void cpuCallbackRead(uint16_t address, uint8_t *val) {
             return;
         } else {
             if (mapType != PLA_MAP_RAM) {
-                SDL_Log("cia1 switch mapType=%d", mapType);
+                SDL_Log("callback read, cia1, mapType=%d", mapType);
             }
             mem->readByte(address, val);
         }

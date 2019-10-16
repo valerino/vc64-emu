@@ -1855,7 +1855,7 @@ void CMOS65xx::debugger(int addressingMode, int *size) {
             } else if (line[1] == 'Y') {
                 sscanf(line, "rY %x", &rv);
                 _regY = rv & 0xff;
-                printf("\tsetting Y to $x!\n", _regY);
+                printf("\tsetting Y to $%x!\n", _regY);
             } else if (line[1] == 'S') {
                 sscanf(line, "rS %x", &rv);
                 _regS = rv & 0xff;

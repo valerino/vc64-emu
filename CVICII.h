@@ -47,9 +47,9 @@ typedef struct _rgbStruct {
  */
 typedef struct _rect {
     int firstVisibleX;   // first display window column
-    int firstVisibleY;   // first display window row
+    int firstVisibleLine;   // first display window row
     int lastVisibleX;    // last display window column
-    int lastVisibleY;    // last display window row
+    int lastVisibleLine;    // last display window row
     int firstVblankLine; // first row drawn at all, from the beam perspective
     int lastVblankLine;  // last row at all, from the beam perspective
     int firstSpriteX;    // this is the first column to start displaying sprites
