@@ -388,13 +388,12 @@ int main(int argc, char **argv) {
             // badlines (23 vs 63)
             int c = vic->update(totalCycles);
             cycles += c;
-
-            // update audio chip
-            sid->update(totalCycles);
-
             // @fixme: this is wrong, cycles should be added .... but doing
             // it screws all (probably vic cycle counting is wrong)
             // totalCycles += c;
+
+            // update audio chip
+            sid->update(totalCycles);
 
             // update cyclecounter
             cycleCounter -= cycles;
