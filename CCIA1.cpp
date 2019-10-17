@@ -57,19 +57,20 @@ void CCIA1::read(uint16_t address, uint8_t *bt) {
         // PRA (controls joy2, among the other things. also controls keyboard
         // matrix rows)
         if (_joy2Hack) {
-            // we want to intepret joy2 pressing as joy1 pressing, via
-            // keyboard joy1 signals
-            // clear joy2 bits (1=not pressed)
+            // we want to intepret joy1 pressing as joy2 pressing, via
+            // keyboard joy1 shortcuts
+            // clear joy2 bits (1=not pressed), so joy2 results untouched
             BIT_SET(_prA, 0);
             BIT_SET(_prA, 1);
             BIT_SET(_prA, 2);
             BIT_SET(_prA, 3);
             BIT_SET(_prA, 4);
 
-            // read keyboard instead
+            // read keyboard instead, will detect eventually pressed joy1
+            // shortcuts
             readKeyboardMatrixColumn(bt, _prA);
         } else {
-            // default PRA read
+            // default PRA read, no joy2 hack
             *bt = _prA;
             return;
         }
@@ -79,9 +80,25 @@ void CCIA1::read(uint16_t address, uint8_t *bt) {
         // PRB (controls joy1, among the other things. also controls keyboard
         // matrix columns)
         // we will calculate columns using rows in PRA (some docs refer to
-        // columns in port A and rows in port B, though
-        // ..... but it's still the same)
-        readKeyboardMatrixColumn(bt, _prA);
+        // columns in port A and rows in port B, though... concept is the same)
+        if (_joy2Hack) {
+            // read PRB
+            readKeyboardMatrixColumn(bt, _prA);
+
+            // clear eventually present joystick 1 reads, then (or, both joy1
+            // and 2 would result pressed at the same time)
+            BIT_SET(*bt, 0);
+            BIT_SET(*bt, 1);
+            BIT_SET(*bt, 2);
+            BIT_SET(*bt, 3);
+            BIT_SET(*bt, 4);
+
+            // return patched PRB read, with joy1 excluded
+            _prB = *bt;
+        } else {
+            // default PRV read, no joy2 hack
+            readKeyboardMatrixColumn(bt, _prA);
+        }
         break;
 
     default:

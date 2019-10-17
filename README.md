@@ -25,9 +25,11 @@ vc64 - a c64 emulator
 usage: ./vc64-emu -f <file> [-dsh]
         -f: file to be loaded (PRG only is supported as now)
         -t: run cpu test in test/6502_functional_test.bin
-        -j: 1|2, joystick in port 1 or 2 emulated through cursor + leftshift (default is 0, no joystick)
-        -d: debugger
+        -j: 1|2, joystick in port 1 or 2 (default is 0, no joystick. either, arrows=directions, leftshift=fire).
+                when joy2 is enabled, press ctrl-j to switch on/off keyboard (due to a dirty hack i used!).
+        -d: debugger (if enabled, you may also use ctrl-d to break while running)
         -s: fullscreen
+        -c: off|nospr|nobck (to disable hw collisions sprite/sprite, sprite/background, all. default is all collisions enabled)
         -h: this help
 ~~~
 

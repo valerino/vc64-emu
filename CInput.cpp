@@ -301,6 +301,10 @@ int CInput::update(SDL_Event *ev, uint32_t *hotkeys) {
         // break requested!
         *hotkeys = HOTKEY_DEBUGGER;
         return 0;
+    } else if (keys[SDL_SCANCODE_LCTRL] && keys[SDL_SCANCODE_J]) {
+        // enable/disable joy2 hack
+        *hotkeys = HOTKEY_JOY2_HACK_SWITCH;
+        return 0;
     } else if (keys[SDL_SCANCODE_TAB] && keys[SDL_SCANCODE_BACKSPACE]) {
         // runstop + restore causes a nonmaskable interrupt
         _cia1->_cpu->nmi();

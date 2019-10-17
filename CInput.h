@@ -22,21 +22,11 @@
  */
 #define HOTKEY_FORCE_EXIT 3
 
-#define JOY_2_LEFT 0
-#define JOY_2_RIGHT 1
-#define JOY_2_UP 2
-#define JOY_2_DOWN 3
-#define JOY_2_FIRE 4
-#define JOY_1_LEFT 5
-#define JOY_1_RIGHT 6
-#define JOY_1_UP 7
-#define JOY_1_DOWN 8
-#define JOY_1_FIRE 9
-#define JOY_LEFT 10
-#define JOY_RIGHT 11
-#define JOY_UP 12
-#define JOY_DOWN 13
-#define JOY_FIRE 14
+/**
+ * @brief enable/disable joy2 hack so SPACE is recognized as keyboard instead of
+ * FIRE
+ */
+#define HOTKEY_JOY2_HACK_SWITCH 4
 
 /**
  * @brief handles emulator input

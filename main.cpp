@@ -35,6 +35,7 @@ bool debugger = false;
 bool hotkeyDbgBreak = false;
 int64_t totalCycles = 0;
 char *path = nullptr;
+bool joy2HackEnabled = false;
 
 /**
  * shows banner
@@ -167,6 +168,13 @@ void pollSdlEvents() {
             } else if (hotkeys == HOTKEY_PASTE_TEXT) {
                 // fill the clipboard queue to be processed in the main loop
                 input->fillClipboardQueue();
+            } else if (hotkeys == HOTKEY_JOY2_HACK_SWITCH) {
+                // enable/disable joy hack
+                joy2HackEnabled = !joy2HackEnabled;
+                cia1->enableJoy2Hack(joy2HackEnabled);
+                SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
+                            "HOTKEY JOY2HACK, setting status=%s",
+                            joy2HackEnabled ? "enabled" : "disabled");
             } else if (hotkeys == HOTKEY_FORCE_EXIT) {
                 // force exit
                 SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "HOTKEY FORCE exit!");
@@ -188,8 +196,12 @@ void usage(char **argv) {
     printf("usage: %s -f <file> [-dsh]\n"
            "\t-f: file to be loaded (PRG only is supported as now)\n"
            "\t-t: run cpu test in test/6502_functional_test.bin\n"
-           "\t-j: 1|2, joystick in port 1 or 2 (default is 0, no joystick)\n"
-           "\t-d: debugger\n"
+           "\t-j: 1|2, joystick in port 1 or 2 (default is 0, no joystick. "
+           "either, arrows=directions, leftshift=fire).\n\t\t"
+           "when joy2 is enabled, press ctrl-j to switch on/off keyboard (due "
+           "to a dirty hack i used!).\n"
+           "\t-d: debugger (if enabled, you may also use ctrl-d to break while "
+           "running)\n"
            "\t-s: fullscreen\n"
            "\t-c: off|nospr|nobck (to disable hw collisions sprite/sprite, "
            "sprite/background, all. default is all collisions enabled)\n"
@@ -254,6 +266,10 @@ int main(int argc, char **argv) {
             if (joyNum < 1 || joyNum > 2) {
                 // default, no joystick
                 joyNum = 0;
+            }
+            if (joyNum == 2) {
+                // set initial status enabled
+                joy2HackEnabled = true;
             }
             break;
         case '?':
