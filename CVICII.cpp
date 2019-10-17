@@ -1152,7 +1152,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     case 0xd024: {
         // BnC = background color 0-3
         int bcIdx = addr - 0xd021;
-        setBackgoundColor(bcIdx, bt);
+        setBackgoundColor(bcIdx, bt & 0xf);
         break;
     }
 
