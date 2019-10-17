@@ -1183,7 +1183,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     }
 
     // write to memory anyway
-    // @fixme this is wrong
+    // @fixme this is wrong, shouldn't be needed
     _cpu->memory()->writeByte(address, bt, true);
 }
 
