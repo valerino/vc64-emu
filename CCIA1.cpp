@@ -49,37 +49,40 @@ void CCIA1::read(uint16_t address, uint8_t *bt) {
     // in CIA1 some addresses d010-d0ff are repeated every 16 bytes
     uint16_t addr = checkShadowAddress(address);
 
+    // PRA ($dc00/rows) and PRB ($dc01/columns)
+    // PRA also controls joy2, while PRB joy1
+    // read keyboard matrix row in data port A
     switch (addr) {
     case 0xdc00:
-    case 0xdc01: {
-        // PRA ($dc00/rows) and PRB ($dc01/columns)
-        // PRA also controls joy2, while PRB joy1
-        // read keyboard matrix row in data port A
-        uint8_t pra = readPRA();
-        if (addr == 0xdc00) {
-            // we're reading PRA (joy2)
-            if (_joy2Hack) {
-                // we want to intepret joy2 pressing as joy1 pressing, via
-                // keyboard joy1 signals
-                // clear joy2 bits (1=not pressed)
-                BIT_SET(pra, 0);
-                BIT_SET(pra, 1);
-                BIT_SET(pra, 2);
-                BIT_SET(pra, 3);
-                BIT_SET(pra, 4);
-            } else {
-                // default PRA read
-                *bt = pra;
-                return;
-            }
-        }
+        // PRA (controls joy2, among the other things. also controls keyboard
+        // matrix rows)
+        if (_joy2Hack) {
+            // we want to intepret joy2 pressing as joy1 pressing, via
+            // keyboard joy1 signals
+            // clear joy2 bits (1=not pressed)
+            BIT_SET(_prA, 0);
+            BIT_SET(_prA, 1);
+            BIT_SET(_prA, 2);
+            BIT_SET(_prA, 3);
+            BIT_SET(_prA, 4);
 
-        // read column from port B, using row in port A
-        // (some docs refer to columns in port A and rows in port B, though
-        // ..... but it's still the same)
-        readKeyboardMatrixColumn(bt, pra);
+            // read keyboard instead
+            readKeyboardMatrixColumn(bt, _prA);
+        } else {
+            // default PRA read
+            *bt = _prA;
+            return;
+        }
         break;
-    }
+
+    case 0xdc01:
+        // PRB (controls joy1, among the other things. also controls keyboard
+        // matrix columns)
+        // we will calculate columns using rows in PRA (some docs refer to
+        // columns in port A and rows in port B, though
+        // ..... but it's still the same)
+        readKeyboardMatrixColumn(bt, _prA);
+        break;
 
     default:
         // default processing with the base class
