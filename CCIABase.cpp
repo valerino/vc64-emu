@@ -61,16 +61,25 @@ void CCIABase::read(uint16_t address, uint8_t *bt) {
 
     case 0x8:
         // TOD 10THS (RTC 1/10 seconds)
+        // bit 4-7 is always 0
+        BIT_CLEAR(_tod10Ths, 4);
+        BIT_CLEAR(_tod10Ths, 5);
+        BIT_CLEAR(_tod10Ths, 6);
+        BIT_CLEAR(_tod10Ths, 7);
         *bt = _tod10Ths;
         break;
 
     case 0x9:
         // TOD SEC (RTC seconds)
+        // bit 7 is always 0
+        BIT_CLEAR(_todMin, 7);
         *bt = _todSec;
         break;
 
     case 0xa:
         // TOD MIN (RTC minutes)
+        // bit 7 is always 0
+        BIT_CLEAR(_todMin, 7);
         *bt = _todMin;
         break;
 
@@ -110,6 +119,10 @@ void CCIABase::read(uint16_t address, uint8_t *bt) {
             BIT_CLEAR(_timerAStatus, CIA_TIMER_INTERRUPT_UNDERFLOW_TRIGGERED);
             BIT_CLEAR(_timerBStatus, CIA_TIMER_INTERRUPT_UNDERFLOW_TRIGGERED);
         }
+
+        // clear bit 5,6
+        BIT_CLEAR(res, 5);
+        BIT_CLEAR(res, 6);
         *bt = res;
         break;
     }
@@ -210,9 +223,6 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
 
     case 0x0d: {
         // ICR
-        // clear bit 5,6
-        BIT_CLEAR(bt, 5);
-        BIT_CLEAR(bt, 6);
         if (IS_BIT_SET(bt, 0)) {
             if (IS_BIT_SET(bt, 7)) {
                 BIT_SET(_timerAStatus, CIA_TIMER_INTERRUPT_UNDERFLOW_ENABLED);
