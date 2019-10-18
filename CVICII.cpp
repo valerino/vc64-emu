@@ -483,7 +483,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
             // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
             // 3.7.3.2. Multicolor text mode (ECM/BMM/MCM=0/0/1)
             for (int i = 0; i < 8; i++) {
-                // only the last 3 bits count
+                // get the data bitpair
                 uint8_t bits = data & 3;
                 int pixelX = x + 8 - i + _scrollX;
                 switch (bits) {
@@ -520,7 +520,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
                 blit(pixelX, rasterLine, &charRgb);
                 blit(pixelX + 1, rasterLine, &charRgb);
 
-                // each pixel is doubled
+                // each pixel is doubled, shift data right
                 i++;
                 data >>= 2;
             }
@@ -597,7 +597,7 @@ void CVICII::drawBitmapMode(int rasterLine) {
         int bitmapRow = line % 8;
 
         // read screencode for standard color
-        uint8_t screenChar = getScreenCode(c, row);
+        uint8_t screenCode = getScreenCode(c, row);
 
         // read color memory for multicolor
         uint8_t screenColor = getScreenColor(c, row);
@@ -610,8 +610,8 @@ void CVICII::drawBitmapMode(int rasterLine) {
             // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
             // 3.7.3.3. Standard bitmap mode (ECM/BMM/MCM=0/1/0)
             // SDL_Log("drawing standard bitmap");
-            RgbStruct fgColor = _palette[(screenChar >> 4) & 0xf];
-            RgbStruct bgColor = _palette[screenChar & 0xf];
+            RgbStruct fgColor = _palette[(screenCode >> 4) & 0xf];
+            RgbStruct bgColor = _palette[screenCode & 0xf];
             for (int i = 0; i < 8; i++) {
                 int pixelX = x + 8 - i + _scrollX;
                 if (pixelX > (320 + limits.firstVisibleX)) {
@@ -634,7 +634,7 @@ void CVICII::drawBitmapMode(int rasterLine) {
             // 3.7.3.4. Multicolor bitmap mode (ECM/BMM/MCM=0/1/1)
             // SDL_Log("drawing multicolor bitmap");
             for (int i = 0; i < 8; i++) {
-                // only the last 3 bits count
+                // get the bitmap data bitpair
                 uint8_t bits = bitmapData & 3;
                 RgbStruct rgb;
                 int pixelX = x + 8 - i + _scrollX;
@@ -647,12 +647,12 @@ void CVICII::drawBitmapMode(int rasterLine) {
 
                 case 1:
                     // 01
-                    rgb = _palette[(screenChar >> 4) & 0xf];
+                    rgb = _palette[(screenCode >> 4) & 0xf];
                     break;
 
                 case 2:
                     // 10
-                    rgb = _palette[screenChar & 0xf];
+                    rgb = _palette[screenCode & 0xf];
                     // drawing foreground, check collisions with sprite
                     checkSpriteBackgroundCollision(pixelX, rasterLine);
                     break;
@@ -667,7 +667,7 @@ void CVICII::drawBitmapMode(int rasterLine) {
                 blit(pixelX, rasterLine, &rgb);
                 blit(pixelX + 1, rasterLine, &rgb);
 
-                // each pixel is doubled
+                // each pixel is doubled, shift bitmapdata right
                 i++;
                 bitmapData >>= 2;
             }
