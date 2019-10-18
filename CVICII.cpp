@@ -490,27 +490,30 @@ void CVICII::drawCharacterMode(int rasterLine) {
                 case 0:
                     // 00
                     charRgb = _palette[getBackgoundColor(0)];
+                    // drawing background
+                    checkSpriteBackgroundCollision(pixelX, rasterLine);
                     break;
 
                 case 1:
                     // 01
                     charRgb = _palette[getBackgoundColor(1)];
+
+                    // drawing background
+                    checkSpriteBackgroundCollision(pixelX, rasterLine);
                     break;
 
                 case 2:
                     // 10
-                    charRgb = _palette[getBackgoundColor(2)];
-
-                    // drawing foreground, check collisions with sprite
+                    // drawing foreground, check collisions with sprites
                     checkSpriteBackgroundCollision(pixelX, rasterLine);
+                    charRgb = _palette[getBackgoundColor(2)];
                     break;
 
                 case 3:
                     // 11, default (use default screen matrix color)
-                    charRgb = _palette[charColor & 7];
-
-                    // drawing foreground, check collisions with sprite
+                    // drawing foreground, check collisions with sprites
                     checkSpriteBackgroundCollision(pixelX, rasterLine);
+                    charRgb = _palette[charColor & 7];
                     break;
                 }
                 if (pixelX > (320 + limits.firstVisibleX)) {
@@ -550,10 +553,9 @@ void CVICII::drawCharacterMode(int rasterLine) {
                         charColor &= 0xf;
                     }
                     charRgb = _palette[charColor];
-                    blit(pixelX, rasterLine, &charRgb);
-
-                    // drawing foreground, check collisions with sprite
+                    // drawing foreground, check collisions with sprites
                     checkSpriteBackgroundCollision(pixelX, rasterLine);
+                    blit(pixelX, rasterLine, &charRgb);
                 } else {
                     // put pixel in background color
                     blit(pixelX, rasterLine, &backgroundRgb);
@@ -621,10 +623,9 @@ void CVICII::drawBitmapMode(int rasterLine) {
                 }
 
                 if (IS_BIT_SET(bitmapData, i)) {
-                    blit(pixelX, rasterLine, &fgColor);
-
-                    // drawing foreground, check collisions with sprite
+                    // drawing foreground, check collisions with sprites
                     checkSpriteBackgroundCollision(pixelX, rasterLine);
+                    blit(pixelX, rasterLine, &fgColor);
                 } else {
                     blit(pixelX, rasterLine, &bgColor);
                 }
@@ -642,24 +643,27 @@ void CVICII::drawBitmapMode(int rasterLine) {
                 switch (bits) {
                 case 0:
                     // 00
+                    // drawing background
                     rgb = _palette[getBackgoundColor(0)];
                     break;
 
                 case 1:
                     // 01
+                    // drawing background
+                    checkSpriteBackgroundCollision(pixelX, rasterLine);
                     rgb = _palette[(screenCode >> 4) & 0xf];
                     break;
 
                 case 2:
                     // 10
-                    rgb = _palette[screenCode & 0xf];
-                    // drawing foreground, check collisions with sprite
+                    // drawing foreground, check collisions with sprites
                     checkSpriteBackgroundCollision(pixelX, rasterLine);
+                    rgb = _palette[screenCode & 0xf];
                     break;
 
                 case 3:
                     // 11
-                    // drawing foreground, check collisions with sprite
+                    // drawing foreground, check collisions with sprites
                     checkSpriteBackgroundCollision(pixelX, rasterLine);
                     rgb = _palette[screenColor & 0xf];
                     break;
