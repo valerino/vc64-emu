@@ -36,7 +36,7 @@ void CCIA2::setVicBank(uint8_t pra) {
         _vicMemory = 0x4000;
     } else if (IS_BIT_SET(pra, 0) && !IS_BIT_SET(pra, 1)) {
         // xxxxxx01
-        _vicBank = 2;
+        _vicBank = 1;
         _vicMemory = 0x8000;
     } else if (IS_BIT_SET(pra, 0) && IS_BIT_SET(pra, 1)) {
         // xxxxxx11

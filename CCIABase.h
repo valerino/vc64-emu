@@ -12,13 +12,6 @@
 #define CIA_TIMER_COUNT_TIMERA_UNDERFLOW_IF_CNT_HI 3
 
 /**
- * timer status (bits)
- */
-#define CIA_TIMER_INTERRUPT_UNDERFLOW_TRIGGERED 0
-#define CIA_TIMER_INTERRUPT_UNDERFLOW_ENABLED 1
-#define CIA_TIMER_RUNNING 2
-
-/**
  * timer types
  */
 #define CIA_TIMER_A 0
@@ -97,12 +90,13 @@ class CCIABase {
     int _timerBLatch = 0;
     int _timerA = 0;
     int _timerB = 0;
-    int _timerAStatus = 0;
-    int _timerBStatus = 0;
     int _timerAMode = 0;
     int _timerBMode = 0;
+    bool _timerARunning = false;
+    bool _timerBRunning = false;
     int _prevCycleCount = 0;
     int _connectedTo = 0;
+    int _timerMask = 0;
     uint16_t _baseAddress = 0;
     void updateTimer(int cycleCount, int timerType);
 };
