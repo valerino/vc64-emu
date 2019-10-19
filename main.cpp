@@ -36,6 +36,7 @@ bool hotkeyDbgBreak = false;
 int64_t totalCycles = 0;
 char *path = nullptr;
 bool joy2HackEnabled = false;
+int joyNum = 0;
 
 /**
  * shows banner
@@ -169,12 +170,14 @@ void pollSdlEvents() {
                 // fill the clipboard queue to be processed in the main loop
                 input->fillClipboardQueue();
             } else if (hotkeys == HOTKEY_JOY2_HACK_SWITCH) {
-                // enable/disable joy hack
-                joy2HackEnabled = !joy2HackEnabled;
-                cia1->enableJoy2Hack(joy2HackEnabled);
-                SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
-                            "HOTKEY JOY2HACK, setting status=%s",
-                            joy2HackEnabled ? "enabled" : "disabled");
+                if (joyNum == 2) {
+                    // enable/disable joy2 hack
+                    joy2HackEnabled = !joy2HackEnabled;
+                    cia1->enableJoy2Hack(joy2HackEnabled);
+                    SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
+                                "HOTKEY JOY2HACK, setting status=%s",
+                                joy2HackEnabled ? "enabled" : "disabled");
+                }
             } else if (hotkeys == HOTKEY_FORCE_EXIT) {
                 // force exit
                 SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "HOTKEY FORCE exit!");
@@ -252,7 +255,6 @@ int main(int argc, char **argv) {
     bool fullScreen = false;
     bool isTestCpu = false;
     char *collisionDisableType = nullptr;
-    int joyNum = 0;
 
     // parse commandline
     while (1) {
