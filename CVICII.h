@@ -205,4 +205,9 @@ class CVICII {
     void checkSpriteSpriteCollision(int idx, int x, int y);
     void checkSpriteBackgroundCollision(int x, int y);
     void readVICByte(uint16_t address, uint8_t *bt);
+    uint8_t getBorderColor();
+    uint8_t getCR2();
+    uint8_t getInterruptLatch();
+    uint8_t getInterruptEnabled();
+    uint8_t getMemoryPointers();
 };

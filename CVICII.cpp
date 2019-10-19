@@ -151,7 +151,7 @@ void CVICII::checkSpriteSpriteCollision(int idx, int x, int y) {
 
             if (!_regSpriteSpriteCollision) {
                 // only the first collision triggers an irq
-                if (IS_BIT_SET(_regInterruptEnabled, 2)) {
+                if (IS_BIT_SET(getInterruptEnabled(), 2)) {
                     BIT_SET(_regInterrupt, 2);
                     _cpu->irq();
                 }
@@ -196,7 +196,7 @@ void CVICII::checkSpriteBackgroundCollision(int x, int y) {
 
             if (!_regSpriteBckCollision) {
                 // only the first collision triggers an irq
-                if (IS_BIT_SET(_regInterruptEnabled, 1)) {
+                if (IS_BIT_SET(getInterruptEnabled(), 1)) {
                     BIT_SET(_regInterrupt, 1);
                     _cpu->irq();
                 }
@@ -316,7 +316,7 @@ void CVICII::drawSprite(int rasterLine, int idx, int x, int row) {
                     int color = getSpriteColor(idx);
                     if (isSpriteDrawingOnBorder(pixelX, currentLine)) {
                         // draw using border color, transparent
-                        color = _regBorderColor & 0xf;
+                        color = getBorderColor() & 0xf;
                     } else {
                         // if we're not drawing transparent, also check
                         // sprite-sprite collision
@@ -685,7 +685,7 @@ void CVICII::drawBitmapMode(int rasterLine) {
  */
 void CVICII::drawBorder(int rasterLine) {
     // draw border row through all screen
-    RgbStruct borderRgb = _palette[_regBorderColor & 0xf];
+    RgbStruct borderRgb = _palette[getBorderColor() & 0xf];
     for (int i = 0; i < VIC_PAL_SCREEN_W; i++) {
         blit(i, rasterLine, &borderRgb);
     }
@@ -728,7 +728,7 @@ void CVICII::getScreenLimits(Rect *limits) {
 }
 
 int CVICII::update(long cycleCount) {
-    if (IS_BIT_SET(_regInterrupt, 7)) {
+    if (IS_BIT_SET(getInterruptLatch(), 7)) {
         // IRQ bit is set, trigger an interrupt
 
         // and clear the bit
@@ -785,7 +785,7 @@ int CVICII::update(long cycleCount) {
         drawSprites(currentRaster - limits.firstVblankLine);
     }
 
-    if (IS_BIT_SET(_regInterruptEnabled, 0)) {
+    if (IS_BIT_SET(getInterruptEnabled(), 0)) {
         // handle raster interrupt
         if ((currentRaster - limits.firstVblankLine) ==
             _rasterIrqLine - limits.firstVblankLine) {
@@ -868,7 +868,7 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
 
     case 0xd016:
         // CR2
-        *bt = _regCR2;
+        *bt = getCR2();
         break;
 
     case 0xd017:
@@ -878,17 +878,17 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
 
     case 0xd018:
         // memory pointers
-        *bt = _regMemoryPointers;
+        *bt = getMemoryPointers();
         break;
 
     case 0xd019:
         // interrupt latch
-        *bt = _regInterrupt;
+        *bt = getInterruptLatch();
         break;
 
     case 0xd01a:
         // interrupt enable register
-        *bt = _regInterruptEnabled;
+        *bt = getInterruptEnabled();
         break;
 
     case 0xd01b:
@@ -924,7 +924,7 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
 
     case 0xd020:
         // EC
-        *bt = _regBorderColor;
+        *bt = getBorderColor();
         break;
 
     case 0xd021:
@@ -1051,13 +1051,13 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     case 0xd016:
         // CR2
         // bit 6, 7 are always set
-        _regCR2 = bt | 0xc0;
+        _regCR2 = bt;
 
         // XSCROLL (bit 0,1,2)
-        _scrollX = _regCR2 & 0x7;
+        _scrollX = getCR2() & 0x7;
 
         // CSEL
-        _CSEL = IS_BIT_SET(_regCR2, 3);
+        _CSEL = IS_BIT_SET(getCR2(), 3);
 
         // set screen mode (MCM bit)
         setScreenMode();
@@ -1073,8 +1073,6 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         // https://www.c64-wiki.com/wiki/53272
         _regMemoryPointers = bt;
 
-        // bit 0 is always set
-        BIT_SET(_regMemoryPointers, 0);
         // SDL_Log("memory pointers=$%x", _regMemoryPointers);
 
         // set addresses (https://www.c64-wiki.com/wiki/Page_208-211)
@@ -1110,14 +1108,12 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
     case 0xd019:
         // interrupt latch
-        // bit 4,5,6 are always set
-        _regInterrupt = bt | 0x70;
+        _regInterrupt = bt;
         break;
 
     case 0xd01a:
         // interrupt enabled
-        // bit 4,5,6,7 are always set
-        _regInterruptEnabled = bt | 0xf0;
+        _regInterruptEnabled = bt;
         break;
 
     case 0xd01b:
@@ -1272,7 +1268,7 @@ bool CVICII::isSpriteXExpanded(int idx) {
  * @param idx register index in the background color registers array
  * @return the background color 0-3
  */
-uint8_t CVICII::getBackgroundColor(int idx) { return _regBC[idx] & 0xf; }
+uint8_t CVICII::getBackgroundColor(int idx) { return _regBC[idx]; }
 
 /**
  * @brief set the background color in the BnC register (4 bits)
@@ -1292,7 +1288,7 @@ void CVICII::setSpriteColor(int idx, uint8_t val) { _regMC[idx] = val; }
  * @brief get color of sprite n from the MnC register
  * @param idx register index in the sprite color registers array
  */
-uint8_t CVICII::getSpriteColor(int idx) { return _regMC[idx] & 0xf; }
+uint8_t CVICII::getSpriteColor(int idx) { return _regMC[idx]; }
 
 /**
  * @brief get color from sprite multicolor register MMn
@@ -1301,7 +1297,7 @@ uint8_t CVICII::getSpriteColor(int idx) { return _regMC[idx] & 0xf; }
  */
 void CVICII::setSpriteMulticolor(int idx, uint8_t val) { _regMM[idx] = val; }
 
-uint8_t CVICII::getSpriteMulticolor(int idx) { return _regMM[idx] & 0xf; }
+uint8_t CVICII::getSpriteMulticolor(int idx) { return _regMM[idx]; }
 
 /**
  * some addresses are shadowed and maps to other addresses
@@ -1344,35 +1340,35 @@ void CVICII::setScreenMode() {
     // refers to bitmasks at
     // https://www.c64-wiki.com/wiki/Standard_Character_Mode
     if (!IS_BIT_SET(_regCR1, 6) && !IS_BIT_SET(_regCR1, 5) &&
-        !IS_BIT_SET(_regCR2, 4)) {
+        !IS_BIT_SET(getCR2(), 4)) {
         /*SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
                     "selecting standard character mode");*/
         _screenMode = VIC_SCREEN_MODE_CHARACTER_STANDARD;
         return;
     }
     if (!IS_BIT_SET(_regCR1, 6) && !IS_BIT_SET(_regCR1, 5) &&
-        IS_BIT_SET(_regCR2, 4)) {
+        IS_BIT_SET(getCR2(), 4)) {
         /*SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
                     "selecting multicolor character mode");*/
         _screenMode = VIC_SCREEN_MODE_CHARACTER_MULTICOLOR;
         return;
     }
     if (!IS_BIT_SET(_regCR1, 6) && IS_BIT_SET(_regCR1, 5) &&
-        !IS_BIT_SET(_regCR2, 4)) {
+        !IS_BIT_SET(getCR2(), 4)) {
         /*SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
                     "selecting standard bitmap mode");*/
         _screenMode = VIC_SCREEN_MODE_BITMAP_STANDARD;
         return;
     }
     if (!IS_BIT_SET(_regCR1, 6) && IS_BIT_SET(_regCR1, 5) &&
-        IS_BIT_SET(_regCR2, 4)) {
+        IS_BIT_SET(getCR2(), 4)) {
         /*SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
                     "selecting multicolor bitmap mode");*/
         _screenMode = VIC_SCREEN_MODE_BITMAP_MULTICOLOR;
         return;
     }
     if (IS_BIT_SET(_regCR1, 6) && !IS_BIT_SET(_regCR1, 5) &&
-        !IS_BIT_SET(_regCR2, 4)) {
+        !IS_BIT_SET(getCR2(), 4)) {
         /*SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
                     "selecting extended background color mode");*/
         _screenMode = VIC_SCREEN_MODE_EXTENDED_BACKGROUND_COLOR;
@@ -1380,7 +1376,7 @@ void CVICII::setScreenMode() {
     }
 
     /*SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
-                "invalid color mode!! CR1=%x, CR2=%x", _regCR1, _regCR2);*/
+                "invalid color mode!! CR1=%x, CR2=%x", _regCR1, getCR2());*/
 }
 
 /**
@@ -1507,4 +1503,49 @@ uint8_t CVICII::getBitmapData(int x, int y, int bitmapRow) {
     uint8_t data;
     readVICByte(addr, &data);
     return data;
+}
+
+/**
+ * @brief get border color, $d020
+ * @return
+ */
+uint8_t CVICII::getBorderColor() {
+    // bit 4,5,6,7 always set
+    return (_regBorderColor | 0xf0);
+}
+
+/**
+ * @brief get control register 2, $d016
+ * @return
+ */
+uint8_t CVICII::getCR2() {
+    // bit 6,7 always set
+    return (_regCR2 | 0xc0);
+}
+
+/**
+ * @brief get interrupt register, $d019
+ * @return
+ */
+uint8_t CVICII::getInterruptLatch() {
+    // bit 4,5,6 always set
+    return (_regInterrupt | 0x70);
+}
+
+/**
+ * @brief get interrupt enabled register, $d01a
+ * @return
+ */
+uint8_t CVICII::getInterruptEnabled() {
+    // bit 4,5,6,7 always set
+    return (_regInterruptEnabled | 0xf0);
+}
+
+/**
+ * @brief get memory pointers register, $d018
+ * @return
+ */
+uint8_t CVICII::getMemoryPointers() {
+    // bit 0 always set
+    return (_regMemoryPointers | 1);
 }
