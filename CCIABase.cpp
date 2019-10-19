@@ -96,29 +96,24 @@ void CCIABase::read(uint16_t address, uint8_t *bt) {
     case 0x0d: {
         // ICR interrupt control
         // @todo handle bits 2,3,4
-        tmp = 0;
-        int irqOccurred = 0;
 
         // timer irqs (A=bit0, B=bit1)
         if (IS_BIT_SET(_timerMask, 0)) {
             // timer a
-            irqOccurred++;
-            BIT_SET(tmp, 0);
+            // signal irq through bit 7
+            BIT_SET(_timerMask, 7);
         }
         if (IS_BIT_SET(_timerMask, 1)) {
             // timer b
-            irqOccurred++;
-            BIT_SET(tmp, 1);
+            // signal irq through bit 7
+            BIT_SET(_timerMask, 7);
         }
 
-        // set bits 5,6 always
-        BIT_CLEAR(tmp, 5);
-        BIT_CLEAR(tmp, 6);
-        if (irqOccurred) {
-            // signal irq through bit 7
-            BIT_SET(tmp, 7);
-        }
-        *bt = tmp;
+        // clear bits 5,6 always
+        BIT_CLEAR(_timerMask, 5);
+        BIT_CLEAR(_timerMask, 6);
+
+        *bt = _timerMask;
 
         // flags cleared on read
         _timerMask = 0;
@@ -187,6 +182,7 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
 
     case 0x07:
         // TB HI
+        
         _timerBLatch = (_timerBLatch & 0xff) | ((int)bt << 8);
         if (_timerBRunning) {
             // reload the timer
@@ -221,31 +217,7 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
 
     case 0x0d:
         // ICR interrupt control
-        // @todo handle bits 2,3,4
-
-        if (IS_BIT_SET(bt, 0)) {
-            // timer a underflow
-            // according to bit 7, we clear or set bit in the mask
-            if (IS_BIT_SET(bt, 7)) {
-                BIT_SET(_timerMask, 0);
-            } else {
-                BIT_CLEAR(_timerMask, 0);
-            }
-        } else {
-            BIT_CLEAR(_timerMask, 0);
-        }
-
-        if (IS_BIT_SET(bt, 1)) {
-            // timer b underflow
-            // according to bit 7, we clear or set bit in the mask
-            if (IS_BIT_SET(bt, 7)) {
-                BIT_SET(_timerMask, 1);
-            } else {
-                BIT_CLEAR(_timerMask, 1);
-            }
-        } else {
-            BIT_CLEAR(_timerMask, 1);
-        }
+        _timerMask = bt;
         break;
 
     case 0x0e:
@@ -258,16 +230,6 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
             // stop timer
             _timerARunning = false;
         }
-
-        if (IS_BIT_SET(bt, 3)) {
-            // stop timer after underflow
-            _timerARunning = false;
-        } else {
-            // timer restarts after underflow , reload latch
-            _timerARunning = true;
-            _timerA = _timerALatch;
-        }
-
         if (IS_BIT_SET(bt, 4)) {
             // load latch into the timer
             _timerA = _timerALatch;
@@ -291,15 +253,6 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
         } else {
             // stop timer
             _timerBRunning = false;
-        }
-
-        if (IS_BIT_SET(bt, 3)) {
-            // stop timer after underflow
-            _timerBRunning = false;
-        } else {
-            // timer restarts after underflow , reload latch
-            _timerBRunning = true;
-            _timerB = _timerBLatch;
         }
 
         if (IS_BIT_SET(bt, 4)) {
@@ -340,17 +293,14 @@ void CCIABase::updateTimer(int cycleCount, int timerType) {
     // check which timer we're updating
     bool running = false;
     int mode = 0;
-    uint16_t latch = 0;
     int timer = 0;
     if (timerType == CIA_TIMER_A) {
         running = _timerARunning;
         mode = _timerAMode;
-        latch = _timerALatch;
         timer = _timerA;
     } else {
         running = _timerBRunning;
         mode = _timerBMode;
-        latch = _timerBLatch;
         timer = _timerB;
     }
 
@@ -362,33 +312,51 @@ void CCIABase::updateTimer(int cycleCount, int timerType) {
     // check timer mode
     if (mode == CIA_TIMER_COUNT_CPU_CYCLES) {
         timer -= (cycleCount - _prevCycleCount);
-        if (timer <= 0) {
-            // signal underflow in the mask (0=timer A, 1=timer B)
-            if (timerType == CIA_TIMER_A) {
-                BIT_SET(_timerMask, 0);
-
-            } else {
-                BIT_SET(_timerMask, 1);
-            }
-            // and trigger irq or nmi depending on which cpu line it's
-            // connected to
-            if (_connectedTo == CIA_TRIGGERS_IRQ) {
-                _cpu->irq();
-            } else {
-                _cpu->nmi();
-            }
-
-            // reload timer with latch
-            timer = latch;
-        }
-
-        // update
         if (timerType == CIA_TIMER_A) {
             _timerA = timer;
         } else {
             _timerB = timer;
         }
-    } else {
+
+        if (timer <= 0) {
+            // signal underflow in the mask (0=timer A, 1=timer B)
+            if (timerType == CIA_TIMER_A) {
+                BIT_SET(_timerMask, 0);
+                if (IS_BIT_SET(_crA, 3)) {
+                    // stop timer after underflow
+                    BIT_CLEAR(_crA, 0);
+                    _timerARunning = false;
+                } else {
+                    // timer restarts after underflow , reload latch
+                    _timerARunning = true;
+                    _timerA = _timerALatch;
+                }
+            } else {
+                BIT_SET(_timerMask, 1);
+                if (IS_BIT_SET(_crB, 3)) {
+                    // stop timer after underflow
+                    BIT_CLEAR(_crB, 0);
+                    _timerBRunning = false;
+                } else {
+                    // timer restarts after underflow , reload latch
+                    _timerBRunning = true;
+                    _timerB = _timerBLatch;
+                }
+            }
+
+            // set bit7, interrupt occurred
+            BIT_SET(_timerMask, 7);
+            if (_connectedTo == CIA_TRIGGERS_IRQ) {
+                // CIA1 triggers irq
+                _cpu->irq();
+            }
+        }
+    }
+
+    else {
+        if (mode == CIA_TIMER_COUNT_TIMERA_UNDERFLOW) {
+            SDL_Log("timer b counts timer a underflow");
+        }
         // TODO: mode is count slopes at CNT pin
     }
 }
@@ -397,6 +365,8 @@ int CCIABase::update(int cycleCount) {
     // update timers
     updateTimer(cycleCount, CIA_TIMER_A);
     updateTimer(cycleCount, CIA_TIMER_B);
+
+    // @todo: handle cia2
 
     // update cycle count
     _prevCycleCount = cycleCount;
