@@ -316,7 +316,7 @@ void CVICII::drawSprite(int rasterLine, int idx, int x, int row) {
                     int color = getSpriteColor(idx);
                     if (isSpriteDrawingOnBorder(pixelX, currentLine)) {
                         // draw using border color, transparent
-                        color = _regBorderColor;
+                        color = _regBorderColor & 0xf;
                     } else {
                         // if we're not drawing transparent, also check
                         // sprite-sprite collision
@@ -445,21 +445,21 @@ void CVICII::drawCharacterMode(int rasterLine) {
             // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
             // 3.7.3.5. ECM text mode (ECM/BMM/MCM=1/0/0)
             if (!IS_BIT_SET(screenCode, 7) && !IS_BIT_SET(screenCode, 6)) {
-                backgroundRgb = _palette[getBackgoundColor(0)];
+                backgroundRgb = _palette[getBackgroundColor(0)];
             } else if (!IS_BIT_SET(screenCode, 7) &&
                        IS_BIT_SET(screenCode, 6)) {
-                backgroundRgb = _palette[getBackgoundColor(1)];
+                backgroundRgb = _palette[getBackgroundColor(1)];
             } else if (IS_BIT_SET(screenCode, 7) &&
                        !IS_BIT_SET(screenCode, 6)) {
-                backgroundRgb = _palette[getBackgoundColor(2)];
+                backgroundRgb = _palette[getBackgroundColor(2)];
             } else if (IS_BIT_SET(screenCode, 7) && IS_BIT_SET(screenCode, 6)) {
-                backgroundRgb = _palette[getBackgoundColor(3)];
+                backgroundRgb = _palette[getBackgroundColor(3)];
             }
             // clear bits in character
             screenCode &= 0x3f;
         } else {
             // default text mode
-            backgroundRgb = _palette[getBackgoundColor(0)];
+            backgroundRgb = _palette[getBackgroundColor(0)];
         }
 
         // read the character data and color
@@ -489,14 +489,14 @@ void CVICII::drawCharacterMode(int rasterLine) {
                 switch (bits) {
                 case 0:
                     // 00
-                    charRgb = _palette[getBackgoundColor(0)];
+                    charRgb = _palette[getBackgroundColor(0)];
                     // drawing background
                     checkSpriteBackgroundCollision(pixelX, rasterLine);
                     break;
 
                 case 1:
                     // 01
-                    charRgb = _palette[getBackgoundColor(1)];
+                    charRgb = _palette[getBackgroundColor(1)];
 
                     // drawing background
                     checkSpriteBackgroundCollision(pixelX, rasterLine);
@@ -506,7 +506,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
                     // 10
                     // drawing foreground, check collisions with sprites
                     checkSpriteBackgroundCollision(pixelX, rasterLine);
-                    charRgb = _palette[getBackgoundColor(2)];
+                    charRgb = _palette[getBackgroundColor(2)];
                     break;
 
                 case 3:
@@ -518,7 +518,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
                 }
                 if (pixelX > (320 + limits.firstVisibleX)) {
                     // off screen -> background color
-                    charRgb = _palette[getBackgoundColor(0)];
+                    charRgb = _palette[getBackgroundColor(0)];
                 }
                 blit(pixelX, rasterLine, &charRgb);
                 blit(pixelX + 1, rasterLine, &charRgb);
@@ -644,7 +644,7 @@ void CVICII::drawBitmapMode(int rasterLine) {
                 case 0:
                     // 00
                     // drawing background
-                    rgb = _palette[getBackgoundColor(0)];
+                    rgb = _palette[getBackgroundColor(0)];
                     break;
 
                 case 1:
@@ -685,7 +685,7 @@ void CVICII::drawBitmapMode(int rasterLine) {
  */
 void CVICII::drawBorder(int rasterLine) {
     // draw border row through all screen
-    RgbStruct borderRgb = _palette[_regBorderColor];
+    RgbStruct borderRgb = _palette[_regBorderColor & 0xf];
     for (int i = 0; i < VIC_PAL_SCREEN_W; i++) {
         blit(i, rasterLine, &borderRgb);
     }
@@ -933,7 +933,7 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
     case 0xd024: {
         // BnC = background color 0-3
         int bcIdx = addr - 0xd021;
-        *bt = getBackgoundColor(bcIdx);
+        *bt = getBackgroundColor(bcIdx);
         break;
     }
 
@@ -1147,7 +1147,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
     case 0xd020:
         // EC
-        _regBorderColor = bt & 0xf;
+        _regBorderColor = bt;
         break;
 
     case 0xd021:
@@ -1156,7 +1156,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     case 0xd024: {
         // BnC = background color 0-3
         int bcIdx = addr - 0xd021;
-        setBackgoundColor(bcIdx, bt & 0xf);
+        setBackgoundColor(bcIdx, bt);
         break;
     }
 
@@ -1164,7 +1164,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     case 0xd026: {
         // MMn = sprite multicolor 0-1
         int mmIdx = addr - 0xd025;
-        setSpriteMulticolor(mmIdx, bt & 0xf);
+        setSpriteMulticolor(mmIdx, bt);
         break;
     }
 
@@ -1178,7 +1178,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
     case 0xd02e: {
         // MnC = sprite color 0-7
         int mIdx = addr - 0xd027;
-        setSpriteColor(mIdx, bt & 0xf);
+        setSpriteColor(mIdx, bt);
         break;
     }
     default:
@@ -1272,7 +1272,7 @@ bool CVICII::isSpriteXExpanded(int idx) {
  * @param idx register index in the background color registers array
  * @return the background color 0-3
  */
-uint8_t CVICII::getBackgoundColor(int idx) { return _regBC[idx]; }
+uint8_t CVICII::getBackgroundColor(int idx) { return _regBC[idx] & 0xf; }
 
 /**
  * @brief set the background color in the BnC register (4 bits)
@@ -1292,7 +1292,7 @@ void CVICII::setSpriteColor(int idx, uint8_t val) { _regMC[idx] = val; }
  * @brief get color of sprite n from the MnC register
  * @param idx register index in the sprite color registers array
  */
-uint8_t CVICII::getSpriteColor(int idx) { return _regMC[idx]; }
+uint8_t CVICII::getSpriteColor(int idx) { return _regMC[idx] & 0xf; }
 
 /**
  * @brief get color from sprite multicolor register MMn
@@ -1301,7 +1301,7 @@ uint8_t CVICII::getSpriteColor(int idx) { return _regMC[idx]; }
  */
 void CVICII::setSpriteMulticolor(int idx, uint8_t val) { _regMM[idx] = val; }
 
-uint8_t CVICII::getSpriteMulticolor(int idx) { return _regMM[idx]; }
+uint8_t CVICII::getSpriteMulticolor(int idx) { return _regMM[idx] & 0xf; }
 
 /**
  * some addresses are shadowed and maps to other addresses

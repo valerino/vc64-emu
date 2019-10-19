@@ -175,7 +175,7 @@ class CVICII {
     void setSpriteMulticolor(int idx, uint8_t val);
     uint8_t getSpriteMulticolor(int idx);
 
-    uint8_t getBackgoundColor(int idx);
+    uint8_t getBackgroundColor(int idx);
     void setBackgoundColor(int idx, uint8_t val);
 
     bool checkUnusedAddress(int type, uint16_t address, uint8_t *bt);
