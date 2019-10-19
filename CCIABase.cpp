@@ -17,6 +17,7 @@ uint8_t CCIABase::readPRA() { return _prA; }
 uint8_t CCIABase::readPRB() { return _prB; }
 
 void CCIABase::read(uint16_t address, uint8_t *bt) {
+    uint8_t tmp = 0;
     int offset = address - _baseAddress;
     switch (offset) {
     case 0:
@@ -62,24 +63,23 @@ void CCIABase::read(uint16_t address, uint8_t *bt) {
     case 0x8:
         // TOD 10THS (RTC 1/10 seconds)
         // bit 4-7 is always 0
-        BIT_CLEAR(_tod10Ths, 4);
-        BIT_CLEAR(_tod10Ths, 5);
-        BIT_CLEAR(_tod10Ths, 6);
-        BIT_CLEAR(_tod10Ths, 7);
-        *bt = _tod10Ths;
+        tmp = _tod10Ths & 0xf;
+        *bt = tmp;
         break;
 
     case 0x9:
         // TOD SEC (RTC seconds)
         // bit 7 is always 0
-        BIT_CLEAR(_todMin, 7);
-        *bt = _todSec;
+        tmp = _todSec;
+        BIT_CLEAR(tmp, 7);
+        *bt = tmp;
         break;
 
     case 0xa:
         // TOD MIN (RTC minutes)
         // bit 7 is always 0
-        BIT_CLEAR(_todMin, 7);
+        tmp = _todMin;
+        BIT_CLEAR(tmp, 7);
         *bt = _todMin;
         break;
 
@@ -93,26 +93,25 @@ void CCIABase::read(uint16_t address, uint8_t *bt) {
         *bt = _todSdr;
         break;
 
-    case 0x0d: {
+    case 0x0d:
         // ICR interrupt control
         // @todo: handle other bits
-        uint8_t res = 0;
         if (IS_BIT_SET(_timerAStatus,
                        CIA_TIMER_INTERRUPT_UNDERFLOW_TRIGGERED) ||
             IS_BIT_SET(_timerBStatus,
                        CIA_TIMER_INTERRUPT_UNDERFLOW_TRIGGERED)) {
             // an interrupt occurred, set bit 7
-            BIT_SET(res, 7);
+            BIT_SET(tmp, 7);
 
             if (IS_BIT_SET(_timerAStatus,
                            CIA_TIMER_INTERRUPT_UNDERFLOW_TRIGGERED)) {
                 // source is timer A underflow
-                BIT_SET(res, 0);
+                BIT_SET(tmp, 0);
             }
             if (IS_BIT_SET(_timerBStatus,
                            CIA_TIMER_INTERRUPT_UNDERFLOW_TRIGGERED)) {
                 // source is timer B underflow
-                BIT_SET(res, 1);
+                BIT_SET(tmp, 1);
             }
 
             // reading resets flags
@@ -121,11 +120,10 @@ void CCIABase::read(uint16_t address, uint8_t *bt) {
         }
 
         // clear bit 5,6
-        BIT_CLEAR(res, 5);
-        BIT_CLEAR(res, 6);
-        *bt = res;
+        BIT_CLEAR(tmp, 5);
+        BIT_CLEAR(tmp, 6);
+        *bt = tmp;
         break;
-    }
 
     case 0xe:
         // CRA (control timer A)
@@ -221,7 +219,7 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
         _todSdr = bt;
         break;
 
-    case 0x0d: {
+    case 0x0d:
         // ICR
         if (IS_BIT_SET(bt, 0)) {
             if (IS_BIT_SET(bt, 7)) {
@@ -238,7 +236,6 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
             }
         }
         break;
-    }
 
     case 0x0e:
         // CRA
@@ -271,6 +268,7 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
         } else {
             _timerAMode = CIA_TIMER_COUNT_CPU_CYCLES;
         }
+
         _crA = bt;
         break;
 
