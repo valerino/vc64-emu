@@ -1080,7 +1080,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         // The four most significant bits form a 4-bit number in the range 0
         // thru 15 Multiplied with 1024 this gives the start address for the
         // screen character RAM.
-        _screenAddress = (_regMemoryPointers >> 4);
+        _screenAddress = (getMemoryPointers() >> 4);
         _screenAddress *= 1024;
         // SDL_Log("screen memory address=$%x", _screenAddress);
 
@@ -1088,7 +1088,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         // Bits 1 thru 3 (weights 2 thru 8) form a 3-bit number in the range
         // 0 thru 7: Multiplied with 2048 this gives the start address for
         // the character set.
-        _charsetAddress = (_regMemoryPointers >> 1) & 0x7;
+        _charsetAddress = (getMemoryPointers() >> 1) & 0x7;
         _charsetAddress *= 2048;
         // SDL_Log("charset address=$%x", _charsetAddress);
 
@@ -1098,7 +1098,7 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         // the color information. Bit 3 indicates whether the bitmap begins
         // at start address 0 / $0(bit set to "0"),or at 8192 / $2000(bit
         // set to "1").
-        if (IS_BIT_SET(_regMemoryPointers, 3)) {
+        if (IS_BIT_SET(getMemoryPointers(), 3)) {
             _bitmapAddress = 0x2000;
         } else {
             _bitmapAddress = 0;
