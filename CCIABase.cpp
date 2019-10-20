@@ -168,10 +168,8 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
 
     case 0x05:
         // TA HI
-        if (_timerARunning) {
-            _timerALatch = (_timerALatch & 0xff) | ((int)bt << 8);
-        } else {
-            _timerALatch = (_timerALatch & 0xff) | ((int)bt << 8);
+        _timerALatch = (_timerALatch & 0xff) | ((int)bt << 8);
+        if (!_timerARunning) {
             _timerA = _timerALatch;
         }
         break;
@@ -183,10 +181,8 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
 
     case 0x07:
         // TB HI
-        if (_timerBRunning) {
-            _timerBLatch = (_timerBLatch & 0xff) | ((int)bt << 8);
-        } else {
-            _timerBLatch = (_timerBLatch & 0xff) | ((int)bt << 8);
+        _timerBLatch = (_timerALatch & 0xff) | ((int)bt << 8);
+        if (!_timerBRunning) {
             _timerB = _timerBLatch;
         }
         break;
