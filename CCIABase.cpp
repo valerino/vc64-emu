@@ -109,6 +109,8 @@ void CCIABase::read(uint16_t address, uint8_t *bt) {
             BIT_SET(_timerMask, 7);
         }
 
+        // unmask
+        _timerMask = ~_timerMask;
         // clear bits 5,6 always
         BIT_CLEAR(_timerMask, 5);
         BIT_CLEAR(_timerMask, 6);
@@ -116,7 +118,7 @@ void CCIABase::read(uint16_t address, uint8_t *bt) {
         *bt = _timerMask;
 
         // flags cleared on read
-        _timerMask = 0;
+        //_timerMask = 0;
         break;
     }
 
@@ -324,9 +326,59 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
 
     // write to memory anyway
     // @fixme this is wrong
-    //_cpu->memory()->writeByte(address, bt, true);
+    _cpu->memory()->writeByte(offset + _baseAddress, bt);
 }
 
+/**
+ * @brief handle timer a/b underflow
+ * @param timerType CIA_TIMER_A or CIA_TIMER_B
+ */
+void CCIABase::handleTimerUnderflow(int timerType) {
+    bool running = false;
+    int timer = 0;
+    uint16_t latch = 0;
+    uint8_t cr = 0;
+
+    if (timerType == CIA_TIMER_A) {
+        running = _timerARunning;
+        timer = _timerA;
+        latch = _timerALatch;
+        cr = _crA;
+    } else {
+        running = _timerBRunning;
+        timer = _timerB;
+        latch = _timerBLatch;
+        cr = _crB;
+    }
+
+    BIT_SET(_timerMask, timerType == CIA_TIMER_A ? 0 : 1);
+    if (IS_BIT_SET(cr, 3)) {
+        // stop timer after underflow
+        BIT_CLEAR(cr, 0);
+        running = false;
+    } else {
+        // timer restarts after underflow , reload latch
+        running = true;
+        timer = latch;
+    }
+
+    // set values back
+    if (timerType == CIA_TIMER_A) {
+        _timerARunning = running;
+        _timerA = timer;
+        _crA = cr;
+    } else {
+        _timerBRunning = running;
+        _timerB = timer;
+        _crB = cr;
+    }
+}
+
+/**
+ * @brief update timerA and timerB
+ * @param cycleCount current cycle count
+ * @param timerType CIA_TIMER_A or CIA_TIMER_B
+ */
 void CCIABase::updateTimer(int cycleCount, int timerType) {
     // check which timer we're updating
     bool running = false;
@@ -349,6 +401,7 @@ void CCIABase::updateTimer(int cycleCount, int timerType) {
 
     // check timer mode
     if (mode == CIA_TIMER_COUNT_CPU_CYCLES) {
+        // count elapsed cycles
         timer -= (cycleCount - _prevCycleCount);
         if (timerType == CIA_TIMER_A) {
             _timerA = timer;
@@ -357,70 +410,36 @@ void CCIABase::updateTimer(int cycleCount, int timerType) {
         }
 
         if (timer <= 0) {
-            // signal underflow in the mask (0=timer A, 1=timer B)
+            // signal underflow
             if (timerType == CIA_TIMER_A) {
+                // timer b may count timer a underflows....
                 _timerAUnderflows++;
-                BIT_SET(_timerMask, 0);
-                if (IS_BIT_SET(_crA, 3)) {
-                    // stop timer after underflow
-                    BIT_CLEAR(_crA, 0);
-                    _timerARunning = false;
-                } else {
-                    // timer restarts after underflow , reload latch
-                    _timerARunning = true;
-                    _timerA = _timerALatch;
-                }
+                handleTimerUnderflow(CIA_TIMER_A);
             } else {
-                BIT_SET(_timerMask, 1);
-                if (IS_BIT_SET(_crB, 3)) {
-                    // stop timer after underflow
-                    BIT_CLEAR(_crB, 0);
-                    _timerBRunning = false;
-                } else {
-                    // timer restarts after underflow , reload latch
-                    _timerBRunning = true;
-                    _timerB = _timerBLatch;
-                }
+                handleTimerUnderflow(CIA_TIMER_B);
             }
 
-            // set bit7, interrupt occurred
-            BIT_SET(_timerMask, 7);
-            if (_connectedTo == CIA_TRIGGERS_IRQ) {
-                // CIA1 triggers irq
-                _cpu->irq();
-            } else {
-            }
+            // trigger interrupt
+            triggerInterrupt(timerType);
         }
     } else if (mode == CIA_TIMER_COUNT_TIMERA_UNDERFLOW &&
                timerType == CIA_TIMER_B) {
-        return;
+
+        // count timer a undersflows
         _timerB -= _timerAUnderflows;
         SDL_Log("timer b currently %d", _timerB);
         if (_timerB <= 0) {
             SDL_Log("timer b counts timer a underflow");
-            BIT_SET(_timerMask, 1);
-            if (IS_BIT_SET(_crB, 3)) {
-                // stop timer after underflow
-                BIT_CLEAR(_crB, 0);
-                _timerBRunning = false;
-            } else {
-                // timer restarts after underflow , reload latch
-                _timerBRunning = true;
-                _timerB = _timerBLatch;
-            }
 
-            // set bit7, interrupt occurred
-            BIT_SET(_timerMask, 7);
-            if (_connectedTo == CIA_TRIGGERS_IRQ) {
-                // CIA1 triggers irq
-                _cpu->irq();
-            } else {
-                //_cpu->nmi();
-            }
+            // signal underflow and trigger interrupt
+            handleTimerUnderflow(CIA_TIMER_B);
+            triggerInterrupt(CIA_TIMER_B);
+
+            // reset timer a underflows
             _timerAUnderflows = 0;
         }
     }
-    // TODO: mode is count slopes at CNT pin
+    // TODO:other modes
 }
 
 int CCIABase::update(int cycleCount) {
@@ -428,9 +447,21 @@ int CCIABase::update(int cycleCount) {
     updateTimer(cycleCount, CIA_TIMER_A);
     updateTimer(cycleCount, CIA_TIMER_B);
 
-    // @todo: handle cia2
-
     // update cycle count
     _prevCycleCount = cycleCount;
     return 0;
+}
+
+/**
+ * @brief trigger nmi or irq, depending on cia (cia1=irq, cia2=nmi)
+ * @param timerType CIA_TIMER_A or CIA_TIMER_B
+ */
+void CCIABase::triggerInterrupt(int timerType) {
+    if (_connectedTo == CIA_TRIGGERS_IRQ) {
+        // CIA1 triggers irq
+        _cpu->irq();
+    } else {
+        // CIA2 triggers nmi
+        _cpu->nmi();
+    }
 }

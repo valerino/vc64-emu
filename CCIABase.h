@@ -100,4 +100,6 @@ class CCIABase {
     int _timerMask = 0;
     uint16_t _baseAddress = 0;
     void updateTimer(int cycleCount, int timerType);
+    void handleTimerUnderflow(int timerType);
+    void triggerInterrupt (int timerType);
 };
