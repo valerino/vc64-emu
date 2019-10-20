@@ -326,7 +326,7 @@ void CVICII::drawSprite(int rasterLine, int idx, int x, int row) {
                         getScreenLimits(&limits);
                         checkSpriteSpriteCollision(idx, pixelX, currentLine);
                     }
-                    RgbStruct rgb = _palette[color & 0xf];
+                    RgbStruct rgb = _palette[color];
                     blit(pixelX, currentLine, &rgb);
                 }
             }
@@ -444,21 +444,21 @@ void CVICII::drawCharacterMode(int rasterLine) {
             // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
             // 3.7.3.5. ECM text mode (ECM/BMM/MCM=1/0/0)
             if (!IS_BIT_SET(screenCode, 7) && !IS_BIT_SET(screenCode, 6)) {
-                backgroundRgb = _palette[getBackgroundColor(0)];
+                backgroundRgb = _palette[getBackgroundColor(0) & 0xf];
             } else if (!IS_BIT_SET(screenCode, 7) &&
                        IS_BIT_SET(screenCode, 6)) {
-                backgroundRgb = _palette[getBackgroundColor(1)];
+                backgroundRgb = _palette[getBackgroundColor(1) & 0xf];
             } else if (IS_BIT_SET(screenCode, 7) &&
                        !IS_BIT_SET(screenCode, 6)) {
-                backgroundRgb = _palette[getBackgroundColor(2)];
+                backgroundRgb = _palette[getBackgroundColor(2) & 0xf];
             } else if (IS_BIT_SET(screenCode, 7) && IS_BIT_SET(screenCode, 6)) {
-                backgroundRgb = _palette[getBackgroundColor(3)];
+                backgroundRgb = _palette[getBackgroundColor(3) & 0xf];
             }
             // clear bits in character
             screenCode &= 0x3f;
         } else {
             // default text mode
-            backgroundRgb = _palette[getBackgroundColor(0)];
+            backgroundRgb = _palette[getBackgroundColor(0) & 0xf];
         }
 
         // read the character data and color
@@ -488,14 +488,14 @@ void CVICII::drawCharacterMode(int rasterLine) {
                 switch (bits) {
                 case 0:
                     // 00
-                    charRgb = _palette[getBackgroundColor(0)];
+                    charRgb = _palette[getBackgroundColor(0) & 0xf];
                     // drawing background
                     checkSpriteBackgroundCollision(pixelX, rasterLine);
                     break;
 
                 case 1:
                     // 01
-                    charRgb = _palette[getBackgroundColor(1)];
+                    charRgb = _palette[getBackgroundColor(1) & 0xf];
 
                     // drawing background
                     checkSpriteBackgroundCollision(pixelX, rasterLine);
@@ -505,7 +505,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
                     // 10
                     // drawing foreground, check collisions with sprites
                     checkSpriteBackgroundCollision(pixelX, rasterLine);
-                    charRgb = _palette[getBackgroundColor(2)];
+                    charRgb = _palette[getBackgroundColor(2) & 0xf];
                     break;
 
                 case 3:
@@ -517,7 +517,7 @@ void CVICII::drawCharacterMode(int rasterLine) {
                 }
                 if (pixelX > (320 + limits.firstVisibleX)) {
                     // off screen -> background color
-                    charRgb = _palette[getBackgroundColor(0)];
+                    charRgb = _palette[getBackgroundColor(0) & 0xf];
                 }
                 blit(pixelX, rasterLine, &charRgb);
                 blit(pixelX + 1, rasterLine, &charRgb);
@@ -611,7 +611,7 @@ void CVICII::drawBitmapMode(int rasterLine) {
             // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
             // 3.7.3.3. Standard bitmap mode (ECM/BMM/MCM=0/1/0)
             // SDL_Log("drawing standard bitmap");
-            RgbStruct fgColor = _palette[(screenCode >> 4) & 0xf];
+            RgbStruct fgColor = _palette[(screenCode >> 4)];
             RgbStruct bgColor = _palette[screenCode & 0xf];
             for (int i = 0; i < 8; i++) {
                 int pixelX = x + 8 - i + _scrollX;
@@ -643,14 +643,14 @@ void CVICII::drawBitmapMode(int rasterLine) {
                 case 0:
                     // 00
                     // drawing background
-                    rgb = _palette[getBackgroundColor(0)];
+                    rgb = _palette[getBackgroundColor(0) & 0xf];
                     break;
 
                 case 1:
                     // 01
                     // drawing background
                     checkSpriteBackgroundCollision(pixelX, rasterLine);
-                    rgb = _palette[(screenCode >> 4) & 0xf];
+                    rgb = _palette[(screenCode >> 4)];
                     break;
 
                 case 2:
@@ -800,8 +800,8 @@ int CVICII::update(long cycleCount) {
 
     // return how many cycles drawing occupied
     _prevCycles = cycleCount;
-    return elapsedCycles; // isBadLine ? VIC_PAL_CYCLES_PER_BADLINE :
-                          // VIC_PAL_CYCLES_PER_LINE;
+    // return elapsedCycles;
+    return isBadLine ? VIC_PAL_CYCLES_PER_BADLINE : VIC_PAL_CYCLES_PER_LINE;
 }
 
 void CVICII::read(uint16_t address, uint8_t *bt) {
@@ -881,6 +881,7 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
         if (IS_BIT_SET(*bt, 7)) {
             BIT_CLEAR(_regInterrupt, 7);
         }
+
         if (IS_BIT_SET(*bt, 0)) {
             BIT_CLEAR(_regInterrupt, 0);
         }
@@ -934,7 +935,8 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
 
     case 0xd020:
         // EC
-        *bt = getBorderColor();
+        // bits 4,5,6,7 are not connected and give 1 on reading
+        *bt = getBorderColor() & 0xf0;
         break;
 
     case 0xd021:
@@ -942,16 +944,18 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
     case 0xd023:
     case 0xd024: {
         // BnC = background color 0-3
+        // bits 4,5,6,7 are not connected and give 1 on reading
         int bcIdx = addr - 0xd021;
-        *bt = getBackgroundColor(bcIdx);
+        *bt = getBackgroundColor(bcIdx) & 0xf0;
         break;
     }
 
     case 0xd025:
     case 0xd026: {
         // MMn = sprite multicolor 0-1
+        // bits 4,5,6,7 are not connected and give 1 on reading
         int mmIdx = addr - 0xd025;
-        *bt = getSpriteMulticolor(mmIdx);
+        *bt = getSpriteMulticolor(mmIdx) & 0xf0;
         break;
     }
 
@@ -964,8 +968,9 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
     case 0xd02d:
     case 0xd02e: {
         // MnC = sprite color 0-7
+        // bits 4,5,6,7 are not connected and give 1 on reading
         int mIdx = addr - 0xd027;
-        *bt = getSpriteColor(mIdx);
+        *bt = getSpriteColor(mIdx) & 0xf0;
         break;
     }
 
@@ -1055,9 +1060,9 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
         // also set the line at which the raster irq happens (bit 0-7)
         _rasterIrqLine = bt;
-        if (IS_BIT_SET(_regCR1, 7)) {
+        /*if (IS_BIT_SET(_regCR1, 7)) {
             BIT_SET(_rasterIrqLine, 8);
-        }
+        }*/
         break;
 
     case 0xd013:

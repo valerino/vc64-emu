@@ -41,7 +41,7 @@ uint8_t CMemory::readByte(uint32_t address, uint8_t *b, bool raw) {
     if (address >= MEMORY_BASIC_ADDRESS &&
         address < MEMORY_BASIC_ADDRESS + MEMORY_BASIC_SIZE) {
         // $a000 (basic rom)
-        if (mapType == PLA_MAP_BASIC_ROM) {
+        if (_pla->isLoram()) { // if (mapType == PLA_MAP_BASIC_ROM) {
             // accessing basic rom
             *b = _basicRom[address - MEMORY_BASIC_ADDRESS];
             return 0;
@@ -49,7 +49,7 @@ uint8_t CMemory::readByte(uint32_t address, uint8_t *b, bool raw) {
     } else if (address >= MEMORY_KERNAL_ADDRESS &&
                address < MEMORY_KERNAL_ADDRESS + MEMORY_KERNAL_SIZE) {
         // $e000 (kernal rom)
-        if (mapType == PLA_MAP_KERNAL_ROM) {
+        if (_pla->isHiram()) { // if (mapType == PLA_MAP_KERNAL_ROM) {
             // accessing kernal rom
             *b = _kernalRom[address - MEMORY_KERNAL_ADDRESS];
             return 0;
@@ -57,7 +57,7 @@ uint8_t CMemory::readByte(uint32_t address, uint8_t *b, bool raw) {
     } else if (address >= MEMORY_CHARSET_ADDRESS &&
                address < MEMORY_CHARSET_ADDRESS + MEMORY_CHARSET_SIZE) {
         // $d000 (charset rom)
-        if (mapType == PLA_MAP_CHARSET_ROM) {
+        if (!_pla->isCharen()) { // if (mapType == PLA_MAP_CHARSET_ROM) {
             // access charset rom
             // SDL_Log("reading character rom");
             *b = _charRom[address - MEMORY_CHARSET_ADDRESS];
