@@ -727,12 +727,6 @@ void CVICII::getScreenLimits(Rect *limits) {
 }
 
 int CVICII::update(long cycleCount) {
-    if (IS_BIT_SET(getInterruptLatch(), 7)) {
-        // IRQ bit is set, trigger an interrupt
-        _cpu->irq();
-        BIT_CLEAR(_regInterrupt, 7);
-    }
-
     // check for badline
     int currentRaster = getCurrentRasterLine();
     bool isBadLine = ((currentRaster >= 0x30) && (currentRaster <= 0xf7)) &&
@@ -878,7 +872,11 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
         // interrupt latch, clear on read
         *bt = getInterruptLatch();
 
-        /*
+        if (IS_BIT_SET(getInterruptLatch(), 7)) {
+            // IRQ bit is set, trigger an interrupt
+            _cpu->irq();
+        }
+
         if (IS_BIT_SET(*bt, 7)) {
             BIT_CLEAR(_regInterrupt, 7);
         }
@@ -894,7 +892,6 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
         if (IS_BIT_SET(*bt, 3)) {
             BIT_CLEAR(_regInterrupt, 3);
         }
-        */
         break;
 
     case 0xd01a:
@@ -936,7 +933,7 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
     case 0xd020:
         // EC
         // bits 4,5,6,7 are not connected and give 1 on reading
-        *bt = getBorderColor() & 0xf0;
+        *bt = getBorderColor() | 0xf0;
         break;
 
     case 0xd021:
@@ -946,7 +943,7 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
         // BnC = background color 0-3
         // bits 4,5,6,7 are not connected and give 1 on reading
         int bcIdx = addr - 0xd021;
-        *bt = getBackgroundColor(bcIdx) & 0xf0;
+        *bt = getBackgroundColor(bcIdx) | 0xf0;
         break;
     }
 
@@ -955,7 +952,7 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
         // MMn = sprite multicolor 0-1
         // bits 4,5,6,7 are not connected and give 1 on reading
         int mmIdx = addr - 0xd025;
-        *bt = getSpriteMulticolor(mmIdx) & 0xf0;
+        *bt = getSpriteMulticolor(mmIdx) | 0xf0;
         break;
     }
 
@@ -970,7 +967,7 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
         // MnC = sprite color 0-7
         // bits 4,5,6,7 are not connected and give 1 on reading
         int mIdx = addr - 0xd027;
-        *bt = getSpriteColor(mIdx) & 0xf0;
+        *bt = getSpriteColor(mIdx) | 0xf0;
         break;
     }
 
