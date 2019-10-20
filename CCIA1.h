@@ -35,7 +35,7 @@ class CCIA1 : public CCIABase {
 
   private:
     void readKeyboardMatrixColumn(uint8_t *bt, uint8_t pra);
-    uint16_t checkShadowAddress(uint16_t address);
+    uint16_t handleShadowAddress(uint16_t address);
     bool _joy2Hack = false;
     bool _kbMatrix[0x40] = {false};
 };

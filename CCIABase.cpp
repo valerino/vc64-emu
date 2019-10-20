@@ -168,9 +168,10 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
 
     case 0x05:
         // TA HI
-        _timerALatch = (_timerALatch & 0xff) | ((int)bt << 8);
         if (_timerARunning) {
-            // reload the timer
+            _timerALatch = (_timerALatch & 0xff) | ((int)bt << 8);
+        } else {
+            _timerALatch = (_timerALatch & 0xff) | ((int)bt << 8);
             _timerA = _timerALatch;
         }
         break;
@@ -182,10 +183,10 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
 
     case 0x07:
         // TB HI
-        
-        _timerBLatch = (_timerBLatch & 0xff) | ((int)bt << 8);
         if (_timerBRunning) {
-            // reload the timer
+            _timerBLatch = (_timerBLatch & 0xff) | ((int)bt << 8);
+        } else {
+            _timerBLatch = (_timerBLatch & 0xff) | ((int)bt << 8);
             _timerB = _timerBLatch;
         }
         break;
@@ -215,11 +216,52 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
         _todSdr = bt;
         break;
 
-    case 0x0d:
+    case 0x0d: {
         // ICR interrupt control
-        _timerMask = bt;
-        break;
+        bool sSet = IS_BIT_SET(bt, 7);
+        if (IS_BIT_SET(bt, 0)) {
+            if (sSet) {
+                BIT_SET(_timerMask, 0);
+            } else {
+                BIT_CLEAR(_timerMask, 0);
+            }
+        }
 
+        if (IS_BIT_SET(bt, 1)) {
+            if (sSet) {
+                BIT_SET(_timerMask, 1);
+            } else {
+                BIT_CLEAR(_timerMask, 1);
+            }
+        }
+
+        if (IS_BIT_SET(bt, 2)) {
+            if (sSet) {
+                BIT_SET(_timerMask, 2);
+            } else {
+                BIT_CLEAR(_timerMask, 3);
+            }
+        }
+
+        if (IS_BIT_SET(bt, 3)) {
+            if (sSet) {
+                BIT_SET(_timerMask, 3);
+            } else {
+                BIT_CLEAR(_timerMask, 3);
+            }
+        }
+
+        if (IS_BIT_SET(bt, 4)) {
+            if (sSet) {
+                BIT_SET(_timerMask, 4);
+            } else {
+                BIT_CLEAR(_timerMask, 4);
+            }
+        }
+
+        //_timerMask = bt;
+        break;
+    }
     case 0x0e:
         // CRA
         // @todo handle other bits
@@ -321,6 +363,7 @@ void CCIABase::updateTimer(int cycleCount, int timerType) {
         if (timer <= 0) {
             // signal underflow in the mask (0=timer A, 1=timer B)
             if (timerType == CIA_TIMER_A) {
+                _timerAUnderflows++;
                 BIT_SET(_timerMask, 0);
                 if (IS_BIT_SET(_crA, 3)) {
                     // stop timer after underflow
@@ -349,16 +392,39 @@ void CCIABase::updateTimer(int cycleCount, int timerType) {
             if (_connectedTo == CIA_TRIGGERS_IRQ) {
                 // CIA1 triggers irq
                 _cpu->irq();
+            } else {
             }
         }
-    }
-
-    else {
-        if (mode == CIA_TIMER_COUNT_TIMERA_UNDERFLOW) {
+    } else if (mode == CIA_TIMER_COUNT_TIMERA_UNDERFLOW &&
+               timerType == CIA_TIMER_B) {
+        return;
+        _timerB -= _timerAUnderflows;
+        SDL_Log("timer b currently %d", _timerB);
+        if (_timerB <= 0) {
             SDL_Log("timer b counts timer a underflow");
+            BIT_SET(_timerMask, 1);
+            if (IS_BIT_SET(_crB, 3)) {
+                // stop timer after underflow
+                BIT_CLEAR(_crB, 0);
+                _timerBRunning = false;
+            } else {
+                // timer restarts after underflow , reload latch
+                _timerBRunning = true;
+                _timerB = _timerBLatch;
+            }
+
+            // set bit7, interrupt occurred
+            BIT_SET(_timerMask, 7);
+            if (_connectedTo == CIA_TRIGGERS_IRQ) {
+                // CIA1 triggers irq
+                _cpu->irq();
+            } else {
+                //_cpu->nmi();
+            }
+            _timerAUnderflows = 0;
         }
-        // TODO: mode is count slopes at CNT pin
     }
+    // TODO: mode is count slopes at CNT pin
 }
 
 int CCIABase::update(int cycleCount) {

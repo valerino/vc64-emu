@@ -141,10 +141,15 @@ void CVICII::checkSpriteSpriteCollision(int idx, int x, int y) {
         }
         int xMultiplier = isSpriteXExpanded(i) ? 2 : 1;
         int yMultiplier = isSpriteYExpanded(i) ? 2 : 1;
-        int sprX = (getSpriteCoordinate(i) + limits.firstSpriteX) * xMultiplier;
-        int sprY = getSpriteCoordinate(i + 1) * yMultiplier;
-        if ((x >= sprX && (x <= (sprX + 24 * xMultiplier)) && (y >= sprY) &&
-             (y <= sprY + 21 * yMultiplier))) {
+        if (yMultiplier > 1) {
+            // SDL_Log("sprite %d Y expanded", i);
+        }
+        if (xMultiplier > 1) {
+            // SDL_Log("sprite %d X expanded", i);
+        }
+        int sprX = getSpriteXCoordinate(i);
+        int sprY = getSpriteYCoordinate(i);
+        if (x == sprX * xMultiplier && y == sprY * yMultiplier) {
             /*SDL_Log("collision sprite-%d(x=%d,y=%d) with "
                     "sprite-%d(x=%d,y=%d)",
                     idx, x, y, i, sprX, sprY);*/
@@ -186,10 +191,9 @@ void CVICII::checkSpriteBackgroundCollision(int x, int y) {
         }
         int xMultiplier = isSpriteXExpanded(i) ? 2 : 1;
         int yMultiplier = isSpriteYExpanded(i) ? 2 : 1;
-        int sprX = (getSpriteCoordinate(i) + limits.firstSpriteX) * xMultiplier;
-        int sprY = getSpriteCoordinate(i + 1) * yMultiplier;
-        if ((x >= sprX && (x <= (sprX + 24 * xMultiplier)) && (y >= sprY) &&
-             (y <= sprY + 21 * yMultiplier))) {
+        int sprX = getSpriteXCoordinate(i);
+        int sprY = getSpriteYCoordinate(i);
+        if (x == sprX * xMultiplier && y == sprY * yMultiplier) {
             /*SDL_Log("collision background(x=%d,y=%d) with "
                     "sprite-%d(x=%d,y=%d)",
                     x, y, i, sprX, sprY);*/
@@ -244,15 +248,15 @@ void CVICII::drawSpriteMulticolor(int rasterLine, int idx, int x, int row) {
                 break;
             case 1:
                 // 01 = multicolor register 0
-                color = getSpriteMulticolor(0);
+                color = getSpriteMulticolor(0) & 0xf;
                 break;
             case 2:
                 // 10  = standard sprite color for sprite idx
-                color = getSpriteColor(idx);
+                color = getSpriteColor(idx) & 0xf;
                 break;
             case 3:
                 // 11 = multicolor register 1
-                color = getSpriteMulticolor(1);
+                color = getSpriteMulticolor(1) & 0xf;
                 break;
             default:
                 break;
@@ -269,9 +273,7 @@ void CVICII::drawSpriteMulticolor(int rasterLine, int idx, int x, int row) {
                     // also check sprite-sprite collision
                     Rect limits;
                     getScreenLimits(&limits);
-                    checkSpriteSpriteCollision(
-                        idx, pixelX,
-                        currentLine); // - limits.firstVisibleLine);
+                    checkSpriteSpriteCollision(idx, pixelX, currentLine);
                 }
             }
         }
@@ -313,7 +315,7 @@ void CVICII::drawSprite(int rasterLine, int idx, int x, int row) {
                                  (8 * multiplier) - (j * multiplier);
 
                     // blit pixel
-                    int color = getSpriteColor(idx);
+                    int color = getSpriteColor(idx) & 0xf;
                     if (isSpriteDrawingOnBorder(pixelX, currentLine)) {
                         // draw using border color, transparent
                         color = getBorderColor() & 0xf;
@@ -322,9 +324,7 @@ void CVICII::drawSprite(int rasterLine, int idx, int x, int row) {
                         // sprite-sprite collision
                         Rect limits;
                         getScreenLimits(&limits);
-                        checkSpriteSpriteCollision(
-                            idx, pixelX,
-                            currentLine); // - limits.firstVisibleLine);
+                        checkSpriteSpriteCollision(idx, pixelX, currentLine);
                     }
                     RgbStruct rgb = _palette[color & 0xf];
                     blit(pixelX, currentLine, &rgb);
@@ -349,7 +349,6 @@ void CVICII::drawSprites(int rasterLine) {
     }
 
     int defaultSpriteH = 21;
-    int defaultSpriteW = 24;
     Rect limits;
     getScreenLimits(&limits);
 
@@ -376,8 +375,8 @@ void CVICII::drawSprites(int rasterLine) {
             // @fixme apparently, the x coordinate is not enough and must be
             // 'shifted' some pixels to the right ....
             int x = limits.firstSpriteX + spriteXCoord;
-            // SDL_Log("xscroll=%d, xcoord=%d, x=%d", _scrollX, spriteXCoord,
-            // x);
+            // SDL_Log("xscroll=%d, xcoord=%d, x=%d", _scrollX,
+            // spriteXCoord, x);
             if (isSpriteHExpanded) {
                 // handle Y expansion
                 row /= 2;
@@ -529,11 +528,11 @@ void CVICII::drawCharacterMode(int rasterLine) {
             }
         } else {
             // default text mode or extended background mode or alternative
-            // multicolor mode http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
-            // 3.7.3.1. Standard text mode (ECM/BMM/MCM=0/0/0)
-            // (c-data here is referred as a 12bit value, the lower 8 bits are
-            // the character data, the higher 4 bits the color read from color
-            // memory)
+            // multicolor mode
+            // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt 3.7.3.1.
+            // Standard text mode (ECM/BMM/MCM=0/0/0) (c-data here is
+            // referred as a 12bit value, the lower 8 bits are the character
+            // data, the higher 4 bits the color read from color memory)
             for (int i = 0; i < 8; i++) {
                 int pixelX = x + 8 - i + _scrollX;
                 if (pixelX > (320 + limits.firstVisibleX)) {
@@ -730,10 +729,6 @@ void CVICII::getScreenLimits(Rect *limits) {
 int CVICII::update(long cycleCount) {
     if (IS_BIT_SET(getInterruptLatch(), 7)) {
         // IRQ bit is set, trigger an interrupt
-
-        // and clear the bit
-        // https://dustlayer.com/vic-ii
-        BIT_CLEAR(_regInterrupt, 7);
         _cpu->irq();
     }
 
@@ -792,7 +787,6 @@ int CVICII::update(long cycleCount) {
             // trigger irq if bits in $d01a is set for the raster
             // interrupt
             BIT_SET(_regInterrupt, 0);
-            BIT_SET(_regInterrupt, 7);
             _cpu->irq();
         } else {
             BIT_CLEAR(_regInterrupt, 0);
@@ -809,11 +803,8 @@ int CVICII::update(long cycleCount) {
 }
 
 void CVICII::read(uint16_t address, uint8_t *bt) {
-    // check shadow and unused addresses
-    uint16_t addr = checkShadowAddress(address);
-    if (checkUnusedAddress(CPU_MEM_READ, addr, bt)) {
-        return;
-    }
+    // check shadow address
+    uint16_t addr = handleShadowAddress(address);
 
     switch (addr) {
     case 0xd000:
@@ -882,8 +873,25 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
         break;
 
     case 0xd019:
-        // interrupt latch
+        // interrupt latch, clear on read
         *bt = getInterruptLatch();
+        if (IS_BIT_SET(*bt, 7)) {
+            BIT_CLEAR(_regInterrupt, 7);
+        }
+        /*
+        if (IS_BIT_SET(*bt, 0)) {
+            BIT_CLEAR(_regInterrupt, 0);
+        }
+        if (IS_BIT_SET(*bt, 1)) {
+            BIT_CLEAR(_regInterrupt, 1);
+        }
+        if (IS_BIT_SET(*bt, 2)) {
+            BIT_CLEAR(_regInterrupt, 2);
+        }
+        if (IS_BIT_SET(*bt, 3)) {
+            BIT_CLEAR(_regInterrupt, 3);
+        }
+        */
         break;
 
     case 0xd01a:
@@ -959,9 +967,28 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
         break;
     }
 
+    case 0xd02f:
+    case 0xd030:
+    case 0xd031:
+    case 0xd032:
+    case 0xd033:
+    case 0xd034:
+    case 0xd035:
+    case 0xd036:
+    case 0xd037:
+    case 0xd038:
+    case 0xd039:
+    case 0xd03a:
+    case 0xd03b:
+    case 0xd03c:
+    case 0xd03d:
+    case 0xd03e:
+    case 0xd03f:
+        // these locations returns 0xff on read
+        *bt = 0xff;
+        break;
+
     default:
-        // read from memory
-        // readVICByte(addr, bt);
         SDL_Log("unhandled vic read at $%0x", addr);
         break;
     }
@@ -969,12 +996,7 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
 
 void CVICII::write(uint16_t address, uint8_t bt) {
     // check shadow
-    uint16_t addr = checkShadowAddress(address);
-
-    // on write these are unused
-    if (checkUnusedAddress(CPU_MEM_WRITE, addr, nullptr)) {
-        return;
-    }
+    uint16_t addr = handleShadowAddress(address);
 
     switch (addr) {
     case 0xd000:
@@ -996,8 +1018,6 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         // MmX/Y = sprite n X/Y coordinates
         int spriteCoordIdx = addr - 0xd000;
         setSpriteCoordinate(spriteCoordIdx, bt);
-        //_cpu->memory()->writeByte(address, bt, true);
-
         break;
     }
     case 0xd010:
@@ -1177,14 +1197,35 @@ void CVICII::write(uint16_t address, uint8_t bt) {
         setSpriteColor(mIdx, bt);
         break;
     }
+
+    case 0xd02f:
+    case 0xd030:
+    case 0xd031:
+    case 0xd032:
+    case 0xd033:
+    case 0xd034:
+    case 0xd035:
+    case 0xd036:
+    case 0xd037:
+    case 0xd038:
+    case 0xd039:
+    case 0xd03a:
+    case 0xd03b:
+    case 0xd03c:
+    case 0xd03d:
+    case 0xd03e:
+    case 0xd03f:
+        // these locations are ignored on write
+        break;
+
     default:
         SDL_Log("unhandled vic write at $%0x", addr);
         break;
     }
 
-    // write to memory anyway
+    // write to memory anyway (attack of the mutant camels)
     // @fixme this is wrong, shouldn't be needed
-    _cpu->memory()->writeByte(address, bt, true);
+    _cpu->memory()->writeByte(addr, bt);
 }
 
 /**
@@ -1300,37 +1341,14 @@ void CVICII::setSpriteMulticolor(int idx, uint8_t val) { _regMM[idx] = val; }
 uint8_t CVICII::getSpriteMulticolor(int idx) { return _regMM[idx]; }
 
 /**
- * some addresses are shadowed and maps to other addresses
+ * @brief addresses between 0xd040 and 0xd3ff are shadows of 0xd000-0xd03f
  * @param address the input address
  * @return the effective address
  */
-uint16_t CVICII::checkShadowAddress(uint16_t address) {
-    // check for shadow addresses
-    if (address >= 0xd040 && address <= 0xd3ff) {
-        // these are shadows for $d000-$d03f
-        return (VIC_REGISTERS_START + ((address % VIC_REGISTERS_START) % 0x40));
-    }
-    return address;
-}
-
-/**
- * read/write to these addresses has no effect or returns a fixed value
- * @param type CPU_MEM_READ or CPU_MEM_WRITE
- * @param address
- * @param bt
- * @return true if it's an unused address
- */
-bool CVICII::checkUnusedAddress(int type, uint16_t address, uint8_t *bt) {
-    if (address >= 0xd02f && address <= 0xd03f) {
-        if (type == CPU_MEM_READ) {
-            // these locations always return 0xff on read
-            *bt = 0xff;
-        }
-
-        // on write, it's ignored
-        return true;
-    }
-    return false;
+uint16_t CVICII::handleShadowAddress(uint16_t address) {
+    address &= 0xff;
+    address &= 0x3f;
+    return address + VIC_REGISTERS_START;
 }
 
 /**

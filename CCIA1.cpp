@@ -47,7 +47,7 @@ void CCIA1::enableJoy2Hack(bool enable) { _joy2Hack = enable; }
 
 void CCIA1::read(uint16_t address, uint8_t *bt) {
     // in CIA1 some addresses d010-d0ff are repeated every 16 bytes
-    uint16_t addr = checkShadowAddress(address);
+    uint16_t addr = handleShadowAddress(address);
 
     // PRA ($dc00/rows) and PRB ($dc01/columns)
     // PRA also controls joy2, while PRB joy1
@@ -109,14 +109,12 @@ void CCIA1::read(uint16_t address, uint8_t *bt) {
 
 void CCIA1::write(uint16_t address, uint8_t bt) {
     // in CIA1 some addresses d010-d0ff are repeated every 16 bytes
-    uint16_t addr = checkShadowAddress(address);
+    uint16_t addr = handleShadowAddress(address);
     switch (addr) {
 
     default:
         // default processing with the base class
-        // @fixme: i think here is 'addr', but putting 'address' makes gorf
-        // work......
-        CCIABase::write(address, bt);
+        CCIABase::write(addr, bt);
         break;
     }
 }
@@ -126,11 +124,11 @@ void CCIA1::setKeyState(uint8_t scancode, bool pressed) {
 }
 
 /**
- * @brief certain addresses in cia1 are mirrored every 16 bytes
+ * @brief cia1 registers are mirrored at $DC10-$DCFF every 16 bytes
  * @param address the input address
  * @return the effective address
  */
-uint16_t CCIA1::checkShadowAddress(uint16_t address) {
+uint16_t CCIA1::handleShadowAddress(uint16_t address) {
     // check for shadow addresses
     uint16_t addr = CIA1_REGISTERS_START + (address & 0xf);
     return addr;

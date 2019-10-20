@@ -57,38 +57,26 @@ void cpuCallbackWrite(uint16_t address, uint8_t val) {
         if (mapType == PLA_MAP_IO_DEVICES) {
             // access VIC registers
             vic->write(address, val);
-        } else {
-            if (mapType != PLA_MAP_RAM) {
-                SDL_Log("callback write, vic, mapType=%d", mapType);
-            }
-            mem->writeByte(address, val);
+            return;
         }
     } else if (address >= CIA2_REGISTERS_START &&
                address <= CIA2_REGISTERS_END) {
         if (mapType == PLA_MAP_IO_DEVICES) {
             // access CIA2 registers
             cia2->write(address, val);
-        } else {
-            if (mapType != PLA_MAP_RAM) {
-                SDL_Log("callback write, cia2, mapType=%d", mapType);
-            }
-            mem->writeByte(address, val);
+            return;
         }
     } else if (address >= CIA1_REGISTERS_START &&
                address <= CIA1_REGISTERS_END) {
         if (mapType == PLA_MAP_IO_DEVICES) {
             // access CIA1 registers
             cia1->write(address, val);
-        } else {
-            if (mapType != PLA_MAP_RAM) {
-                SDL_Log("callback write, cia1, mapType=%d", mapType);
-            }
-            mem->writeByte(address, val);
+            return;
         }
-    } else {
-        // default, write to ram
-        mem->writeByte(address, val, true);
     }
+
+    // default, write to ram
+    mem->writeByte(address, val);
 }
 
 /**
@@ -102,11 +90,7 @@ void cpuCallbackRead(uint16_t address, uint8_t *val) {
         if (mapType == PLA_MAP_IO_DEVICES) {
             // access VIC registers
             vic->read(address, val);
-        } else {
-            if (mapType != PLA_MAP_RAM) {
-                SDL_Log("callback read, vic, mapType=%d", mapType);
-            }
-            mem->readByte(address, val);
+            return;
         }
     } else if (address >= CIA2_REGISTERS_START &&
                address <= CIA2_REGISTERS_END) {
@@ -114,11 +98,6 @@ void cpuCallbackRead(uint16_t address, uint8_t *val) {
             // access CIA2 registers
             cia2->read(address, val);
             return;
-        } else {
-            if (mapType != PLA_MAP_RAM) {
-                SDL_Log("callback read, cia2, mapType=%d", mapType);
-            }
-            mem->readByte(address, val);
         }
     } else if (address >= CIA1_REGISTERS_START &&
                address <= CIA1_REGISTERS_END) {
@@ -126,19 +105,10 @@ void cpuCallbackRead(uint16_t address, uint8_t *val) {
             // access CIA1 registers
             cia1->read(address, val);
             return;
-        } else {
-            if (mapType != PLA_MAP_RAM) {
-                SDL_Log("callback read, cia1, mapType=%d", mapType);
-            }
-            mem->readByte(address, val);
         }
-    } else {
-        // default, read from ram
-        /*if (mapType != PLA_MAP_RAM) {
-            SDL_Log("ram switch mapType=%d", mapType);
-        }*/
-        mem->readByte(address, val);
     }
+    // default, read from ram
+    mem->readByte(address, val);
 }
 
 /**
@@ -203,7 +173,8 @@ void usage(char **argv) {
            "either, arrows=directions, leftshift=fire).\n\t\t"
            "when joy2 is enabled, press ctrl-j to switch on/off keyboard (due "
            "to a dirty hack i used!).\n"
-           "\t-d: debugger (if enabled, you may also use ctrl-d to break while "
+           "\t-d: debugger (if enabled, you may also use ctrl-d to break "
+           "while "
            "running)\n"
            "\t-s: fullscreen\n"
            "\t-c: off|nospr|nobck (to disable hw collisions sprite/sprite, "

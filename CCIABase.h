@@ -94,6 +94,7 @@ class CCIABase {
     int _timerBMode = 0;
     bool _timerARunning = false;
     bool _timerBRunning = false;
+    int _timerAUnderflows = 0;
     int _prevCycleCount = 0;
     int _connectedTo = 0;
     int _timerMask = 0;

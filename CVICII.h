@@ -159,7 +159,7 @@ class CVICII {
     bool _sprSprHwCollisionEnabled = true;
     bool _sprBckHwCollisionEnabled = true;
 
-    uint16_t checkShadowAddress(uint16_t address);
+    uint16_t handleShadowAddress(uint16_t address);
 
     bool isSpriteEnabled(int idx);
     bool isSpriteMulticolor(int idx);
@@ -177,8 +177,6 @@ class CVICII {
 
     uint8_t getBackgroundColor(int idx);
     void setBackgoundColor(int idx, uint8_t val);
-
-    bool checkUnusedAddress(int type, uint16_t address, uint8_t *bt);
 
     uint16_t getSpriteXCoordinate(int idx);
     uint8_t getSpriteYCoordinate(int idx);
