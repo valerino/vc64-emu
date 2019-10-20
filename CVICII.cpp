@@ -730,6 +730,7 @@ int CVICII::update(long cycleCount) {
     if (IS_BIT_SET(getInterruptLatch(), 7)) {
         // IRQ bit is set, trigger an interrupt
         _cpu->irq();
+        BIT_CLEAR(_regInterrupt, 7);
     }
 
     // check for badline
@@ -875,9 +876,10 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
     case 0xd019:
         // interrupt latch, clear on read
         *bt = getInterruptLatch();
+        /*
         if (IS_BIT_SET(*bt, 7)) {
             BIT_CLEAR(_regInterrupt, 7);
-        }
+        }*/
         /*
         if (IS_BIT_SET(*bt, 0)) {
             BIT_CLEAR(_regInterrupt, 0);
