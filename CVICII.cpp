@@ -326,7 +326,7 @@ void CVICII::drawSprite(int rasterLine, int idx, int x, int row) {
                         getScreenLimits(&limits);
                         checkSpriteSpriteCollision(idx, pixelX, currentLine);
                     }
-                    RgbStruct rgb = _palette[color];
+                    RgbStruct rgb = _palette[color & 0xf];
                     blit(pixelX, currentLine, &rgb);
                 }
             }
@@ -611,7 +611,7 @@ void CVICII::drawBitmapMode(int rasterLine) {
             // http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
             // 3.7.3.3. Standard bitmap mode (ECM/BMM/MCM=0/1/0)
             // SDL_Log("drawing standard bitmap");
-            RgbStruct fgColor = _palette[(screenCode >> 4)];
+            RgbStruct fgColor = _palette[(screenCode >> 4) & 0xf];
             RgbStruct bgColor = _palette[screenCode & 0xf];
             for (int i = 0; i < 8; i++) {
                 int pixelX = x + 8 - i + _scrollX;
@@ -650,7 +650,7 @@ void CVICII::drawBitmapMode(int rasterLine) {
                     // 01
                     // drawing background
                     checkSpriteBackgroundCollision(pixelX, rasterLine);
-                    rgb = _palette[(screenCode >> 4)];
+                    rgb = _palette[(screenCode >> 4) & 0xf];
                     break;
 
                 case 2:
@@ -730,7 +730,7 @@ int CVICII::update(long cycleCount) {
     if (IS_BIT_SET(getInterruptLatch(), 7)) {
         // IRQ bit is set, trigger an interrupt
         _cpu->irq();
-        // BIT_CLEAR(_regInterrupt, 7);
+        BIT_CLEAR(_regInterrupt, 7);
     }
 
     // check for badline
@@ -878,10 +878,10 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
         // interrupt latch, clear on read
         *bt = getInterruptLatch();
 
+        /*
         if (IS_BIT_SET(*bt, 7)) {
             BIT_CLEAR(_regInterrupt, 7);
         }
-
         if (IS_BIT_SET(*bt, 0)) {
             BIT_CLEAR(_regInterrupt, 0);
         }
@@ -894,7 +894,7 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
         if (IS_BIT_SET(*bt, 3)) {
             BIT_CLEAR(_regInterrupt, 3);
         }
-
+        */
         break;
 
     case 0xd01a:

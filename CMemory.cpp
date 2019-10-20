@@ -65,6 +65,7 @@ uint8_t CMemory::readByte(uint32_t address, uint8_t *b, bool raw) {
         }
     }
     *b = _mem[address];
+
     return 0;
 }
 
