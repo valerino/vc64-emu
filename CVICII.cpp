@@ -158,6 +158,7 @@ void CVICII::checkSpriteSpriteCollision(int idx, int x, int y) {
                 // only the first collision triggers an irq
                 if (IS_BIT_SET(getInterruptEnabled(), 2)) {
                     BIT_SET(_regInterrupt, 2);
+                    BIT_SET(_regInterrupt, 7);
                     _cpu->irq();
                 }
             }
@@ -202,6 +203,7 @@ void CVICII::checkSpriteBackgroundCollision(int x, int y) {
                 // only the first collision triggers an irq
                 if (IS_BIT_SET(getInterruptEnabled(), 1)) {
                     BIT_SET(_regInterrupt, 1);
+                    BIT_SET(_regInterrupt, 7);
                     _cpu->irq();
                 }
             }
@@ -782,6 +784,7 @@ int CVICII::update(long cycleCount) {
             // trigger irq if bits in $d01a is set for the raster
             // interrupt
             BIT_SET(_regInterrupt, 0);
+            BIT_SET(_regInterrupt, 7);
             _cpu->irq();
         } else {
             BIT_CLEAR(_regInterrupt, 0);
@@ -1054,9 +1057,9 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
         // also set the line at which the raster irq happens (bit 0-7)
         _rasterIrqLine = bt;
-        /*if (IS_BIT_SET(_regCR1, 7)) {
+        if (IS_BIT_SET(_regCR1, 7)) {
             BIT_SET(_rasterIrqLine, 8);
-        }*/
+        }
         break;
 
     case 0xd013:
