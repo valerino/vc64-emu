@@ -344,11 +344,23 @@ void CCIABase::handleTimerUnderflow(int timerType) {
         timer = _timerA;
         latch = _timerALatch;
         cr = _crA;
+
+        if (IS_BIT_SET(_crA, 2)) {
+            BIT_TOGGLE(_prB, 6);
+        } else {
+            BIT_SET(_prB, 6);
+        }
     } else {
         running = _timerBRunning;
         timer = _timerB;
         latch = _timerBLatch;
         cr = _crB;
+
+        if (IS_BIT_SET(_crA, 2)) {
+            BIT_TOGGLE(_prB, 7);
+        } else {
+            BIT_SET(_prB, 7);
+        }
     }
 
     BIT_SET(_timerMask, timerType == CIA_TIMER_A ? 0 : 1);
@@ -427,9 +439,8 @@ void CCIABase::updateTimer(int cycleCount, int timerType) {
 
         // count timer a undersflows
         _timerB -= _timerAUnderflows;
-        SDL_Log("timer b currently %d", _timerB);
         if (_timerB <= 0) {
-            SDL_Log("timer b counts timer a underflow");
+            SDL_Log("timer b counts timer a underflow, triggered!");
 
             // signal underflow and trigger interrupt
             handleTimerUnderflow(CIA_TIMER_B);
@@ -462,6 +473,7 @@ void CCIABase::triggerInterrupt(int timerType) {
         _cpu->irq();
     } else {
         // CIA2 triggers nmi
-        _cpu->nmi();
+        // @todo: forget about it now .....
+        // _cpu->nmi();
     }
 }
