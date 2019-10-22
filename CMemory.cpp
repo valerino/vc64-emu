@@ -207,7 +207,11 @@ uint8_t CMemory::pageZero01() { return _mem[1]; }
  * @brief set on-chip port $01 (data direction)
  * @return
  */
-void CMemory::setPageZero00(uint8_t bt) { _mem[0] = bt; }
+void CMemory::setPageZero00(uint8_t bt) {
+    BIT_CLEAR(bt, 6);
+    BIT_CLEAR(bt, 7);
+    _mem[0] = bt;
+}
 
 /**
  * @brief set on-chip port $00 (controls mapping)
@@ -215,6 +219,9 @@ void CMemory::setPageZero00(uint8_t bt) { _mem[0] = bt; }
  */
 void CMemory::setPageZero01(uint8_t bt) {
     _mem[1] = bt;
+
+    BIT_CLEAR(bt, 6);
+    BIT_CLEAR(bt, 7);
 
     // setup memory mapping
     _pla->setupMemoryMapping(bt);

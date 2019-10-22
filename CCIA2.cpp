@@ -4,6 +4,7 @@
 
 #include "CCIA2.h"
 #include <SDL.h>
+#include "CMemory.h"
 #include "bitutils.h"
 
 CCIA2::CCIA2(CMOS65xx *cpu, CPLA *pla)
@@ -25,24 +26,30 @@ void CCIA2::setVicBank(uint8_t pra) {
         Bit 6: CLOCK IN
         Bit 7: DATA IN
     */
-
     if (!IS_BIT_SET(pra, 0) && !IS_BIT_SET(pra, 1)) {
         // xxxxxx00
         _vicBank = 3;
         _vicMemory = 0xc000;
     } else if (!IS_BIT_SET(pra, 0) && IS_BIT_SET(pra, 1)) {
         // xxxxxx10
-        _vicBank = 2;
+        _vicBank = 1;
         _vicMemory = 0x4000;
     } else if (IS_BIT_SET(pra, 0) && !IS_BIT_SET(pra, 1)) {
         // xxxxxx01
-        _vicBank = 1;
+        _vicBank = 2;
         _vicMemory = 0x8000;
     } else if (IS_BIT_SET(pra, 0) && IS_BIT_SET(pra, 1)) {
         // xxxxxx11
         _vicBank = 0;
         _vicMemory = 0;
     }
+
+    // bits 0/1 in the zeropage must be forced as output
+    uint8_t b = ((CMemory *)_cpu->memory())->pageZero00();
+    BIT_SET(b, 0);
+    BIT_SET(b, 1);
+    ((CMemory *)_cpu->memory())->setPageZero00(b);
+
     SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
                  "VIC-II bank %d selected, VIC memory address=$%x!\n", _vicBank,
                  _vicMemory);

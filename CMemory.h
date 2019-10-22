@@ -58,13 +58,13 @@ class CMemory : public IMemory {
 
     int loadBios();
 
+  public:
     uint8_t pageZero00();
     uint8_t pageZero01();
 
     void setPageZero00(uint8_t bt);
     void setPageZero01(uint8_t bt);
 
-  public:
     uint8_t readByte(uint32_t address, uint8_t *b, bool raw = false) override;
 
     uint16_t readWord(uint32_t address, uint16_t *w, bool raw = false) override;
