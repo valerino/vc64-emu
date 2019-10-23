@@ -37,6 +37,7 @@ int64_t totalCycles = 0;
 char *path = nullptr;
 bool joy2HackEnabled = false;
 int joyNum = 0;
+int64_t frames = 0;
 
 /**
  * shows banner
@@ -377,6 +378,7 @@ int main(int argc, char **argv) {
             // badlines (23 vs 63)
             int c = vic->update(totalCycles);
             cycles += c;
+
             // @fixme: this is wrong, cycles should be added .... but doing
             // it screws all (probably vic cycle counting is wrong)
             // totalCycles += c;
@@ -388,7 +390,10 @@ int main(int argc, char **argv) {
             cycleCounter -= cycles;
             if (cycleCounter <= 0) {
                 // draw a frame
+                frames++;
                 display->update();
+                // SDL_Log("totalCycles=%lld, frames=%lld", totalCycles,
+                // frames);
                 cycleCounter += cyclesPerFrame;
 
                 // poll events
@@ -410,6 +415,7 @@ int main(int argc, char **argv) {
             // BASIC interpreter, issue a load of our prg. this trigger only
             // once!
             if (totalCycles > 2570000 && path) {
+                // if (frames > 1150 && path) {
                 handlePrgLoading();
                 path = nullptr;
             }
@@ -418,9 +424,10 @@ int main(int argc, char **argv) {
 
     // calculate some statistics
     uint32_t endTime = SDL_GetTicks() - startTime;
-    printf("done, running for %02d:%02d:%02d, total CPU cycles=%lld\n",
+    printf("done, running for %02d:%02d:%02d, total CPU cycles=%lld, "
+           "frames=%lld\n",
            endTime / 1000 / 60 / 60, endTime / 1000 / 60, (endTime / 1000) % 60,
-           totalCycles);
+           totalCycles, frames);
 
     // done
     SAFE_DELETE(cia1)
