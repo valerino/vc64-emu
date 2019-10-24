@@ -158,15 +158,13 @@ void CVICII::checkSpriteSpriteCollision(int idx, int x, int y) {
                 // only the first collision triggers an irq
                 if (IS_BIT_SET(getInterruptEnabled(), 2)) {
                     BIT_SET(_regInterrupt, 2);
-                    BIT_SET(_regInterrupt, 7);
                     _cpu->irq();
+                } else {
+                    BIT_CLEAR(_regInterrupt, 2);
                 }
             }
             BIT_SET(_regSpriteSpriteCollision, i);
             BIT_SET(_regSpriteSpriteCollision, idx);
-
-        } else {
-            BIT_CLEAR(_regInterrupt, 2);
         }
     }
     return;
@@ -203,14 +201,12 @@ void CVICII::checkSpriteBackgroundCollision(int x, int y) {
                 // only the first collision triggers an irq
                 if (IS_BIT_SET(getInterruptEnabled(), 1)) {
                     BIT_SET(_regInterrupt, 1);
-                    BIT_SET(_regInterrupt, 7);
                     _cpu->irq();
+                } else {
+                    BIT_CLEAR(_regInterrupt, 1);
                 }
             }
             BIT_SET(_regSpriteBckCollision, i);
-
-        } else {
-            BIT_CLEAR(_regInterrupt, 1);
         }
     }
     return;
@@ -781,7 +777,6 @@ int CVICII::update(long cycleCount) {
             // trigger irq if bits in $d01a is set for the raster
             // interrupt
             BIT_SET(_regInterrupt, 0);
-            BIT_SET(_regInterrupt, 7);
             _cpu->irq();
         } else {
             BIT_CLEAR(_regInterrupt, 0);
@@ -868,15 +863,11 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
         *bt = getMemoryPointers();
         break;
 
-    case 0xd019:
-        // interrupt latch, clear on read
+    case 0xd019: {
+        // interrupt latch
         *bt = getInterruptLatch();
 
-        if (IS_BIT_SET(*bt, 7)) {
-            // IRQ bit is set, trigger an interrupt
-            _cpu->irq();
-            BIT_CLEAR(_regInterrupt, 7);
-        }
+        // clear on read
         if (IS_BIT_SET(*bt, 0)) {
             BIT_CLEAR(_regInterrupt, 0);
         }
@@ -889,7 +880,11 @@ void CVICII::read(uint16_t address, uint8_t *bt) {
         if (IS_BIT_SET(*bt, 3)) {
             BIT_CLEAR(_regInterrupt, 3);
         }
+        if (IS_BIT_SET(*bt, 7)) {
+            BIT_CLEAR(_regInterrupt, 7);
+        }
         break;
+    }
 
     case 0xd01a:
         // interrupt enable register
@@ -1129,7 +1124,12 @@ void CVICII::write(uint16_t address, uint8_t bt) {
 
     case 0xd019:
         // interrupt latch
-        _regInterrupt = bt;
+        if (bt) {
+            BIT_SET(_regInterrupt, 7);
+        }
+
+        // NAND
+        _regInterrupt &= ~bt;
         break;
 
     case 0xd01a:

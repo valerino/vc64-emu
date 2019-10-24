@@ -95,30 +95,26 @@ void CCIABase::read(uint16_t address, uint8_t *bt) {
 
     case 0x0d: {
         // ICR interrupt control
-        // @todo handle bits 2,3,4
+        *bt = _timerMask;
 
-        // timer irqs (A=bit0, B=bit1)
-        if (IS_BIT_SET(_timerMask, 0)) {
-            // timer a
-            // signal irq through bit 7
-            BIT_SET(_timerMask, 7);
-        }
-        if (IS_BIT_SET(_timerMask, 1)) {
-            // timer b
-            // signal irq through bit 7
-            BIT_SET(_timerMask, 7);
-        }
-
-        // unmask
-        _timerMask = ~_timerMask;
         // clear bits 5,6 always
+        // @todo handle bits 2,3,4
         BIT_CLEAR(_timerMask, 5);
         BIT_CLEAR(_timerMask, 6);
 
-        *bt = _timerMask;
-
-        // flags cleared on read
-        //_timerMask = 0;
+        // clear on read
+        if (IS_BIT_SET(_timerMask, 0)) {
+            BIT_CLEAR(_timerMask, 0);
+        }
+        if (IS_BIT_SET(_timerMask, 1)) {
+            BIT_CLEAR(_timerMask, 1);
+        }
+        if (IS_BIT_SET(_timerMask, 2)) {
+            BIT_CLEAR(_timerMask, 2);
+        }
+        if (IS_BIT_SET(_timerMask, 7)) {
+            BIT_CLEAR(_timerMask, 7);
+        }
         break;
     }
 
@@ -216,48 +212,23 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
 
     case 0x0d: {
         // ICR interrupt control
-        bool sSet = IS_BIT_SET(bt, 7);
         if (IS_BIT_SET(bt, 0)) {
-            if (sSet) {
-                BIT_SET(_timerMask, 0);
-            } else {
-                BIT_CLEAR(_timerMask, 0);
-            }
+            // timer a
+            // signal irq through bit 7
+            BIT_SET(_timerMask, 7);
         }
-
         if (IS_BIT_SET(bt, 1)) {
-            if (sSet) {
-                BIT_SET(_timerMask, 1);
-            } else {
-                BIT_CLEAR(_timerMask, 1);
-            }
+            // timer b
+            // signal irq through bit 7
+            BIT_SET(_timerMask, 7);
         }
-
         if (IS_BIT_SET(bt, 2)) {
-            if (sSet) {
-                BIT_SET(_timerMask, 2);
-            } else {
-                BIT_CLEAR(_timerMask, 3);
-            }
+            // TOD
+            // signal irq through bit 7
+            BIT_SET(_timerMask, 7);
         }
 
-        if (IS_BIT_SET(bt, 3)) {
-            if (sSet) {
-                BIT_SET(_timerMask, 3);
-            } else {
-                BIT_CLEAR(_timerMask, 3);
-            }
-        }
-
-        if (IS_BIT_SET(bt, 4)) {
-            if (sSet) {
-                BIT_SET(_timerMask, 4);
-            } else {
-                BIT_CLEAR(_timerMask, 4);
-            }
-        }
-
-        //_timerMask = bt;
+        _timerMask &= ~bt;
         break;
     }
     case 0x0e:
@@ -326,7 +297,7 @@ void CCIABase::write(uint16_t address, uint8_t bt) {
 
     // write to memory anyway
     // @fixme this is wrong
-    _cpu->memory()->writeByte(offset + _baseAddress, bt);
+    //_cpu->memory()->writeByte(offset + _baseAddress, bt);
 }
 
 /**
@@ -346,6 +317,7 @@ void CCIABase::handleTimerUnderflow(int timerType) {
         cr = _crA;
 
         if (IS_BIT_SET(_crA, 2)) {
+            // indicate underflow in port B bit 6
             BIT_TOGGLE(_prB, 6);
         } else {
             BIT_SET(_prB, 6);
@@ -357,6 +329,7 @@ void CCIABase::handleTimerUnderflow(int timerType) {
         cr = _crB;
 
         if (IS_BIT_SET(_crA, 2)) {
+            // indicate underflow in port B bit 7
             BIT_TOGGLE(_prB, 7);
         } else {
             BIT_SET(_prB, 7);

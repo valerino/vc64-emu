@@ -158,7 +158,6 @@ class CVICII {
     CPLA *_pla = nullptr;
     bool _sprSprHwCollisionEnabled = true;
     bool _sprBckHwCollisionEnabled = true;
-
     uint16_t handleShadowAddress(uint16_t address);
 
     bool isSpriteEnabled(int idx);
