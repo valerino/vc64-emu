@@ -9,7 +9,10 @@ my attempt at a portable Commodore64 emulator.
 * needs [BIOS files](./bios/README_bios.md)
 * targets PAL c64
 
-#### build
+### emushared (helper library)
+just generic helpers, if i plan to write other emulators
+
+## build
 ~~~bash
 # outputs build/vc-64
 mkdir build
@@ -18,7 +21,7 @@ cmake ..
 make
 ~~~
 
-#### usage
+## usage
 ~~~
 vc64 - a c64 emulator
         (c)opyleft, valerino, y2k19
@@ -33,16 +36,16 @@ usage: ./vc64-emu -f <file> [-dsh]
         -h: this help
 ~~~
 
-### STATUS
+## STATUS
 lot of stuff broken and partially implemented, many bugs.
 
 follow my twitter https://twitter.com/valerino for updates, i usually post there about the development.
-
-### emushared (helper library)
-just generic helpers, if i plan to write other emulators
 
 ## references
 * https://www.c64-wiki.com
 * https://www.ktverkko.fi/~msmakela/8bit/cbm.html (display)
 * https://www.c64-wiki.com/wiki/Memory_Map
 * http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt (vic)
+
+## Presentation at OUAS19 - Once Upon a Sprite, Milan, 26/10/2019
+https://drive.google.com/open?id=1eG1gMYYNwa8CZyks_--0jkTqO06pdEii
