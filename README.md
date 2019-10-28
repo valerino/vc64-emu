@@ -1,20 +1,20 @@
 # vc64-emu
 my attempt at a portable Commodore64 emulator.
 
-## current status
-### v65xx (cpu emulator)
-[README](./v65xx/README.md)
-
-### vc64 (the actual emulator)
-* needs [BIOS files](./bios/README_bios.md)
-* targets PAL c64
-
-### emushared (helper library)
-just generic helpers, if i plan to write other emulators
-
 ## build
 ~~~bash
-# outputs build/vc-64
+git clone https://github.com/valerino/vc64-emu
+cd vc64-emu
+
+# clone also the following repos
+# (no submodules on purpose, they're evil and just add complexity, period.)
+git clone https://github.com/valerino/emushared
+git clone https://github.com/valerino/v65xx
+
+# cd into emushared, follow build instructions in its README.md (including setting up environment variables)
+# then cd into v65xx and do the same (yep, maybe i will add a buildscript....)
+
+# get back to vc64-emu folder and build, outputs build/vc-64 executable
 mkdir build
 cd build
 cmake ..
