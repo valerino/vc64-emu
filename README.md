@@ -3,6 +3,11 @@ my attempt at a portable Commodore64 emulator.
 
 ## build
 ~~~bash
+# be sure to install sdl2 first
+# brew install sdl2 (macos)
+# sudo apt install sdl2-dev (linux/debian)
+# and so on ....
+
 # clone this repo
 git clone https://github.com/valerino/vc64-emu
 cd vc64-emu

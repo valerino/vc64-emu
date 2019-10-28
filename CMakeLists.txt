@@ -46,4 +46,4 @@ target_link_libraries(${PROJECT_NAME}
 file(COPY bios DESTINATION ${CMAKE_BINARY_DIR})
 
 # also the cpu test binaries
-file(COPY test DESTINATION ${CMAKE_BINARY_DIR})
+file(COPY v65xx/test DESTINATION ${CMAKE_BINARY_DIR})
