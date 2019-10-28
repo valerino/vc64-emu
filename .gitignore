@@ -2,6 +2,7 @@ cmake-build-*
 build
 tags
 .DS_Store
+.vscode
 
 #repo specific
 bios/*.bin
