@@ -3,7 +3,11 @@ build
 tags
 .DS_Store
 .vscode
+*.code-workspace
 
 #repo specific
 bios/*.bin
 test/**
+emushared
+v65xx
+
