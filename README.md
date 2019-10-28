@@ -3,6 +3,7 @@ my attempt at a portable Commodore64 emulator.
 
 ## build
 ~~~bash
+# clone this repo
 git clone https://github.com/valerino/vc64-emu
 cd vc64-emu
 
@@ -12,13 +13,22 @@ git clone https://github.com/valerino/emushared
 git clone https://github.com/valerino/v65xx
 
 # cd into emushared, follow build instructions in its README.md (including setting up environment variables)
-# then cd into v65xx and do the same (yep, maybe i will add a buildscript....)
-
-# get back to vc64-emu folder and build, outputs build/vc-64 executable
+# then cd into v65xx and repeat the process
+# finally, get back to vc64-emu folder and build, outputs build/vc-64 executable
 mkdir build
 cd build
 cmake ..
 make
+
+# alternatively, you can use the provided buildscript right after cloning all of the repositories:
+# perform default (release) build
+#./build.sh 
+# or alternatively build the debug version
+# ./build.sh debug
+# or alternatively cleanup the build
+# ./build.sh clean
+# or alternatively pull remote changes
+# ./build.sh update
 ~~~
 
 ## usage
